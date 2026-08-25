@@ -23,7 +23,7 @@ import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/rooms/{roomId}/split-groups")
+@RequestMapping("/api/rooms/{roomId}/split-groups")
 // 정산 그룹의 생성·조회·수정·삭제 API를 제공한다.
 public class SplitGroupController {
 
