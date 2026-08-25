@@ -1,0 +1,7 @@
+interface:
+  display_name: "이슈 및 브랜치 생성"
+  short_description: "GitHub 이슈와 연결 브랜치를 안전하게 생성"
+  default_prompt: "$create-issue-branch를 사용해 이 작업의 feat BE 이슈와 연결 브랜치를 생성해 주세요."
+
+policy:
+  allow_implicit_invocation: false
