@@ -11,10 +11,11 @@ import com.example.oide.settlement.domain.SettlementMemberResult;
 
 public interface SettlementMemberResultRepository extends JpaRepository<SettlementMemberResult, Long> {
 
-	List<SettlementMemberResult> findAllBySettlementIdOrderByMemberDisplayOrderAsc(Long settlementId);
+	@Query("select result from SettlementMemberResult result "
+			+ "where result.settlement.id = :settlementId order by result.member.displayOrder")
+	List<SettlementMemberResult> findAllBySettlementIdOrderByMemberOrder(@Param("settlementId") Long settlementId);
 
 	@Modifying
 	@Query("delete from SettlementMemberResult result where result.settlement.id = :settlementId")
 	void deleteAllBySettlementId(@Param("settlementId") Long settlementId);
 }
-

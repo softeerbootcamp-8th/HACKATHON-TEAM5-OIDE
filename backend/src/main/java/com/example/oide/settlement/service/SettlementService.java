@@ -18,7 +18,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.example.oide.global.exception.BusinessException;
 import com.example.oide.global.exception.ErrorCode;
-import com.example.oide.global.exception.SettlementValidationException;
 import com.example.oide.payment.domain.Payment;
 import com.example.oide.payment.domain.PaymentShare;
 import com.example.oide.payment.repository.PaymentRepository;
@@ -89,7 +88,7 @@ public class SettlementService {
 		Map<String, ResolvedRate> manualRates = getManualRates(room, request, getCurrencies(payments));
 		SettlementPreviewResponse preview = createPreview(room, payments, manualRates, automaticRates);
 		if (!preview.settlementAvailable()) {
-			throw new SettlementValidationException(preview.invalidPaymentIds(), preview.missingCurrencies());
+			throw new BusinessException(ErrorCode.SETTLEMENT_VALIDATION_FAILED);
 		}
 
 		LocalDateTime calculatedAt = LocalDateTime.now();
@@ -140,7 +139,7 @@ public class SettlementService {
 						rate.getQuotedAt(), false))
 				.toList();
 		List<SettlementPreviewResponse.MemberResultResponse> memberResults = settlementMemberResultRepository
-				.findAllBySettlementIdOrderByMemberDisplayOrderAsc(settlement.getId()).stream()
+				.findAllBySettlementIdOrderByMemberOrder(settlement.getId()).stream()
 				.map(result -> new SettlementPreviewResponse.MemberResultResponse(
 						result.getMember().getId(), result.getMember().getNickname(), result.getPaidKrw(),
 						result.getOwedKrw(), result.getPaidKrw() - result.getOwedKrw()))
@@ -411,4 +410,3 @@ public class SettlementService {
 		}
 	}
 }
-
