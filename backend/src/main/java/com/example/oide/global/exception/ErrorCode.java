@@ -25,7 +25,11 @@ public enum ErrorCode {
 	// Group
 	GROUP_NOT_FOUND(HttpStatus.NOT_FOUND, "GROUP_001", "분담 그룹을 찾을 수 없습니다."),
 	ALL_GROUP_IMMUTABLE(HttpStatus.BAD_REQUEST, "GROUP_002", "전체 그룹은 수정하거나 삭제할 수 없습니다."),
-	INVALID_GROUP_MEMBER_COUNT(HttpStatus.BAD_REQUEST, "GROUP_003", "그룹은 두 명 이상의 참여자로 구성해야 합니다.");
+	INVALID_GROUP_MEMBER_COUNT(HttpStatus.BAD_REQUEST, "GROUP_003", "그룹은 두 명 이상의 참여자로 구성해야 합니다."),
+
+	// Settlement
+	SETTLEMENT_VALIDATION_FAILED(HttpStatus.BAD_REQUEST, "SETTLEMENT_001", "정산을 완료할 수 없습니다."),
+	SETTLEMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "SETTLEMENT_002", "확정된 정산 결과가 없습니다.");
 
 	private final HttpStatus status;
 	private final String code;

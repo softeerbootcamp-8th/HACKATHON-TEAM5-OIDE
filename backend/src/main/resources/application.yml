@@ -8,3 +8,7 @@ spring:
     hibernate:
       ddl-auto: create
     open-in-view: false
+
+exim:
+  base-url: ${EXIM_BASE_URL:https://oapi.koreaexim.go.kr/site/program/financial/exchangeJSON}
+  api-key: ${EXIM_API_KEY:}

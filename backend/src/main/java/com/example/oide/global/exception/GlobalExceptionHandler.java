@@ -15,6 +15,13 @@ public class GlobalExceptionHandler {
 		return createResponse(exception.getErrorCode());
 	}
 
+	@ExceptionHandler(SettlementValidationException.class)
+	public ResponseEntity<SettlementValidationErrorResponse> handleSettlementValidationException(
+			SettlementValidationException exception) {
+		return ResponseEntity.status(exception.getErrorCode().getStatus())
+				.body(SettlementValidationErrorResponse.from(exception));
+	}
+
 	@ExceptionHandler(MethodArgumentNotValidException.class)
 	public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException exception) {
 		return createResponse(ErrorCode.INVALID_REQUEST);
