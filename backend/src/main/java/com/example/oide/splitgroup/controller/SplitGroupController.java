@@ -14,7 +14,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.oide.splitgroup.dto.CreateSplitGroupRequest;
+import com.example.oide.splitgroup.dto.SplitGroupDetailResponse;
 import com.example.oide.splitgroup.dto.SplitGroupResponse;
+import com.example.oide.splitgroup.dto.UpdateGroupPaymentsRequest;
 import com.example.oide.splitgroup.dto.UpdateSplitGroupRequest;
 import com.example.oide.splitgroup.service.SplitGroupService;
 
@@ -24,7 +26,7 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/rooms/{roomId}/split-groups")
-// 정산 그룹의 생성·조회·수정·삭제 API를 제공한다.
+// 정산 그룹과 그룹별 결제 선택 API를 제공한다.
 public class SplitGroupController {
 
 	private final SplitGroupService splitGroupService;
@@ -45,6 +47,14 @@ public class SplitGroupController {
 		return ResponseEntity.ok(splitGroupService.findAll(roomId));
 	}
 
+	// 그룹 구성원과 결제 선택 상태를 상세 조회한다.
+	@GetMapping("/{groupId}")
+	public ResponseEntity<SplitGroupDetailResponse> findDetail(
+			@PathVariable Long roomId, @PathVariable Long groupId) {
+		// 그룹 상세 화면에 필요한 그룹 정보와 결제 선택 상태를 함께 반환한다.
+		return ResponseEntity.ok(splitGroupService.findDetail(roomId, groupId));
+	}
+
 	// 사용자 지정 그룹명과 구성원을 수정한다.
 	@PutMapping("/{groupId}")
 	public ResponseEntity<SplitGroupResponse> update(
@@ -53,6 +63,17 @@ public class SplitGroupController {
 			@Valid @RequestBody UpdateSplitGroupRequest request) {
 		// URL의 정산방·그룹 식별자와 변경 데이터를 서비스에 전달한다.
 		return ResponseEntity.ok(splitGroupService.update(roomId, groupId, request));
+	}
+
+	// 그룹 완료 시 선택한 결제 목록을 저장한다.
+	@PutMapping("/{groupId}/payments")
+	public ResponseEntity<Void> updatePayments(
+			@PathVariable Long roomId,
+			@PathVariable Long groupId,
+			@Valid @RequestBody UpdateGroupPaymentsRequest request) {
+		// 선택 결과를 저장한 뒤 응답 본문 없이 완료 상태만 반환한다.
+		splitGroupService.updatePayments(roomId, groupId, request);
+		return ResponseEntity.noContent().build();
 	}
 
 	// 사용자 지정 그룹을 삭제한다.
