@@ -20,6 +20,7 @@ import {
 } from '../constants/routes';
 import { useAsync } from '../hooks/useAsync';
 import { useLocalIdentity } from '../hooks/useLocalIdentity';
+import { setPaymentSplit } from '../services/paymentService';
 import { getRoomByShareCode } from '../services/roomService';
 import { deleteSplitGroup, getSplitGroupOverview } from '../services/splitGroupService';
 import { isApiError } from '../types/api';
@@ -56,6 +57,7 @@ export function SplitGroupListPage() {
 
   const { status, data, error, retry } = useAsync(load, [shareCode]);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [completing, setCompleting] = useState(false);
 
   if (status === 'error' && error?.code === 'ROOM_EXPIRED') {
     return <RoomExpiredPage />;
@@ -92,10 +94,29 @@ export function SplitGroupListPage() {
     }
   };
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
     const unassigned = targetPayments.filter((payment) => payment.splitGroupId === null);
-    // 어디에도 담기지 않은 항목은 `전체` 그룹으로 자동 귀속된다. 막지 않고 알리기만 한다.
-    navigate(unassigned.length > 0 ? splitUnassignedPath(shareCode) : settlementStartPath(shareCode));
+    const defaultEqualPayments = targetPayments.filter(
+      (payment) => payment.splitGroupId !== null && payment.splitMethod === null,
+    );
+
+    setCompleting(true);
+    setActionError(null);
+    try {
+      await Promise.all(
+        defaultEqualPayments.map((payment) =>
+          setPaymentSplit(shareCode, payment.id, 'EQUAL', []),
+        ),
+      );
+      navigate(
+        unassigned.length > 0
+          ? splitUnassignedPath(shareCode)
+          : settlementStartPath(shareCode),
+      );
+    } catch (caught) {
+      setActionError(isApiError(caught) ? caught.message : 'N빵 금액을 저장하지 못했어요.');
+      setCompleting(false);
+    }
   };
 
   return (
@@ -169,7 +190,13 @@ export function SplitGroupListPage() {
 
           <BottomActionBar>
             {actionError && <Banner message={actionError} />}
-            <Button onClick={handleComplete}>환율 적용하기</Button>
+            <Button
+              loading={completing}
+              loadingLabel="N빵을 저장하고 있어요…"
+              onClick={handleComplete}
+            >
+              환율 적용하기
+            </Button>
           </BottomActionBar>
         </>
       )}

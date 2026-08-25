@@ -22,7 +22,11 @@ import type { Payment, PaymentShare, SplitGroup, SplitMethod } from '../types/pa
 import type { SettlementRoom } from '../types/room';
 import { formatAmount, formatDayTime, sanitizeAmountInput } from '../utils/formatters';
 import { withEunNeun, withIGa } from '../utils/koreanParticle';
-import { calculateEqualSplit, sumShares } from '../utils/splitCalculation';
+import {
+  calculateEqualSplit,
+  isCustomSplitBalanced,
+  sumShares,
+} from '../utils/splitCalculation';
 import { RoomExpiredPage } from './RoomExpiredPage';
 import styles from './PaymentSplitPage.module.css';
 
@@ -87,8 +91,8 @@ export function PaymentSplitPage() {
   const fractionDigits = findCurrency(currency).fractionDigits;
 
   const equal = useMemo(
-    () => calculateEqualSplit(amount, members, payment?.payerMemberId ?? ''),
-    [amount, members, payment],
+    () => calculateEqualSplit(amount, members, payment?.payerMemberId ?? '', fractionDigits),
+    [amount, members, payment, fractionDigits],
   );
 
   if (status === 'error' && error?.code === 'ROOM_EXPIRED') {
@@ -113,9 +117,9 @@ export function PaymentSplitPage() {
     savedCustomShares ??
     Object.fromEntries(equal.shares.map((share) => [share.memberId, String(share.amount)]));
 
-  const customTotal = sumShares(shareValues);
-  const difference = amount - customTotal;
-  const balanced = difference === 0;
+  const customTotal = sumShares(shareValues, fractionDigits);
+  const difference = Number((amount - customTotal).toFixed(fractionDigits));
+  const balanced = isCustomSplitBalanced(amount, shareValues, fractionDigits);
 
   const canSubmit = effectiveMethod === 'EQUAL' || balanced;
 
