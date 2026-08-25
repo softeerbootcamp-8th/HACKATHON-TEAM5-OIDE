@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import com.example.oide.global.currency.SupportedCurrency;
 import com.example.oide.room.domain.RoomMember;
 import com.example.oide.room.domain.SettlementRoom;
 import com.example.oide.splitgroup.domain.SplitGroup;
@@ -54,8 +55,9 @@ public class Payment {
 	@Column(nullable = false, precision = 19, scale = 4)
 	private BigDecimal amount;
 
+	@Enumerated(EnumType.STRING)
 	@Column(nullable = false, length = 3)
-	private String currency;
+	private SupportedCurrency currency;
 
 	@Enumerated(EnumType.STRING)
 	@Column(name = "split_method", length = 20)
@@ -79,7 +81,7 @@ public class Payment {
 			String merchant,
 			LocalDateTime paidAt,
 			BigDecimal amount,
-			String currency,
+			SupportedCurrency currency,
 			SplitMethod splitMethod) {
 		this.room = room;
 		this.payer = payer;

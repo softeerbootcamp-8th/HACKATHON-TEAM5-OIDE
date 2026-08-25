@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.oide.global.currency.SupportedCurrency;
 import com.example.oide.payment.domain.Payment;
 import com.example.oide.payment.domain.PaymentShare;
 import com.example.oide.payment.domain.SplitMethod;
@@ -54,20 +55,20 @@ class SettlementServiceTest {
 
 	@Test
 	void confirmsMixedCurrencySettlementWithBalancedTransfers() {
-		SettlementRoom room = roomRepository.save(new SettlementRoom("code", "여행", "KRW"));
+		SettlementRoom room = roomRepository.save(new SettlementRoom("code", "여행", SupportedCurrency.KRW));
 		RoomMember memberA = roomMemberRepository.save(new RoomMember(room, "A", 1));
 		RoomMember memberB = roomMemberRepository.save(new RoomMember(room, "B", 2));
 		SplitGroup group = splitGroupRepository.save(new SplitGroup(room, "전체", SplitGroupType.ALL));
 
 		Payment dinner = paymentRepository.save(new Payment(
-				room, memberA, "저녁", LocalDateTime.now(), new BigDecimal("15"), "USD", SplitMethod.EQUAL));
+				room, memberA, "저녁", LocalDateTime.now(), new BigDecimal("15"), SupportedCurrency.USD, SplitMethod.EQUAL));
 		dinner.assignGroup(group);
 		paymentShareRepository.saveAll(List.of(
 				new PaymentShare(dinner, memberA, new BigDecimal("10")),
 				new PaymentShare(dinner, memberB, new BigDecimal("5"))));
 
 		Payment transport = paymentRepository.save(new Payment(
-				room, memberB, "교통", LocalDateTime.now(), new BigDecimal("1000"), "JPY", SplitMethod.EQUAL));
+				room, memberB, "교통", LocalDateTime.now(), new BigDecimal("1000"), SupportedCurrency.JPY, SplitMethod.EQUAL));
 		transport.assignGroup(group);
 		paymentShareRepository.saveAll(List.of(
 				new PaymentShare(transport, memberA, new BigDecimal("333")),
@@ -87,4 +88,3 @@ class SettlementServiceTest {
 		assertThat(settlementRepository.findByRoomId(room.getId())).isPresent();
 	}
 }
-

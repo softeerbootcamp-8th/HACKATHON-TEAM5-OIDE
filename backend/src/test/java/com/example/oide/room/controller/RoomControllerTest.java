@@ -20,6 +20,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import com.example.oide.global.currency.SupportedCurrency;
 import com.example.oide.global.exception.BusinessException;
 import com.example.oide.global.exception.ErrorCode;
 import com.example.oide.global.exception.GlobalExceptionHandler;
@@ -52,7 +53,7 @@ class RoomControllerTest {
 	void createsRoomAndReturnsCreated() throws Exception {
 		RoomResponse response =
 				new RoomResponse(
-						1L, "abc123", "여행 정산", "KRW", List.of(new RoomMemberResponse(1L, "민수", 0)));
+						1L, "abc123", "여행 정산", SupportedCurrency.KRW, List.of(new RoomMemberResponse(1L, "민수", 0)));
 		given(roomService.createRoom(any())).willReturn(response);
 
 		RoomCreateRequest request = new RoomCreateRequest("여행 정산", List.of("민수", "영희"));
@@ -87,7 +88,7 @@ class RoomControllerTest {
 	@Test
 	@DisplayName("shareCode로 조회하면 200과 함께 방 정보를 반환한다")
 	void returnsRoomByShareCode() throws Exception {
-		RoomResponse response = new RoomResponse(1L, "abc123", "여행 정산", "KRW", List.of());
+		RoomResponse response = new RoomResponse(1L, "abc123", "여행 정산", SupportedCurrency.KRW, List.of());
 		given(roomService.getRoomByShareCode(eq("abc123"))).willReturn(response);
 
 		mockMvc
