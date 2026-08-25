@@ -20,7 +20,7 @@ public record PaymentRegisterRequest(
 		@Size(max = 255) String merchant,
 		LocalDateTime paidAt,
 		@NotNull @Positive BigDecimal amount,
-		@NotNull @Size(min = 3, max = 3) String currency) {
+		String currency) {
 
 	public PaymentRegistration toRegistration() {
 		return new PaymentRegistration(payerMemberId, merchant, paidAt, amount, currency);

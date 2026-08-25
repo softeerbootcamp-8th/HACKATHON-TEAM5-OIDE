@@ -16,6 +16,7 @@ import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.oide.global.currency.SupportedCurrency;
 import com.example.oide.global.exception.BusinessException;
 import com.example.oide.global.exception.ErrorCode;
 import com.example.oide.payment.domain.Payment;
@@ -104,7 +105,7 @@ public class SettlementService {
 		settlementRateRepository.saveAll(usedRates.values().stream()
 				.map(rate -> new SettlementRate(
 						settlement,
-						rate.currency(),
+						SupportedCurrency.from(rate.currency()),
 						rate.rateToKrw(),
 						rate.source(),
 						rate.effectiveDate(),
@@ -135,7 +136,7 @@ public class SettlementService {
 		List<SettlementPreviewResponse.RateResponse> rates = settlementRateRepository
 				.findAllBySettlementIdOrderByCurrencyAsc(settlement.getId()).stream()
 				.map(rate -> new SettlementPreviewResponse.RateResponse(
-						rate.getCurrency(), rate.getRateToKrw(), rate.getRateSource(), rate.getEffectiveDate(),
+						rate.getCurrency().name(), rate.getRateToKrw(), rate.getRateSource(), rate.getEffectiveDate(),
 						rate.getQuotedAt(), false))
 				.toList();
 		List<SettlementPreviewResponse.MemberResultResponse> memberResults = settlementMemberResultRepository
@@ -202,7 +203,7 @@ public class SettlementService {
 		});
 
 		for (Payment payment : payments) {
-			ResolvedRate rate = rates.get(payment.getCurrency());
+			ResolvedRate rate = rates.get(payment.getCurrency().name());
 			long paymentAmountKrw = toWholeWon(payment.getAmount().multiply(rate.rateToKrw()), RoundingMode.HALF_UP);
 			paidAmounts.merge(payment.getPayer().getId(), paymentAmountKrw, Long::sum);
 			allocatePaymentShares(payment, rate.rateToKrw(), paymentAmountKrw, owedAmounts);
@@ -336,7 +337,8 @@ public class SettlementService {
 	}
 
 	private Set<String> getCurrencies(List<Payment> payments) {
-		return payments.stream().map(Payment::getCurrency).collect(java.util.stream.Collectors.toSet());
+		return payments.stream().map(payment -> payment.getCurrency().name())
+				.collect(java.util.stream.Collectors.toSet());
 	}
 
 	private SettlementPreviewResponse.RateResponse toRateResponse(String currency, ResolvedRate rate) {

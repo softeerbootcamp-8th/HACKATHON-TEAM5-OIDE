@@ -9,6 +9,7 @@ import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.oide.global.currency.SupportedCurrency;
 import com.example.oide.global.exception.BusinessException;
 import com.example.oide.global.exception.ErrorCode;
 import com.example.oide.global.util.RoomExpirationValidator;
@@ -30,7 +31,7 @@ import lombok.RequiredArgsConstructor;
 public class RoomService {
 
 	// 방 생성 시 통화 선택 UI가 없어 KRW로 고정한다(#18 코멘트 결정 사항).
-	private static final String DEFAULT_CURRENCY = "KRW";
+	private static final SupportedCurrency DEFAULT_CURRENCY = SupportedCurrency.KRW;
 	private static final int MAX_TITLE_LENGTH = 10;
 	private static final int MIN_MEMBER_COUNT = 2;
 	private static final int MAX_NICKNAME_LENGTH = 10;

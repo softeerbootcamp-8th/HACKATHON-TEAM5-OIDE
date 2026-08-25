@@ -4,12 +4,12 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.oide.global.currency.SupportedCurrency;
 import com.example.oide.global.exception.BusinessException;
 import com.example.oide.global.exception.ErrorCode;
 import com.example.oide.payment.domain.Payment;
@@ -33,8 +33,6 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class PaymentCommandService {
-
-	private static final Pattern CURRENCY_CODE = Pattern.compile("[A-Z]{3}");
 
 	private final PaymentRepository paymentRepository;
 	private final RoomMemberRepository roomMemberRepository;
@@ -74,10 +72,7 @@ public class PaymentCommandService {
 		if (amount == null || amount.signum() <= 0) {
 			throw new BusinessException(ErrorCode.INVALID_PAYMENT_AMOUNT);
 		}
-		String currency = registration.currency();
-		if (currency == null || !CURRENCY_CODE.matcher(currency.toUpperCase()).matches()) {
-			throw new BusinessException(ErrorCode.INVALID_CURRENCY);
-		}
+		SupportedCurrency currency = SupportedCurrency.from(registration.currency());
 		String merchant = registration.merchant() == null ? null : registration.merchant().trim();
 
 		return new Payment(
@@ -86,7 +81,7 @@ public class PaymentCommandService {
 				(merchant == null || merchant.isEmpty()) ? null : merchant,
 				registration.paidAt(),
 				amount,
-				currency.toUpperCase(),
+				currency,
 				null);
 	}
 }

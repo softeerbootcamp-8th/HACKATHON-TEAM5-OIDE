@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.oide.global.currency.SupportedCurrency;
 import com.example.oide.global.exception.BusinessException;
 import com.example.oide.global.exception.ErrorCode;
 import com.example.oide.room.domain.RoomMember;
@@ -48,7 +49,7 @@ class SplitGroupServiceTest {
 
 	@BeforeEach
 	void setUp() {
-		room = roomRepository.save(new SettlementRoom("test-code", "테스트 방", "KRW"));
+		room = roomRepository.save(new SettlementRoom("test-code", "테스트 방", SupportedCurrency.KRW));
 		firstMember = roomMemberRepository.save(new RoomMember(room, "첫째", 1));
 		secondMember = roomMemberRepository.save(new RoomMember(room, "둘째", 2));
 		thirdMember = roomMemberRepository.save(new RoomMember(room, "셋째", 3));

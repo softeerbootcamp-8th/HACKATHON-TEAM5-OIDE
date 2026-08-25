@@ -4,8 +4,12 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+import com.example.oide.global.currency.SupportedCurrency;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -34,8 +38,9 @@ public class SettlementRate {
 	@JoinColumn(name = "settlement_id", nullable = false)
 	private Settlement settlement;
 
+	@Enumerated(EnumType.STRING)
 	@Column(nullable = false, length = 3)
-	private String currency;
+	private SupportedCurrency currency;
 
 	@Column(name = "rate_to_krw", nullable = false)
 	private BigDecimal rateToKrw;
@@ -51,7 +56,7 @@ public class SettlementRate {
 
 	public SettlementRate(
 			Settlement settlement,
-			String currency,
+			SupportedCurrency currency,
 			BigDecimal rateToKrw,
 			String rateSource,
 			LocalDate effectiveDate,
