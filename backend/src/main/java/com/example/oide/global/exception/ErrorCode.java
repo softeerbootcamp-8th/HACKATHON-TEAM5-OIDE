@@ -26,6 +26,10 @@ public enum ErrorCode {
 	PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "PAYMENT_001", "결제 내역을 찾을 수 없습니다."),
 	PAYMENT_ALREADY_ASSIGNED(HttpStatus.BAD_REQUEST, "PAYMENT_002", "이미 다른 그룹에 지정된 결제 내역입니다."),
 	INVALID_PAYMENT_SELECTION(HttpStatus.BAD_REQUEST, "PAYMENT_003", "결제 내역은 중복해서 선택할 수 없습니다."),
+	PAYMENT_GROUP_REQUIRED(HttpStatus.BAD_REQUEST, "PAYMENT_004", "먼저 결제를 그룹에 선택해 주세요."),
+	INVALID_SHARE_MEMBERS(HttpStatus.BAD_REQUEST, "PAYMENT_005", "분담 참여자가 그룹 구성원과 일치하지 않습니다."),
+	INVALID_SHARE_AMOUNT(HttpStatus.BAD_REQUEST, "PAYMENT_006", "분담 금액은 0 이상이어야 합니다."),
+	UNBALANCED_PAYMENT_SHARE(HttpStatus.BAD_REQUEST, "PAYMENT_007", "분담 금액 합계가 결제 금액과 다릅니다."),
 
 	// Group
 	GROUP_NOT_FOUND(HttpStatus.NOT_FOUND, "GROUP_001", "분담 그룹을 찾을 수 없습니다."),
