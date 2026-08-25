@@ -8,3 +8,16 @@ spring:
     hibernate:
       ddl-auto: create
     open-in-view: false
+
+oide:
+  gemini:
+    # 서버 환경변수로 주입한다. 비어 있으면 GeminiConfig가 기동을 중단한다.
+    api-key: ${GEMINI_API_KEY:}
+    model: gemini-3.5-flash-lite
+    # 스크린샷의 작은 회색 글씨(시각, 잔액)를 읽어야 해서 HIGH에서 시작한다.
+    # 장당 1120토큰이며, 골든 데이터셋 정확도를 보고 MEDIUM(560토큰)까지 낮춰본다.
+    media-resolution: MEDIA_RESOLUTION_HIGH
+    # 이 작업에는 추론이 필요 없다. flash-lite 기본값과 같지만 의존하지 않고 명시한다.
+    thinking-level: minimal
+    timeout: 60s
+    max-retries: 2

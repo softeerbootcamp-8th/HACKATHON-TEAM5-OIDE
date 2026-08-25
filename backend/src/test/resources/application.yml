@@ -8,3 +8,8 @@ spring:
     database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
       ddl-auto: create-drop
+
+oide:
+  gemini:
+    # 추출기 빈은 키가 있어야 등록된다. 테스트는 실제 호출을 하지 않으므로 형식만 채운다.
+    api-key: test-api-key
