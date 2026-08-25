@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
 import { Avatar } from '../components/common/Avatar';
 import { ErrorState } from '../components/common/ErrorState';
@@ -7,8 +8,11 @@ import { MobileFrame } from '../components/layout/MobileFrame';
 import { ScreenBody } from '../components/layout/ScreenBody';
 import { ALL_GROUP_NAME } from '../constants/roomRules';
 import { joinRoomPath, transferListPath } from '../constants/routes';
+import { useAsync } from '../hooks/useAsync';
 import { useLocalIdentity } from '../hooks/useLocalIdentity';
-import { useSettlement } from '../hooks/useSettlement';
+import { getPaymentShares, getPayments } from '../services/paymentService';
+import { getConfirmedSettlement } from '../services/settlementService';
+import { getSplitGroupOverview } from '../services/splitGroupService';
 import type { Payment } from '../types/payment';
 import { formatAmount } from '../utils/formatters';
 import { formatKrw } from '../utils/krw';
@@ -25,7 +29,30 @@ import styles from './TransferDetailPage.module.css';
 export function TransferDetailPage() {
   const { shareCode = '', index = '0' } = useParams<{ shareCode: string; index: string }>();
   const { identity } = useLocalIdentity(shareCode);
-  const { status, data, error, retry } = useSettlement(shareCode);
+  const load = useCallback(async () => {
+    const [settlement, overview, paymentList] = await Promise.all([
+      getConfirmedSettlement(shareCode),
+      getSplitGroupOverview(shareCode),
+      getPayments(shareCode),
+    ]);
+    const groupIdByPaymentId = new Map(
+      overview.payments.map((payment) => [payment.id, payment.splitGroupId]),
+    );
+    const payments = paymentList.map((payment) => ({
+      ...payment,
+      splitGroupId: groupIdByPaymentId.get(payment.id) ?? null,
+    }));
+    const shareLists = await Promise.all(
+      payments.map((payment) => getPaymentShares(shareCode, payment.id)),
+    );
+    return {
+      settlement,
+      groups: overview.groups,
+      payments,
+      shares: shareLists.flat(),
+    };
+  }, [shareCode]);
+  const { status, data, error, retry } = useAsync(load, [shareCode]);
 
   if (status === 'error' && error?.code === 'ROOM_EXPIRED') {
     return <RoomExpiredPage />;
@@ -34,18 +61,19 @@ export function TransferDetailPage() {
     return <Navigate to={joinRoomPath(shareCode)} replace />;
   }
 
-  const transfer = data?.result.transfers[Number(index)];
+  const transfer = data?.settlement.transfers[Number(index)];
   if (status === 'success' && !transfer) {
     return <Navigate to={transferListPath(shareCode)} replace />;
   }
 
-  const sender = data?.result.members.find(
+  const sender = data?.settlement.members.find(
     (member) => member.memberId === transfer?.senderMemberId,
   );
 
   const groupNameOf = (payment: Payment): string => {
     const group = data?.groups.find((item) => item.id === payment.splitGroupId);
-    if (!group) return `${ALL_GROUP_NAME} ${data?.allGroup?.memberIds.length ?? 0}명`;
+    const allGroup = data?.groups.find((item) => item.type === 'ALL');
+    if (!group) return `${ALL_GROUP_NAME} ${allGroup?.memberIds.length ?? 0}명`;
     return group.type === 'ALL' ? `${group.name} ${group.memberIds.length}명` : group.name;
   };
 
@@ -53,17 +81,22 @@ export function TransferDetailPage() {
     data && transfer
       ? findMemberBreakdown({
           memberId: transfer.senderMemberId,
-          payments: data.targetPayments,
+          payments: data.payments,
           shares: data.shares,
-          rates: data.rateTable,
-          fallbackMemberIds: data.allGroup?.memberIds ?? [],
+          rates: Object.fromEntries(
+            data.settlement.rates
+              .filter((rate) => rate.rateToKrw !== null)
+              .map((rate) => [rate.currency, Number(rate.rateToKrw)]),
+          ),
+          fallbackMemberIds:
+            data.groups.find((group) => group.type === 'ALL')?.memberIds ?? [],
           groupNameOf,
         })
       : [];
 
   // 보내는 사람이 결제자로 등록한 내역. 외화 원문도 함께 보여준다.
   const paidPayments =
-    data?.targetPayments.filter((payment) => payment.payerMemberId === transfer?.senderMemberId) ??
+    data?.payments.filter((payment) => payment.payerMemberId === transfer?.senderMemberId) ??
     [];
   const paidForeign = paidPayments
     .filter((payment) => payment.currency !== 'KRW')
@@ -114,7 +147,7 @@ export function TransferDetailPage() {
                 <span className={styles.figureStrong}>
                   <span className={styles.strongValue}>{formatKrw(transfer.amountKrw)}</span>
                   <span className={styles.strongTotal}>
-                    / {formatKrw(sender.payableKrw)} 중
+                    / {formatKrw(Math.max(-sender.netKrw, 0))} 중
                   </span>
                 </span>
               </div>
@@ -141,4 +174,3 @@ export function TransferDetailPage() {
     </MobileFrame>
   );
 }
-

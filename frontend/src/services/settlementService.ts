@@ -6,22 +6,98 @@
  */
 
 import { USE_MOCK } from '../api/apiConfig';
-import { httpClient } from '../api/httpClient';
+import { confirm, getPreview, getSettlement } from '../api/generated/client';
+import type {
+  SettlementPreviewResponse,
+  SettlementResponse,
+} from '../api/generated/models';
+import { callOrval } from '../api/orvalResponse';
+import { resolveRoomId } from '../api/roomIdResolver';
 import { mockDelay, mockDelayReject } from '../mocks/mockDelay';
+import { mockPaymentStore } from '../mocks/mockPaymentStore';
 import { buildSeedRates } from '../mocks/mockRates';
 import { mockRoomStore } from '../mocks/mockRoomStore';
 import { mockSettlementStore } from '../mocks/mockSettlementStore';
 import { ApiError } from '../types/api';
 import type { SettlementRate } from '../types/settlement';
+import type { CurrencyCode } from '../types/room';
+import { calculateSettlement } from '../utils/settlementCalculation';
 
-export interface RoomRates {
+interface RoomRates {
   rates: SettlementRate[];
-  /** 직접 입력한 환율이면 누가 바꿨는지. 자동 환율이면 null. */
-  editedByNickname: string | null;
 }
 
-/** 방에 적용되는 통화별 환율. */
-export async function getRoomRates(shareCode: string): Promise<RoomRates> {
+export interface SettlementPreviewRate {
+  currency: CurrencyCode;
+  rateToKrw: string | null;
+  source: string | null;
+  effectiveDate: string | null;
+  quotedAt: string | null;
+  requiresManual: boolean;
+}
+
+export interface SettlementPreview {
+  settlementAvailable: boolean;
+  invalidPaymentIds: string[];
+  missingCurrencies: string[];
+  rates: SettlementPreviewRate[];
+}
+
+export interface ConfirmedMemberResult {
+  memberId: string;
+  nickname: string;
+  paidKrw: number;
+  owedKrw: number;
+  netKrw: number;
+}
+
+export interface ConfirmedTransfer {
+  senderMemberId: string;
+  senderNickname: string;
+  receiverMemberId: string;
+  receiverNickname: string;
+  amountKrw: number;
+}
+
+export interface ConfirmedSettlement {
+  settlementId: string;
+  calculatedAt: string;
+  rates: SettlementPreviewRate[];
+  members: ConfirmedMemberResult[];
+  transfers: ConfirmedTransfer[];
+}
+
+function mapSettlementPreview(response: SettlementPreviewResponse): SettlementPreview {
+  if (
+    response.settlementAvailable === undefined ||
+    !response.invalidPaymentIds ||
+    !response.missingCurrencies ||
+    !response.rates
+  ) {
+    throw new ApiError('UNKNOWN_ERROR', '정산 미리보기 응답 형식이 올바르지 않아요.');
+  }
+
+  return {
+    settlementAvailable: response.settlementAvailable,
+    invalidPaymentIds: response.invalidPaymentIds.map(String),
+    missingCurrencies: response.missingCurrencies,
+    rates: response.rates.map((rate) => {
+      if (!rate.currency || rate.requiresManual === undefined) {
+        throw new ApiError('UNKNOWN_ERROR', '환율 응답 형식이 올바르지 않아요.');
+      }
+      return {
+        currency: rate.currency as CurrencyCode,
+        rateToKrw: rate.rateToKrw === undefined ? null : String(rate.rateToKrw),
+        source: rate.source ?? null,
+        effectiveDate: rate.effectiveDate ?? null,
+        quotedAt: rate.quotedAt ?? null,
+        requiresManual: rate.requiresManual,
+      };
+    }),
+  };
+}
+
+export async function getSettlementPreview(shareCode: string): Promise<SettlementPreview> {
   if (USE_MOCK) {
     const room = mockRoomStore.findByShareCode(shareCode);
     if (!room) {
@@ -31,81 +107,205 @@ export async function getRoomRates(shareCode: string): Promise<RoomRates> {
       return mockDelayReject(new ApiError('UNKNOWN_ERROR', '정산방 생성 시각이 없어요.'));
     }
 
-    const rates = buildSeedRates(room.createdAt);
-    const manual = mockSettlementStore.findManualRate(room.id);
-    if (!manual) return mockDelay({ rates, editedByNickname: null });
+    const payments = mockPaymentStore
+      .findByRoom(room.id)
+      .filter((payment) => payment.includedInSettlement);
+    const invalidPaymentIds = payments
+      .filter((payment) => {
+        const allocatedAmount = mockPaymentStore
+          .findShares(payment.id)
+          .reduce((sum, share) => sum + Number(share.shareAmount), 0);
+        return (
+          !payment.splitGroupId ||
+          !payment.splitMethod ||
+          allocatedAmount !== Number(payment.amount)
+        );
+      })
+      .map((payment) => payment.id);
+    const usedCurrencies = new Set(payments.map((payment) => payment.currency));
+    const rates = buildSeedRates(room.createdAt)
+      .filter((rate) => usedCurrencies.has(rate.currency))
+      .map((rate) => ({
+        currency: rate.currency,
+        rateToKrw: rate.rateToKrw,
+        source: rate.rateSource,
+        effectiveDate: rate.effectiveDate,
+        quotedAt: rate.quotedAt,
+        requiresManual: false,
+      }));
 
     return mockDelay({
-      rates: rates.map((rate) =>
-        rate.currency === manual.currency
-          ? { ...rate, rateToKrw: manual.rateToKrw, rateSource: 'MANUAL' as const }
-          : rate,
-      ),
-      editedByNickname: manual.editedByNickname,
+      settlementAvailable: invalidPaymentIds.length === 0,
+      invalidPaymentIds,
+      missingCurrencies: [],
+      rates,
     });
   }
 
-  return httpClient.get<RoomRates>(`/rooms/${shareCode}/rates`);
+  const roomId = await resolveRoomId(shareCode);
+  const response = await callOrval<SettlementPreviewResponse>(() => getPreview(roomId));
+  return mapSettlementPreview(response);
 }
 
-/** 환율을 직접 지정한다. 방 전원에게 적용된다. */
-export async function setManualRate(
+export async function confirmSettlement(
   shareCode: string,
-  currency: string,
-  rateToKrw: string,
-  editedByNickname: string,
-): Promise<RoomRates> {
+  manualRates: { currency: string; rateToKrw: string }[] = [],
+): Promise<void> {
   if (USE_MOCK) {
     const room = mockRoomStore.findByShareCode(shareCode);
     if (!room) {
       return mockDelayReject(new ApiError('ROOM_NOT_FOUND', '정산방을 찾을 수 없어요.', 404));
     }
-    mockSettlementStore.setManualRate(room.id, { currency, rateToKrw, editedByNickname });
-    return getRoomRates(shareCode);
+    const manualRate = manualRates[0];
+    mockSettlementStore.setManualRate(
+      room.id,
+      manualRate ?? null,
+    );
+    await mockDelay(undefined);
+    return;
   }
 
-  return httpClient.put<RoomRates>(`/rooms/${shareCode}/rates`, { currency, rateToKrw });
+  const roomId = await resolveRoomId(shareCode);
+  await callOrval<SettlementResponse>(() =>
+    confirm(roomId, {
+      manualRates: manualRates.map((rate) => ({
+        currency: rate.currency,
+        rateToKrw: Number(rate.rateToKrw),
+      })),
+    }),
+  );
 }
 
-/** 직접 입력한 환율을 지우고 자동 환율로 되돌린다. */
-export async function clearManualRate(shareCode: string): Promise<RoomRates> {
+export async function getConfirmedSettlement(shareCode: string): Promise<ConfirmedSettlement> {
   if (USE_MOCK) {
     const room = mockRoomStore.findByShareCode(shareCode);
     if (!room) {
       return mockDelayReject(new ApiError('ROOM_NOT_FOUND', '정산방을 찾을 수 없어요.', 404));
     }
-    mockSettlementStore.setManualRate(room.id, null);
-    return getRoomRates(shareCode);
+    const payments = mockPaymentStore
+      .findByRoom(room.id)
+      .filter((payment) => payment.includedInSettlement);
+    const shares = payments.flatMap((payment) => mockPaymentStore.findShares(payment.id));
+    const rateInfo = await getMockRoomRates(shareCode);
+    const rateTable = Object.fromEntries(
+      rateInfo.rates.map((rate) => [rate.currency, Number(rate.rateToKrw)]),
+    );
+    const result = calculateSettlement({
+      members: room.members,
+      payments,
+      shares,
+      rates: rateTable,
+      fallbackMemberIds: room.members.map((member) => member.id),
+    });
+
+    return mockDelay({
+      settlementId: 'mock-settlement',
+      calculatedAt: new Date().toISOString(),
+      rates: rateInfo.rates.map((rate) => ({
+        currency: rate.currency,
+        rateToKrw: rate.rateToKrw,
+        source: rate.rateSource,
+        effectiveDate: rate.effectiveDate,
+        quotedAt: rate.quotedAt,
+        requiresManual: false,
+      })),
+      members: result.members.map((member) => ({
+        memberId: member.memberId,
+        nickname: member.nickname,
+        paidKrw: member.paidKrw,
+        owedKrw: member.owedKrw,
+        netKrw: member.receivableKrw - member.payableKrw,
+      })),
+      transfers: result.transfers,
+    });
   }
 
-  return httpClient.delete<RoomRates>(`/rooms/${shareCode}/rates`);
+  const roomId = await resolveRoomId(shareCode);
+  const response = await callOrval<SettlementResponse>(() => getSettlement(roomId));
+  const result = response.result;
+  if (
+    response.settlementId === undefined ||
+    !response.calculatedAt ||
+    !result?.rates ||
+    !result.memberResults ||
+    !result.transfers
+  ) {
+    throw new ApiError('UNKNOWN_ERROR', '확정 정산 응답 형식이 올바르지 않아요.');
+  }
+
+  return {
+    settlementId: String(response.settlementId),
+    calculatedAt: response.calculatedAt,
+    rates: result.rates.map((rate) => {
+      if (!rate.currency || rate.rateToKrw === undefined || !rate.quotedAt) {
+        throw new ApiError('UNKNOWN_ERROR', '확정 환율 응답 형식이 올바르지 않아요.');
+      }
+      return {
+        currency: rate.currency as CurrencyCode,
+        rateToKrw: String(rate.rateToKrw),
+        source: rate.source ?? null,
+        effectiveDate: rate.effectiveDate ?? null,
+        quotedAt: rate.quotedAt,
+        requiresManual: rate.requiresManual ?? false,
+      };
+    }),
+    members: result.memberResults.map((member) => {
+      if (
+        member.memberId === undefined ||
+        !member.nickname ||
+        member.paidKrw === undefined ||
+        member.owedKrw === undefined ||
+        member.netKrw === undefined
+      ) {
+        throw new ApiError('UNKNOWN_ERROR', '참여자 정산 응답 형식이 올바르지 않아요.');
+      }
+      return {
+        memberId: String(member.memberId),
+        nickname: member.nickname,
+        paidKrw: member.paidKrw,
+        owedKrw: member.owedKrw,
+        netKrw: member.netKrw,
+      };
+    }),
+    transfers: result.transfers.map((transfer) => {
+      if (
+        transfer.senderMemberId === undefined ||
+        !transfer.senderNickname ||
+        transfer.receiverMemberId === undefined ||
+        !transfer.receiverNickname ||
+        transfer.amountKrw === undefined
+      ) {
+        throw new ApiError('UNKNOWN_ERROR', '송금 정산 응답 형식이 올바르지 않아요.');
+      }
+      return {
+        senderMemberId: String(transfer.senderMemberId),
+        senderNickname: transfer.senderNickname,
+        receiverMemberId: String(transfer.receiverMemberId),
+        receiverNickname: transfer.receiverNickname,
+        amountKrw: transfer.amountKrw,
+      };
+    }),
+  };
 }
 
-/** 자기 정산을 끝낸 참여자들. 전원이 끝나야 최종 정산을 볼 수 있다. */
-export async function getSettlementProgress(shareCode: string): Promise<string[]> {
-  if (USE_MOCK) {
-    const room = mockRoomStore.findByShareCode(shareCode);
-    if (!room) {
-      return mockDelayReject(new ApiError('ROOM_NOT_FOUND', '정산방을 찾을 수 없어요.', 404));
-    }
-    return mockDelay(mockSettlementStore.findDoneMemberIds(room.id), 150);
+async function getMockRoomRates(shareCode: string): Promise<RoomRates> {
+  const room = mockRoomStore.findByShareCode(shareCode);
+  if (!room) {
+    return mockDelayReject(new ApiError('ROOM_NOT_FOUND', '정산방을 찾을 수 없어요.', 404));
+  }
+  if (!room.createdAt) {
+    return mockDelayReject(new ApiError('UNKNOWN_ERROR', '정산방 생성 시각이 없어요.'));
   }
 
-  return httpClient.get<string[]>(`/rooms/${shareCode}/settlement/progress`);
-}
+  const rates = buildSeedRates(room.createdAt);
+  const manual = mockSettlementStore.findManualRate(room.id);
+  if (!manual) return mockDelay({ rates });
 
-/** 내 정산을 확정한다. */
-export async function completeMySettlement(
-  shareCode: string,
-  memberId: string,
-): Promise<string[]> {
-  if (USE_MOCK) {
-    const room = mockRoomStore.findByShareCode(shareCode);
-    if (!room) {
-      return mockDelayReject(new ApiError('ROOM_NOT_FOUND', '정산방을 찾을 수 없어요.', 404));
-    }
-    return mockDelay(mockSettlementStore.markDone(room.id, memberId));
-  }
-
-  return httpClient.post<string[]>(`/rooms/${shareCode}/settlement/complete`, { memberId });
+  return mockDelay({
+    rates: rates.map((rate) =>
+      rate.currency === manual.currency
+        ? { ...rate, rateToKrw: manual.rateToKrw, rateSource: 'MANUAL' as const }
+        : rate,
+    ),
+  });
 }

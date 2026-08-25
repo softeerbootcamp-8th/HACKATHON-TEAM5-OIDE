@@ -1,3 +1,4 @@
+import { useCallback, useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { Banner } from '../components/common/Banner';
 import { Button } from '../components/common/Button';
@@ -17,7 +18,13 @@ import {
   splitGroupsPath,
 } from '../constants/routes';
 import { useLocalIdentity } from '../hooks/useLocalIdentity';
-import { useSettlement } from '../hooks/useSettlement';
+import { useAsync } from '../hooks/useAsync';
+import {
+  confirmSettlement,
+  getSettlementPreview,
+} from '../services/settlementService';
+import { getSplitGroupOverview } from '../services/splitGroupService';
+import { isApiError } from '../types/api';
 import { formatQuotedAt, formatRateLine } from '../utils/krw';
 import { RoomExpiredPage } from './RoomExpiredPage';
 import styles from './SettlementStartPage.module.css';
@@ -32,7 +39,17 @@ export function SettlementStartPage() {
   const navigate = useNavigate();
   const { shareCode = '' } = useParams<{ shareCode: string }>();
   const { identity } = useLocalIdentity(shareCode);
-  const { status, data, error, retry } = useSettlement(shareCode);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    const [overview, preview] = await Promise.all([
+      getSplitGroupOverview(shareCode),
+      getSettlementPreview(shareCode),
+    ]);
+    return { ...overview, preview };
+  }, [shareCode]);
+  const { status, data, error, retry } = useAsync(load, [shareCode]);
 
   if (status === 'error' && error?.code === 'ROOM_EXPIRED') {
     return <RoomExpiredPage />;
@@ -44,10 +61,25 @@ export function SettlementStartPage() {
   // 결제 통화만 환율이 필요하다. 원화 결제는 환산하지 않는다.
   const usedCurrencies = [
     ...new Set(
-      data?.targetPayments.filter((p) => p.currency !== 'KRW').map((p) => p.currency) ?? [],
+      data?.payments
+        .filter((payment) => payment.currency !== 'KRW')
+        .map((payment) => payment.currency) ?? [],
     ),
   ];
-  const shownRates = data?.rates.filter((rate) => usedCurrencies.includes(rate.currency)) ?? [];
+  const shownRates =
+    data?.preview.rates.filter((rate) => usedCurrencies.includes(rate.currency)) ?? [];
+
+  const handleConfirm = async () => {
+    setSubmitting(true);
+    setSubmitError(null);
+    try {
+      await confirmSettlement(shareCode);
+      navigate(settlementSummaryPath(shareCode));
+    } catch (caught) {
+      setSubmitError(isApiError(caught) ? caught.message : '정산을 확정하지 못했어요.');
+      setSubmitting(false);
+    }
+  };
 
   return (
     <MobileFrame>
@@ -66,7 +98,7 @@ export function SettlementStartPage() {
               description={'방을 개설한 시점의 환율이\n모든 사람에게 동일하게 적용돼요.'}
             />
 
-            {data.targetPayments.length === 0 ? (
+            {data.payments.length === 0 ? (
               <EmptyState
                 title="정산할 항목이 없어요"
                 description="결제 내역을 먼저 정산 대상으로 골라주세요"
@@ -86,7 +118,7 @@ export function SettlementStartPage() {
                   </div>
                   <div className={styles.summaryRow}>
                     <span className={styles.summaryLabel}>정산할 항목</span>
-                    <span className={styles.summaryValue}>{data.targetPayments.length}건</span>
+                    <span className={styles.summaryValue}>{data.payments.length}건</span>
                   </div>
                   <div className={styles.summaryRow}>
                     <span className={styles.summaryLabel}>통화</span>
@@ -96,31 +128,45 @@ export function SettlementStartPage() {
                   </div>
                 </div>
 
-                {shownRates.map((rate) => (
-                  <div key={rate.id} className={styles.rateBox}>
-                    <span className={styles.rateName}>
-                      <span className={styles.rateCurrency}>
-                        {rate.currency} · {findCurrency(rate.currency).name}
-                      </span>
-                      <span className={styles.rateQuotedAt}>{formatQuotedAt(rate.quotedAt)}</span>
-                    </span>
-                    <span className={styles.rateValue}>
-                      {formatRateLine(rate.currency, rate.rateToKrw)}
-                    </span>
-                  </div>
-                ))}
+                {shownRates.map(
+                  (rate) =>
+                    rate.rateToKrw &&
+                    rate.quotedAt && (
+                      <div key={rate.currency} className={styles.rateBox}>
+                        <span className={styles.rateName}>
+                          <span className={styles.rateCurrency}>
+                            {rate.currency} · {findCurrency(rate.currency).name}
+                          </span>
+                          <span className={styles.rateQuotedAt}>
+                            {formatQuotedAt(rate.quotedAt)}
+                          </span>
+                        </span>
+                        <span className={styles.rateValue}>
+                          {formatRateLine(rate.currency, rate.rateToKrw)}
+                        </span>
+                      </div>
+                    ),
+                )}
 
-                {data.rateEditedBy && (
-                  <Banner message={`${data.rateEditedBy}님이 직접 입력한 환율이에요`} />
+                {data.preview.invalidPaymentIds.length > 0 && (
+                  <Banner message="나누기가 끝나지 않은 결제 항목이 있어요" />
+                )}
+                {data.preview.missingCurrencies.length > 0 && (
+                  <Banner
+                    message={`${data.preview.missingCurrencies.join(', ')} 환율을 직접 입력해주세요`}
+                  />
                 )}
               </div>
             )}
           </ScreenBody>
 
           <BottomActionBar>
+            {submitError && <Banner message={submitError} />}
             <Button
-              disabled={data.targetPayments.length === 0}
-              onClick={() => navigate(settlementSummaryPath(shareCode))}
+              disabled={data.payments.length === 0 || !data.preview.settlementAvailable}
+              loading={submitting}
+              loadingLabel="정산하고 있어요…"
+              onClick={handleConfirm}
             >
               내 정산 완료하기
             </Button>
@@ -133,4 +179,3 @@ export function SettlementStartPage() {
     </MobileFrame>
   );
 }
-
