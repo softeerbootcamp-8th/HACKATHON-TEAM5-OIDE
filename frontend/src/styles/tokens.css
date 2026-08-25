@@ -1,0 +1,62 @@
+/**
+ * 디자인 토큰. Figma 와이어프레임에서 추출한 값이다.
+ * 색을 컴포넌트에 직접 쓰지 말고 항상 이 변수를 참조한다.
+ */
+
+:root {
+  /* 색 */
+  --color-bg: #ffffff;
+  --color-surface: #f4f4f5;
+  --color-border: #e4e4e7;
+  --color-border-strong: #d4d4d8;
+
+  --color-text: #3f3f46;
+  --color-text-muted: #a1a1aa;
+  --color-text-accent: #71717a; /* 검증 에러 · 보조 강조. 빨강을 쓰지 않는다. */
+
+  --color-primary: #ff8c22;
+  --color-primary-pressed: #f07d13;
+  --color-primary-tint: #ffefdf;
+  --color-on-primary: #ffffff;
+
+  --color-disabled-bg: #f4f4f5;
+  --color-disabled-text: #a1a1aa;
+
+  --color-avatar-bg: #e0e0e3;
+  --color-avatar-text: #808086;
+
+  /* 아직 고르지 않은 원형 체크의 테두리와 체크 표시 */
+  --color-check-idle: #bcbcc3;
+
+  /* 타이포 */
+  --font-family: 'Pretendard', -apple-system, BlinkMacSystemFont,
+    'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
+
+  --font-size-title: 20px;
+  --font-size-body: 15px;
+  --font-size-input: 16px; /* iOS 포커스 시 자동 확대를 막으려면 16px 이상이어야 한다. */
+  --font-size-caption: 13px;
+  --font-size-button: 15px;
+
+  --line-height-title: 1.5;
+  --line-height-body: 1.6;
+
+  /* 간격 · 형태 */
+  --space-screen-x: 20px;
+  --space-xs: 8px;
+  --space-sm: 12px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-full: 999px;
+
+  --control-height: 56px;
+  --touch-target-min: 44px;
+
+  /* 레이아웃 */
+  --frame-max-width: 430px;
+  --app-bar-height: 52px;
+}

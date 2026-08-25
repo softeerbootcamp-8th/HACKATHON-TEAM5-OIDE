@@ -1,0 +1,25 @@
+.control {
+  display: flex;
+  gap: var(--space-xs);
+  padding: 4px;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.segment {
+  flex: 1;
+  min-height: 42px;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-body);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  transition:
+    background-color 0.12s ease,
+    color 0.12s ease;
+}
+
+.active {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-weight: 700;
+}

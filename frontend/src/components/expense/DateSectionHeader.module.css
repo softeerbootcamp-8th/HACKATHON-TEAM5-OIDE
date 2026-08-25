@@ -1,0 +1,7 @@
+.header {
+  padding: var(--space-xs) 0 0;
+  margin-bottom: var(--space-xs);
+  font-size: var(--font-size-body);
+  font-weight: 400;
+  color: var(--color-text-muted);
+}

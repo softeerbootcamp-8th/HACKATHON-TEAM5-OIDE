@@ -1,0 +1,63 @@
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  text-align: left;
+}
+
+/* 금액·통화를 못 읽어 입력이 필요한 항목은 보더를 진하게 해 구분한다. */
+.needsInput {
+  border-color: var(--color-text);
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.merchant {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.amount {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* `금액을 못 읽었어요` 처럼 값 자리에 들어가는 안내. */
+.missingValue {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.meta {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-muted);
+}
+
+.missingMeta {
+  color: var(--color-text-accent);
+}
+
+.action {
+  flex-shrink: 0;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-muted);
+}
+
+.actionStrong {
+  color: var(--color-text);
+  font-weight: 600;
+}

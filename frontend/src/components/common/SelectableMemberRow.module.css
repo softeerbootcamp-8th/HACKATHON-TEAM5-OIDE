@@ -1,0 +1,37 @@
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  min-height: 64px;
+  padding: 0 var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  text-align: left;
+  transition:
+    border-color 0.12s ease,
+    background-color 0.12s ease;
+}
+
+.selected {
+  border-color: var(--color-primary);
+  background: var(--color-primary-tint);
+}
+
+.nickname {
+  flex: 1;
+  font-size: var(--font-size-body);
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+
+.selected .nickname {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.trailing {
+  flex-shrink: 0;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-muted);
+}
