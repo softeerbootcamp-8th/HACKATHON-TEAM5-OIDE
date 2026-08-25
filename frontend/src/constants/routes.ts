@@ -49,8 +49,18 @@ export const ROUTES = {
   paymentSplit: '/r/:shareCode/groups/:groupId/split/:paymentId',
   /** D-12 자동 귀속 확인 */
   splitUnassigned: '/r/:shareCode/groups/confirm',
-  /** flow #4 환율 · 최종 정산 — 이번 범위 밖 */
-  settlement: '/r/:shareCode/settlement',
+  /** E-01 정산 실행 확인 */
+  settlementStart: '/r/:shareCode/settlement',
+  /** E-04 환율 직접 수정 */
+  rateEdit: '/r/:shareCode/settlement/rate',
+  /** E-05 참여자별 요약 */
+  settlementSummary: '/r/:shareCode/settlement/summary',
+  /** E-12 내 정산 완료 */
+  settlementDone: '/r/:shareCode/settlement/done',
+  /** E-06 송금 리스트 */
+  transferList: '/r/:shareCode/settlement/transfers',
+  /** E-07 내 정산 상세 */
+  transferDetail: '/r/:shareCode/settlement/transfers/:index',
 } as const;
 
 export function createDonePath(shareCode: string): string {
@@ -125,6 +135,32 @@ export function splitUnassignedPath(shareCode: string): string {
   return `/r/${shareCode}/groups/confirm`;
 }
 
-export function settlementPath(shareCode: string): string {
+export function settlementStartPath(shareCode: string): string {
   return `/r/${shareCode}/settlement`;
 }
+
+export function rateEditPath(shareCode: string): string {
+  return `/r/${shareCode}/settlement/rate`;
+}
+
+export function settlementSummaryPath(shareCode: string): string {
+  return `/r/${shareCode}/settlement/summary`;
+}
+
+/** E-12 에서 다른 참여자의 요약을 볼 때. */
+export function memberSummaryPath(shareCode: string, memberId: string): string {
+  return `/r/${shareCode}/settlement/summary?member=${encodeURIComponent(memberId)}`;
+}
+
+export function settlementDonePath(shareCode: string): string {
+  return `/r/${shareCode}/settlement/done`;
+}
+
+export function transferListPath(shareCode: string): string {
+  return `/r/${shareCode}/settlement/transfers`;
+}
+
+export function transferDetailPath(shareCode: string, index: number): string {
+  return `/r/${shareCode}/settlement/transfers/${index}`;
+}
+

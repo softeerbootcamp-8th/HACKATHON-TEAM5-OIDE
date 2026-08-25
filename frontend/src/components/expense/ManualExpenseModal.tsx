@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useKeyboardInset } from '../../hooks/useKeyboardInset';
 import { DEFAULT_CURRENCY } from '../../constants/roomRules';
 import type { CreatePaymentInput } from '../../types/payment';
 import type { CurrencyCode } from '../../types/room';
@@ -33,6 +34,7 @@ export function ManualExpenseModal({
   const [currency, setCurrency] = useState<CurrencyCode>(DEFAULT_CURRENCY);
   const [merchant, setMerchant] = useState('');
   const [paidAtText, setPaidAtText] = useState('');
+  const keyboardInset = useKeyboardInset();
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -57,46 +59,54 @@ export function ManualExpenseModal({
   };
 
   return (
-    <div className={styles.backdrop} role="dialog" aria-modal="true" onClick={onClose}>
+    <div
+      className={styles.backdrop}
+      role="dialog"
+      aria-modal="true"
+      style={{ bottom: keyboardInset }}
+      onClick={onClose}
+    >
       <div className={styles.panel} onClick={(event) => event.stopPropagation()}>
-        <h2 className={styles.title}>결제한 내용을 적어주세요</h2>
+        <div className={styles.scrollArea}>
+          <h2 className={styles.title}>결제한 내용을 적어주세요</h2>
 
-        <div className={styles.fields}>
-          <div className={styles.field}>
-            <FieldLabel text="결제 금액과 통화" required />
-            <AmountCurrencyInput
-              amount={amount}
-              currency={currency}
-              invalid={amount.length > 0 && !amountValid}
-              onAmountChange={setAmount}
-              onCurrencyChange={setCurrency}
-              autoFocus
-            />
+          <div className={styles.fields}>
+            <div className={styles.field}>
+              <FieldLabel text="결제 금액과 통화" required />
+              <AmountCurrencyInput
+                amount={amount}
+                currency={currency}
+                invalid={amount.length > 0 && !amountValid}
+                onAmountChange={setAmount}
+                onCurrencyChange={setCurrency}
+                autoFocus
+              />
+            </div>
+
+            <div className={styles.field}>
+              <FieldLabel text="결제처" />
+              <TextField
+                value={merchant}
+                placeholder="예: 이치란 라멘"
+                aria-label="결제처"
+                onChange={(event) => setMerchant(event.target.value)}
+              />
+            </div>
+
+            <div className={styles.field}>
+              <FieldLabel text="결제 시각" />
+              <TextField
+                value={paidAtText}
+                placeholder="비워두면 오늘로 기록돼요"
+                aria-label="결제 시각"
+                errorMessage={paidAtValid ? undefined : '2026-08-21 20:14 형식으로 적어주세요'}
+                onChange={(event) => setPaidAtText(event.target.value)}
+              />
+            </div>
+
+            <p className={styles.footnote}>결제처와 결제 시각은 없어도 등록할 수 있어요</p>
+            {errorMessage && <Banner message={errorMessage} />}
           </div>
-
-          <div className={styles.field}>
-            <FieldLabel text="결제처" />
-            <TextField
-              value={merchant}
-              placeholder="예: 이치란 라멘"
-              aria-label="결제처"
-              onChange={(event) => setMerchant(event.target.value)}
-            />
-          </div>
-
-          <div className={styles.field}>
-            <FieldLabel text="결제 시각" />
-            <TextField
-              value={paidAtText}
-              placeholder="비워두면 오늘로 기록돼요"
-              aria-label="결제 시각"
-              errorMessage={paidAtValid ? undefined : '2026-08-21 20:14 형식으로 적어주세요'}
-              onChange={(event) => setPaidAtText(event.target.value)}
-            />
-          </div>
-
-          <p className={styles.footnote}>결제처와 결제 시각은 없어도 등록할 수 있어요</p>
-          {errorMessage && <Banner message={errorMessage} />}
         </div>
 
         <div className={styles.actions}>
@@ -118,3 +128,4 @@ export function ManualExpenseModal({
     </div>
   );
 }
+

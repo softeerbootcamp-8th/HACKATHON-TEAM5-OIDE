@@ -13,7 +13,7 @@ import { GroupCard } from '../components/split/GroupCard';
 import { SwipeToDelete } from '../components/split/SwipeToDelete';
 import {
   joinRoomPath,
-  settlementPath,
+  settlementStartPath,
   splitGroupItemsPath,
   splitGroupNewPath,
   splitUnassignedPath,
@@ -97,7 +97,7 @@ export function SplitGroupListPage() {
   const handleComplete = () => {
     const unassigned = targetPayments.filter((payment) => payment.splitGroupId === null);
     // 어디에도 담기지 않은 항목은 `전체` 그룹으로 자동 귀속된다. 막지 않고 알리기만 한다.
-    navigate(unassigned.length > 0 ? splitUnassignedPath(shareCode) : settlementPath(shareCode));
+    navigate(unassigned.length > 0 ? splitUnassignedPath(shareCode) : settlementStartPath(shareCode));
   };
 
   return (
@@ -178,3 +178,4 @@ export function SplitGroupListPage() {
     </MobileFrame>
   );
 }
+

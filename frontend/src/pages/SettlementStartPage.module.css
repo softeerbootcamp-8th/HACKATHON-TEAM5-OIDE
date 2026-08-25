@@ -1,0 +1,91 @@
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: 0 var(--space-screen-x);
+}
+
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.summaryRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.summaryLabel {
+  flex-shrink: 0;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-muted);
+}
+
+.summaryValue {
+  font-size: var(--font-size-body);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-xs);
+}
+
+.chip {
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  background: var(--color-bg);
+  font-size: var(--font-size-caption);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.rateBox {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.rateName {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rateCurrency {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-muted);
+}
+
+.rateQuotedAt {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-muted);
+}
+
+.rateValue {
+  flex-shrink: 0;
+  font-size: var(--font-size-body);
+  font-weight: 700;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 누가 바꾼 환율인지 밝혀 다른 참여자가 오해하지 않게 한다. */
+.editedBy {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-accent);
+}
+
