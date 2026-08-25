@@ -1,0 +1,7 @@
+interface:
+  display_name: "개발 온보딩 문서 작성"
+  short_description: "구현 흐름과 설계 결정을 한국어 온보딩 문서로 정리"
+  default_prompt: "$write-onboarding-doc를 사용해 현재 변경사항의 온보딩 문서를 작성해 주세요."
+
+policy:
+  allow_implicit_invocation: true
