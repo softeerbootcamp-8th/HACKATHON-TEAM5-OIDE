@@ -20,11 +20,10 @@ import {
 } from '../constants/routes';
 import { useAsync } from '../hooks/useAsync';
 import { useLocalIdentity } from '../hooks/useLocalIdentity';
-import { getPayments } from '../services/paymentService';
 import { getRoomByShareCode } from '../services/roomService';
-import { deleteSplitGroup, getSplitGroups } from '../services/splitGroupService';
+import { deleteSplitGroup, getSplitGroupOverview } from '../services/splitGroupService';
 import { isApiError } from '../types/api';
-import type { Payment, SplitGroup } from '../types/payment';
+import type { SplitGroup } from '../types/payment';
 import type { SettlementRoom } from '../types/room';
 import { formatAmount } from '../utils/formatters';
 import { RoomExpiredPage } from './RoomExpiredPage';
@@ -33,7 +32,7 @@ import styles from './SplitGroupListPage.module.css';
 interface GroupListData {
   room: SettlementRoom;
   groups: SplitGroup[];
-  payments: Payment[];
+  payments: Awaited<ReturnType<typeof getSplitGroupOverview>>['payments'];
 }
 
 /**
@@ -48,12 +47,11 @@ export function SplitGroupListPage() {
   const { identity } = useLocalIdentity(shareCode);
 
   const load = useCallback(async (): Promise<GroupListData> => {
-    const [room, groups, payments] = await Promise.all([
+    const [room, overview] = await Promise.all([
       getRoomByShareCode(shareCode),
-      getSplitGroups(shareCode),
-      getPayments(shareCode),
+      getSplitGroupOverview(shareCode),
     ]);
-    return { room, groups, payments };
+    return { room, groups: overview.groups, payments: overview.payments };
   }, [shareCode]);
 
   const { status, data, error, retry } = useAsync(load, [shareCode]);
@@ -67,7 +65,7 @@ export function SplitGroupListPage() {
   }
 
   // 정산 대상으로 고른 항목만 그룹에 담을 수 있다.
-  const targetPayments = data?.payments.filter((payment) => payment.includedInSettlement) ?? [];
+  const targetPayments = data?.payments ?? [];
   const hasGroups = (data?.groups.length ?? 0) > 1;
 
   const itemsOf = (groupId: string) =>
@@ -178,4 +176,3 @@ export function SplitGroupListPage() {
     </MobileFrame>
   );
 }
-

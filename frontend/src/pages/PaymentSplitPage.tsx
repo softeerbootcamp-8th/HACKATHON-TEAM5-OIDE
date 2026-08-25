@@ -14,11 +14,11 @@ import { findCurrency } from '../constants/currencies';
 import { joinRoomPath, splitGroupMethodPath, splitGroupsPath } from '../constants/routes';
 import { useAsync } from '../hooks/useAsync';
 import { useLocalIdentity } from '../hooks/useLocalIdentity';
-import { getPayments, setPaymentSplit } from '../services/paymentService';
+import { getPaymentShares, getPayments, setPaymentSplit } from '../services/paymentService';
 import { getRoomByShareCode } from '../services/roomService';
-import { getSplitGroups } from '../services/splitGroupService';
+import { getSplitGroupOverview } from '../services/splitGroupService';
 import { isApiError } from '../types/api';
-import type { Payment, SplitGroup, SplitMethod } from '../types/payment';
+import type { Payment, PaymentShare, SplitGroup, SplitMethod } from '../types/payment';
 import type { SettlementRoom } from '../types/room';
 import { formatAmount, formatDayTime, sanitizeAmountInput } from '../utils/formatters';
 import { withEunNeun, withIGa } from '../utils/koreanParticle';
@@ -30,6 +30,7 @@ interface SplitData {
   room: SettlementRoom;
   groups: SplitGroup[];
   payments: Payment[];
+  shares: PaymentShare[];
 }
 
 const SEGMENTS = [
@@ -54,13 +55,14 @@ export function PaymentSplitPage() {
   const { identity } = useLocalIdentity(shareCode);
 
   const load = useCallback(async (): Promise<SplitData> => {
-    const [room, groups, payments] = await Promise.all([
+    const [room, overview, payments, shares] = await Promise.all([
       getRoomByShareCode(shareCode),
-      getSplitGroups(shareCode),
+      getSplitGroupOverview(shareCode),
       getPayments(shareCode),
+      getPaymentShares(shareCode, paymentId),
     ]);
-    return { room, groups, payments };
-  }, [shareCode]);
+    return { room, groups: overview.groups, payments, shares };
+  }, [shareCode, paymentId]);
 
   const { status, data, error, retry } = useAsync(load, [shareCode, paymentId]);
 
@@ -102,8 +104,13 @@ export function PaymentSplitPage() {
   const effectiveMethod = method ?? payment?.splitMethod ?? 'EQUAL';
 
   // 직접 입력으로 처음 넘어가면 N빵 결과를 출발점으로 채워준다.
+  const savedCustomShares =
+    payment?.splitMethod === 'CUSTOM' && data
+      ? Object.fromEntries(data.shares.map((share) => [share.memberId, share.shareAmount]))
+      : null;
   const shareValues =
     customShares ??
+    savedCustomShares ??
     Object.fromEntries(equal.shares.map((share) => [share.memberId, String(share.amount)]));
 
   const customTotal = sumShares(shareValues);
