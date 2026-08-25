@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
 import { Avatar } from '../components/common/Avatar';
+import { Banner } from '../components/common/Banner';
 import { ErrorState } from '../components/common/ErrorState';
 import { LoadingState } from '../components/common/LoadingState';
 import { AppBar } from '../components/layout/AppBar';
@@ -11,12 +12,13 @@ import { joinRoomPath, transferListPath } from '../constants/routes';
 import { useAsync } from '../hooks/useAsync';
 import { useLocalIdentity } from '../hooks/useLocalIdentity';
 import { getPaymentShares, getPayments } from '../services/paymentService';
+import { getRoomByShareCode } from '../services/roomService';
 import { getConfirmedSettlement } from '../services/settlementService';
 import { getSplitGroupOverview } from '../services/splitGroupService';
 import type { Payment } from '../types/payment';
 import { formatAmount } from '../utils/formatters';
 import { formatKrw } from '../utils/krw';
-import { findMemberBreakdown } from '../utils/settlementCalculation';
+import { calculateSettlement, findMemberBreakdown } from '../utils/settlementCalculation';
 import { RoomExpiredPage } from './RoomExpiredPage';
 import styles from './TransferDetailPage.module.css';
 
@@ -30,10 +32,11 @@ export function TransferDetailPage() {
   const { shareCode = '', index = '0' } = useParams<{ shareCode: string; index: string }>();
   const { identity } = useLocalIdentity(shareCode);
   const load = useCallback(async () => {
-    const [settlement, overview, paymentList] = await Promise.all([
+    const [settlement, overview, paymentList, room] = await Promise.all([
       getConfirmedSettlement(shareCode),
       getSplitGroupOverview(shareCode),
       getPayments(shareCode),
+      getRoomByShareCode(shareCode),
     ]);
     const groupIdByPaymentId = new Map(
       overview.payments.map((payment) => [payment.id, payment.splitGroupId]),
@@ -47,6 +50,7 @@ export function TransferDetailPage() {
     );
     return {
       settlement,
+      room,
       groups: overview.groups,
       payments,
       shares: shareLists.flat(),
@@ -70,6 +74,32 @@ export function TransferDetailPage() {
     (member) => member.memberId === transfer?.senderMemberId,
   );
 
+  const rates = Object.fromEntries(
+    data?.settlement.rates
+      .filter((rate) => rate.rateToKrw !== null)
+      .map((rate) => [rate.currency, Number(rate.rateToKrw)]) ?? [],
+  );
+  const liveSettlement = data
+    ? calculateSettlement({
+        members: data.room.members,
+        payments: data.payments,
+        shares: data.shares,
+        rates,
+        fallbackMemberIds:
+          data.groups.find((group) => group.type === 'ALL')?.memberIds ?? [],
+      })
+    : null;
+  const liveSender = liveSettlement?.members.find(
+    (member) => member.memberId === transfer?.senderMemberId,
+  );
+  const isSnapshotCurrent = Boolean(
+    sender &&
+      liveSender &&
+      sender.paidKrw === liveSender.paidKrw &&
+      sender.owedKrw === liveSender.owedKrw &&
+      sender.netKrw === liveSender.receivableKrw - liveSender.payableKrw,
+  );
+
   const groupNameOf = (payment: Payment): string => {
     const group = data?.groups.find((item) => item.id === payment.splitGroupId);
     const allGroup = data?.groups.find((item) => item.type === 'ALL');
@@ -78,23 +108,18 @@ export function TransferDetailPage() {
   };
 
   const breakdown =
-    data && transfer
+    data && transfer && isSnapshotCurrent
       ? findMemberBreakdown({
           memberId: transfer.senderMemberId,
           payments: data.payments,
           shares: data.shares,
-          rates: Object.fromEntries(
-            data.settlement.rates
-              .filter((rate) => rate.rateToKrw !== null)
-              .map((rate) => [rate.currency, Number(rate.rateToKrw)]),
-          ),
+          rates,
           fallbackMemberIds:
             data.groups.find((group) => group.type === 'ALL')?.memberIds ?? [],
           groupNameOf,
         })
       : [];
 
-  // 보내는 사람이 결제자로 등록한 내역. 외화 원문도 함께 보여준다.
   const paidPayments =
     data?.payments.filter((payment) => payment.payerMemberId === transfer?.senderMemberId) ??
     [];
@@ -132,7 +157,7 @@ export function TransferDetailPage() {
               <div className={styles.figureRow}>
                 <span className={styles.figureLabel}>실제로 결제한 금액</span>
                 <span className={styles.figureValue}>
-                  {paidForeign ? `${paidForeign} · ` : ''}
+                  {isSnapshotCurrent && paidForeign ? `${paidForeign} · ` : ''}
                   {formatKrw(sender.paidKrw)}
                 </span>
               </div>
@@ -153,21 +178,26 @@ export function TransferDetailPage() {
               </div>
             </div>
 
-            <div>
-              <p className={styles.sectionTitle}>내가 포함된 결제 내역</p>
-            </div>
-
-            <ul className={styles.breakdown}>
-              {breakdown.map((row) => (
-                <li key={row.paymentId} className={styles.item}>
-                  <span className={styles.itemName}>
-                    <span className={styles.merchant}>{row.merchant}</span>
-                    <span className={styles.groupLabel}>{row.groupLabel}</span>
-                  </span>
-                  <span className={styles.itemAmount}>{formatKrw(row.amountKrw)}</span>
-                </li>
-              ))}
-            </ul>
+            {isSnapshotCurrent ? (
+              <>
+                <div>
+                  <p className={styles.sectionTitle}>내가 포함된 결제 내역</p>
+                </div>
+                <ul className={styles.breakdown}>
+                  {breakdown.map((row) => (
+                    <li key={row.paymentId} className={styles.item}>
+                      <span className={styles.itemName}>
+                        <span className={styles.merchant}>{row.merchant}</span>
+                        <span className={styles.groupLabel}>{row.groupLabel}</span>
+                      </span>
+                      <span className={styles.itemAmount}>{formatKrw(row.amountKrw)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : (
+              <Banner message="정산 후 결제 내역이 바뀌었어요. 다시 정산하면 상세 내역을 볼 수 있어요." />
+            )}
           </div>
         </ScreenBody>
       )}

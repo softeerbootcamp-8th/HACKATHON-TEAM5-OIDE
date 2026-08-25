@@ -1,8 +1,14 @@
 .content {
   display: flex;
   flex-direction: column;
-  gap: var(--space-xs);
+  gap: var(--space-lg);
   padding: 0 var(--space-screen-x);
+}
+
+.rateBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
 }
 
 .label {
@@ -56,4 +62,3 @@
 .error {
   color: var(--color-text-accent);
 }
-
