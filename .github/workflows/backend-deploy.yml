@@ -1,0 +1,44 @@
+name: Deploy backend to WAS
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-ci.yml'
+      - '.github/workflows/backend-deploy.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-production
+  # 배포 도중 취소되면 jar 교체와 서비스 재시작 사이에서 멈출 수 있으므로 직렬화한다.
+  cancel-in-progress: false
+
+jobs:
+  ci:
+    name: Backend CI
+    uses: ./.github/workflows/backend-ci.yml
+
+  deploy:
+    needs: ci
+    runs-on: self-hosted
+    steps:
+      - name: Download jar artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: app-jar
+          path: ./deploy
+
+      - name: Deploy jar and restart service
+        run: |
+          JAR=$(ls ./deploy/*.jar | grep -v -- '-plain' | head -n 1)
+          echo "Deploying: $JAR"
+          cp "$JAR" /home/ubuntu/app/app.jar
+          sudo systemctl restart myapp.service
+
+      - name: Verify service is running
+        run: |
+          sleep 10
+          systemctl is-active myapp.service
