@@ -13,6 +13,11 @@ public enum ErrorCode {
 	ROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "ROOM_001", "정산방을 찾을 수 없습니다."),
 	MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "ROOM_002", "정산방 참여자를 찾을 수 없습니다."),
 
+	// Payment
+	PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "PAYMENT_001", "결제 내역을 찾을 수 없습니다."),
+	PAYMENT_ALREADY_ASSIGNED(HttpStatus.BAD_REQUEST, "PAYMENT_002", "이미 다른 그룹에 지정된 결제 내역입니다."),
+	INVALID_PAYMENT_SELECTION(HttpStatus.BAD_REQUEST, "PAYMENT_003", "결제 내역은 중복해서 선택할 수 없습니다."),
+
 	// Group
 	GROUP_NOT_FOUND(HttpStatus.NOT_FOUND, "GROUP_001", "분담 그룹을 찾을 수 없습니다."),
 	ALL_GROUP_IMMUTABLE(HttpStatus.BAD_REQUEST, "GROUP_002", "전체 그룹은 수정하거나 삭제할 수 없습니다."),
