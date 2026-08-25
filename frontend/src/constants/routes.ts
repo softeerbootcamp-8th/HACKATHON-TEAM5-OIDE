@@ -45,6 +45,8 @@ export const ROUTES = {
   splitGroupItems: '/r/:shareCode/groups/:groupId/items',
   /** D-05 금액 나누기 */
   splitGroupMethod: '/r/:shareCode/groups/:groupId/split',
+  /** D-09 · D-10 결제 1건 나누기 */
+  paymentSplit: '/r/:shareCode/groups/:groupId/split/:paymentId',
   /** D-12 자동 귀속 확인 */
   splitUnassigned: '/r/:shareCode/groups/confirm',
   /** flow #4 환율 · 최종 정산 — 이번 범위 밖 */
@@ -109,6 +111,14 @@ export function splitGroupItemsPath(shareCode: string, groupId: string): string 
 
 export function splitGroupMethodPath(shareCode: string, groupId: string): string {
   return `/r/${shareCode}/groups/${groupId}/split`;
+}
+
+export function paymentSplitPath(
+  shareCode: string,
+  groupId: string,
+  paymentId: string,
+): string {
+  return `/r/${shareCode}/groups/${groupId}/split/${paymentId}`;
 }
 
 export function splitUnassignedPath(shareCode: string): string {

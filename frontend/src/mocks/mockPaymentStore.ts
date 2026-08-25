@@ -5,9 +5,15 @@
  * 새로고침해도 남도록 sessionStorage 에 함께 보관한다.
  */
 
-import type { CreatePaymentInput, Payment } from '../types/payment';
+import type {
+  CreatePaymentInput,
+  Payment,
+  PaymentShare,
+  SplitMethod,
+} from '../types/payment';
 
 const STORAGE_KEY = 'oide:mock:payments';
+const SHARES_KEY = 'oide:mock:paymentShares';
 
 function read(): Payment[] {
   try {
@@ -21,6 +27,23 @@ function read(): Payment[] {
 function write(payments: Payment[]): void {
   try {
     window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(payments));
+  } catch {
+    // 저장 실패는 이번 세션 동작에 영향이 없다.
+  }
+}
+
+function readShares(): PaymentShare[] {
+  try {
+    const raw = window.sessionStorage.getItem(SHARES_KEY);
+    return raw ? (JSON.parse(raw) as PaymentShare[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeShares(shares: PaymentShare[]): void {
+  try {
+    window.sessionStorage.setItem(SHARES_KEY, JSON.stringify(shares));
   } catch {
     // 저장 실패는 이번 세션 동작에 영향이 없다.
   }
@@ -97,6 +120,39 @@ export const mockPaymentStore = {
       }
     }
     write(payments);
+  },
+
+  /** 결제 1건의 분담 방식과 참여자별 부담액을 저장한다. */
+  setSplit(
+    paymentId: string,
+    method: SplitMethod,
+    shares: { memberId: string; shareAmount: string }[],
+  ): Payment {
+    const payments = read();
+    const target = payments.find((payment) => payment.id === paymentId);
+    if (!target) {
+      throw new Error(`결제 내역을 찾을 수 없습니다: ${paymentId}`);
+    }
+    target.splitMethod = method;
+    target.updatedAt = new Date().toISOString();
+    write(payments);
+
+    const others = readShares().filter((share) => share.paymentId !== paymentId);
+    writeShares([
+      ...others,
+      ...shares.map((share, index) => ({
+        id: `${paymentId}-s${index + 1}`,
+        paymentId,
+        memberId: share.memberId,
+        shareAmount: share.shareAmount,
+      })),
+    ]);
+
+    return target;
+  },
+
+  findShares(paymentId: string): PaymentShare[] {
+    return readShares().filter((share) => share.paymentId === paymentId);
   },
 
   setIncluded(paymentId: string, included: boolean): Payment {

@@ -13,6 +13,7 @@ import { MyExpenseListPage } from './pages/MyExpenseListPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { ParsedItemEditPage } from './pages/ParsedItemEditPage';
 import { ParsedResultPage } from './pages/ParsedResultPage';
+import { PaymentSplitPage } from './pages/PaymentSplitPage';
 import { RoomCreatedPage } from './pages/RoomCreatedPage';
 import { RoomHomePage } from './pages/RoomHomePage';
 import { ScreenshotParsingPage } from './pages/ScreenshotParsingPage';
@@ -59,6 +60,7 @@ export function App() {
             <Route path={ROUTES.splitGroupNew} element={<SplitGroupMembersPage />} />
             <Route path={ROUTES.splitGroupEdit} element={<SplitGroupMembersPage />} />
             <Route path={ROUTES.splitGroupItems} element={<SplitGroupItemsPage />} />
+            <Route path={ROUTES.paymentSplit} element={<PaymentSplitPage />} />
             <Route path={ROUTES.splitGroupMethod} element={<SplitMethodPage />} />
             <Route path={ROUTES.splitGroups} element={<SplitGroupListPage />} />
             <Route path={ROUTES.settlement} element={<SettlementPlaceholderPage />} />

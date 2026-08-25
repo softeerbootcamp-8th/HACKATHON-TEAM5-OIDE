@@ -10,7 +10,7 @@ import { BottomActionBar } from '../components/layout/BottomActionBar';
 import { MobileFrame } from '../components/layout/MobileFrame';
 import { ScreenBody } from '../components/layout/ScreenBody';
 import { ScreenHeader } from '../components/layout/ScreenHeader';
-import { joinRoomPath, splitGroupsPath } from '../constants/routes';
+import { joinRoomPath, paymentSplitPath, splitGroupsPath } from '../constants/routes';
 import { useAsync } from '../hooks/useAsync';
 import { useLocalIdentity } from '../hooks/useLocalIdentity';
 import { getPayments } from '../services/paymentService';
@@ -100,7 +100,14 @@ export function SplitMethodPage() {
               <div className={styles.content}>
                 <ul className={styles.rows}>
                   {items.map((payment) => (
-                    <li key={payment.id} className={styles.row}>
+                    <li key={payment.id}>
+                      <button
+                        type="button"
+                        className={styles.row}
+                        onClick={() =>
+                          navigate(paymentSplitPath(shareCode, groupId, payment.id))
+                        }
+                      >
                       <span className={styles.body}>
                         <span className={styles.merchant}>
                           {payment.merchant ?? '결제처 없음'}
@@ -119,6 +126,7 @@ export function SplitMethodPage() {
                           ›
                         </span>
                       </span>
+                      </button>
                     </li>
                   ))}
                 </ul>

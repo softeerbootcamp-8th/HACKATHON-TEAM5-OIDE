@@ -26,6 +26,7 @@ import { deleteSplitGroup, getSplitGroups } from '../services/splitGroupService'
 import { isApiError } from '../types/api';
 import type { Payment, SplitGroup } from '../types/payment';
 import type { SettlementRoom } from '../types/room';
+import { formatAmount } from '../utils/formatters';
 import { RoomExpiredPage } from './RoomExpiredPage';
 import styles from './SplitGroupListPage.module.css';
 
@@ -69,8 +70,19 @@ export function SplitGroupListPage() {
   const targetPayments = data?.payments.filter((payment) => payment.includedInSettlement) ?? [];
   const hasGroups = (data?.groups.length ?? 0) > 1;
 
-  const countFor = (groupId: string) =>
-    targetPayments.filter((payment) => payment.splitGroupId === groupId).length;
+  const itemsOf = (groupId: string) =>
+    targetPayments.filter((payment) => payment.splitGroupId === groupId);
+
+  /** 담긴 항목의 합계. 통화가 섞이면 합산이 의미 없어 첫 항목의 통화를 기준으로 한다. */
+  const totalLabelOf = (groupId: string) => {
+    const items = itemsOf(groupId);
+    if (items.length === 0) return undefined;
+    const currency = items[0].currency;
+    const total = items
+      .filter((payment) => payment.currency === currency)
+      .reduce((sum, payment) => sum + Number(payment.amount), 0);
+    return `${currency} ${formatAmount(String(total), currency)}`;
+  };
 
   const handleDelete = async (group: SplitGroup) => {
     setActionError(null);
@@ -128,7 +140,8 @@ export function SplitGroupListPage() {
                     <GroupCard
                       group={group}
                       members={data.room.members}
-                      itemCount={countFor(group.id)}
+                      itemCount={itemsOf(group.id).length}
+                      totalLabel={totalLabelOf(group.id)}
                       onOpen={() => navigate(splitGroupItemsPath(shareCode, group.id))}
                     />
                   );
@@ -158,7 +171,7 @@ export function SplitGroupListPage() {
 
           <BottomActionBar>
             {actionError && <Banner message={actionError} />}
-            <Button onClick={handleComplete}>내 정산 완료하기</Button>
+            <Button onClick={handleComplete}>환율 적용하기</Button>
           </BottomActionBar>
         </>
       )}

@@ -16,6 +16,8 @@ import type {
   CreatePaymentInput,
   ParseReceiptResult,
   Payment,
+  PaymentShare,
+  SplitMethod,
 } from '../types/payment';
 
 /** 목 모드에서 스크린샷 순번을 매기기 위한 카운터. */
@@ -126,5 +128,41 @@ export async function updatePaymentInclusion(
 
   return httpClient.patch<Payment>(`/rooms/${shareCode}/payments/${paymentId}`, {
     includedInSettlement,
+  });
+}
+
+/** 결제 1건의 참여자별 부담액. 아직 나누지 않았으면 빈 배열이다. */
+export async function getPaymentShares(
+  shareCode: string,
+  paymentId: string,
+): Promise<PaymentShare[]> {
+  if (USE_MOCK) {
+    return mockDelay(mockPaymentStore.findShares(paymentId), 150);
+  }
+
+  return httpClient.get<PaymentShare[]>(
+    `/rooms/${shareCode}/payments/${paymentId}/shares`,
+  );
+}
+
+/**
+ * 결제 1건을 어떻게 나눌지 확정한다.
+ *
+ * N빵이든 직접 입력이든 최종 금액을 그대로 보낸다. 서버가 다시 계산하지 않고
+ * 화면이 보여준 숫자를 그대로 저장해, 사용자가 본 것과 저장된 것이 어긋나지 않게 한다.
+ */
+export async function setPaymentSplit(
+  shareCode: string,
+  paymentId: string,
+  method: SplitMethod,
+  shares: { memberId: string; shareAmount: string }[],
+): Promise<Payment> {
+  if (USE_MOCK) {
+    return mockDelay(mockPaymentStore.setSplit(paymentId, method, shares));
+  }
+
+  return httpClient.put<Payment>(`/rooms/${shareCode}/payments/${paymentId}/shares`, {
+    splitMethod: method,
+    shares,
   });
 }
