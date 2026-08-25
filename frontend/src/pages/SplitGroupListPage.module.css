@@ -1,0 +1,35 @@
+.content {
+  padding: 0 var(--space-screen-x);
+}
+
+.addRow {
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--space-xs) 0 var(--space-md);
+}
+
+.addButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 20px;
+  line-height: 1;
+}
+
+.groups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.hint {
+  margin-top: var(--space-md);
+  font-size: var(--font-size-caption);
+  color: var(--color-text-muted);
+  white-space: pre-line;
+}

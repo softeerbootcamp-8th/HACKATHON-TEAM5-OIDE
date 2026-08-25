@@ -1,0 +1,33 @@
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: 0 var(--space-screen-x);
+}
+
+.nameBox {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.nameLabel {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-muted);
+}
+
+.nameValue {
+  font-size: var(--font-size-body);
+  font-weight: 600;
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+
+.members {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}

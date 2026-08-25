@@ -1,0 +1,63 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.panel {
+  width: 100%;
+  max-width: var(--frame-max-width);
+  max-height: 90dvh;
+  overflow-y: auto;
+  padding: var(--space-lg) var(--space-screen-x)
+    calc(var(--space-lg) + env(safe-area-inset-bottom));
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  background: var(--color-bg);
+}
+
+.title {
+  margin-bottom: var(--space-md);
+  font-size: var(--font-size-title);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+}
+
+.footnote {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-muted);
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-lg);
+}
+
+.cancel {
+  flex: 1;
+  min-height: var(--control-height);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-button);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.submit {
+  flex: 2;
+}

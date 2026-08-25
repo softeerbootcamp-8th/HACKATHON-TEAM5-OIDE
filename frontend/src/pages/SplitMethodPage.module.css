@@ -1,0 +1,66 @@
+.avatars {
+  padding: 0 var(--space-screen-x);
+  margin-bottom: var(--space-lg);
+}
+
+.content {
+  padding: 0 var(--space-screen-x);
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.row {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  text-align: left;
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.merchant {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.amount {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.meta {
+  font-size: var(--font-size-caption);
+  line-height: 1.3;
+  color: var(--color-text-muted);
+}
+
+.method {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex-shrink: 0;
+  font-size: var(--font-size-caption);
+  color: var(--color-text);
+}
+
+.chevron {
+  color: var(--color-text-muted);
+}
