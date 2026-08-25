@@ -1,6 +1,10 @@
+/* bottom 은 키보드가 덮은 높이만큼 인라인으로 채워진다. */
 .backdrop {
   position: fixed;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 10;
   display: flex;
   align-items: flex-end;
@@ -9,14 +13,21 @@
 }
 
 .panel {
+  display: flex;
+  flex-direction: column;
   width: 100%;
   max-width: var(--frame-max-width);
-  max-height: 90dvh;
-  overflow-y: auto;
-  padding: var(--space-lg) var(--space-screen-x)
-    calc(var(--space-lg) + env(safe-area-inset-bottom));
+  /* 백드롭이 키보드 위까지만 차지하므로 그 안에서의 비율로 잡는다. */
+  max-height: 92%;
   border-radius: var(--radius-md) var(--radius-md) 0 0;
   background: var(--color-bg);
+}
+
+.scrollArea {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-lg) var(--space-screen-x) 0;
 }
 
 .title {
@@ -42,10 +53,14 @@
   color: var(--color-text-muted);
 }
 
+/* 필드가 길어져도 등록 버튼은 항상 보이게 아래에 붙여둔다. */
 .actions {
   display: flex;
   gap: var(--space-sm);
-  margin-top: var(--space-lg);
+  flex-shrink: 0;
+  padding: var(--space-md) var(--space-screen-x)
+    calc(var(--space-lg) + env(safe-area-inset-bottom));
+  background: var(--color-bg);
 }
 
 .cancel {
@@ -61,3 +76,4 @@
 .submit {
   flex: 2;
 }
+
