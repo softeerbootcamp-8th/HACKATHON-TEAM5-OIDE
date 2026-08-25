@@ -3,3 +3,8 @@ spring:
     name: oide
   profiles:
     default: local
+  jpa:
+    database-platform: org.hibernate.dialect.MySQLDialect
+    hibernate:
+      ddl-auto: create
+    open-in-view: false
