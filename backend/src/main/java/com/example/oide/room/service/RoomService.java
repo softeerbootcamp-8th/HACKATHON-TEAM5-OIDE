@@ -79,7 +79,7 @@ public class RoomService {
 						.orElseThrow(() -> new BusinessException(ErrorCode.ROOM_NOT_FOUND));
 		RoomExpirationValidator.validateNotExpired(room.getCreatedAt());
 
-		List<RoomMember> members = roomMemberRepository.findByRoomIdOrderByDisplayOrderAsc(room.getId());
+		List<RoomMember> members = roomMemberRepository.findAllByRoomIdOrderByDisplayOrder(room.getId());
 		return RoomResponse.of(room, members);
 	}
 

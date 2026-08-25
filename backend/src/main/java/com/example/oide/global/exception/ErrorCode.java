@@ -8,17 +8,24 @@ import org.springframework.http.HttpStatus;
  */
 public enum ErrorCode {
 
-	// 공통 예외: 특정 도메인에 속하지 않는 요청 오류/서버 오류
+	// Common
 	INVALID_REQUEST(HttpStatus.BAD_REQUEST, "COMMON_001", "잘못된 요청입니다."),
-	INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "COMMON_002", "서버 내부 오류가 발생했습니다."),
+	INTERNAL_SERVER_ERROR(
+			HttpStatus.INTERNAL_SERVER_ERROR, "COMMON_002", "서버 내부 오류가 발생했습니다."),
 
-	// 정산방(room) 도메인 예외
-	ROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "ROOM_001", "정산방을 찾을 수 없습니다."), // shareCode로 방을 찾지 못했을 때
-	ROOM_EXPIRED(HttpStatus.GONE, "ROOM_002", "정산방이 만료되었습니다."), // 생성 후 7일이 지난 방을 조회했을 때
-	INVALID_TITLE(HttpStatus.BAD_REQUEST, "ROOM_003", "방 이름은 공백일 수 없고 10자 이내여야 합니다."),
-	INVALID_MEMBER_COUNT(HttpStatus.BAD_REQUEST, "ROOM_004", "참여자는 최소 2명 이상이어야 합니다."),
-	INVALID_NICKNAME(HttpStatus.BAD_REQUEST, "ROOM_005", "닉네임은 1자 이상 10자 이하이며 공백을 포함할 수 없습니다."),
-	DUPLICATE_NICKNAME(HttpStatus.BAD_REQUEST, "ROOM_006", "닉네임이 중복되었습니다.");
+	// Room
+	ROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "ROOM_001", "정산방을 찾을 수 없습니다."),
+	MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "ROOM_002", "정산방 참여자를 찾을 수 없습니다."),
+	ROOM_EXPIRED(HttpStatus.GONE, "ROOM_003", "정산방이 만료되었습니다."), // 생성 후 7일이 지난 방을 조회했을 때
+	INVALID_TITLE(HttpStatus.BAD_REQUEST, "ROOM_004", "방 이름은 공백일 수 없고 10자 이내여야 합니다."),
+	INVALID_MEMBER_COUNT(HttpStatus.BAD_REQUEST, "ROOM_005", "참여자는 최소 2명 이상이어야 합니다."),
+	INVALID_NICKNAME(HttpStatus.BAD_REQUEST, "ROOM_006", "닉네임은 1자 이상 10자 이하이며 공백을 포함할 수 없습니다."),
+	DUPLICATE_NICKNAME(HttpStatus.BAD_REQUEST, "ROOM_007", "닉네임이 중복되었습니다."),
+
+	// Group
+	GROUP_NOT_FOUND(HttpStatus.NOT_FOUND, "GROUP_001", "분담 그룹을 찾을 수 없습니다."),
+	ALL_GROUP_IMMUTABLE(HttpStatus.BAD_REQUEST, "GROUP_002", "전체 그룹은 수정하거나 삭제할 수 없습니다."),
+	INVALID_GROUP_MEMBER_COUNT(HttpStatus.BAD_REQUEST, "GROUP_003", "그룹은 두 명 이상의 참여자로 구성해야 합니다.");
 
 	private final HttpStatus status;
 	private final String code;

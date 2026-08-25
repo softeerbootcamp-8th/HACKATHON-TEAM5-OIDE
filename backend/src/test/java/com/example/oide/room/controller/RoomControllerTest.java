@@ -81,7 +81,7 @@ class RoomControllerTest {
 								.contentType(MediaType.APPLICATION_JSON)
 								.content(objectMapper.writeValueAsString(request)))
 				.andExpect(status().isBadRequest())
-				.andExpect(jsonPath("$.code").value("ROOM_003"));
+				.andExpect(jsonPath("$.code").value("ROOM_004"));
 	}
 
 	@Test
@@ -117,6 +117,6 @@ class RoomControllerTest {
 		mockMvc
 				.perform(get("/api/rooms/abc123"))
 				.andExpect(status().isGone())
-				.andExpect(jsonPath("$.code").value("ROOM_002"));
+				.andExpect(jsonPath("$.code").value("ROOM_003"));
 	}
 }

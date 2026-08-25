@@ -151,7 +151,7 @@ class RoomServiceTest {
 		ReflectionTestUtils.setField(room, "id", 1L);
 		ReflectionTestUtils.setField(room, "createdAt", LocalDateTime.now().minusDays(1));
 		given(settlementRoomRepository.findByShareCode("abc123")).willReturn(Optional.of(room));
-		given(roomMemberRepository.findByRoomIdOrderByDisplayOrderAsc(1L))
+		given(roomMemberRepository.findAllByRoomIdOrderByDisplayOrder(1L))
 				.willReturn(List.of(new RoomMember(room, "민수", 0)));
 
 		RoomResponse response = roomService.getRoomByShareCode("abc123");
