@@ -13,7 +13,7 @@ import { ScreenHeader } from '../components/layout/ScreenHeader';
 import { DEFAULT_CURRENCY } from '../constants/roomRules';
 import { expenseMethodPath, myExpensesPath } from '../constants/routes';
 import { useLocalIdentity } from '../hooks/useLocalIdentity';
-import { createPayments } from '../services/paymentService';
+import { createPayment } from '../services/paymentService';
 import { isApiError } from '../types/api';
 import type { CurrencyCode } from '../types/room';
 import { parseDateTimeInput } from '../utils/formatters';
@@ -48,19 +48,13 @@ export function ManualExpensePage() {
     setSubmitError(null);
 
     try {
-      await createPayments(shareCode, identity.memberId, [
-        {
-          merchant: merchant.trim() === '' ? null : merchant.trim(),
-          // 비워두면 지금 시각으로 기록한다.
-          paidAt:
-            paidAtText.trim() === ''
-              ? new Date().toISOString()
-              : parseDateTimeInput(paidAtText),
-          amount,
-          currency,
-          receiptImageId: null,
-        },
-      ]);
+      await createPayment(shareCode, identity.memberId, {
+        merchant: merchant.trim() === '' ? null : merchant.trim(),
+        paidAt: paidAtText.trim() === '' ? null : parseDateTimeInput(paidAtText),
+        amount,
+        currency,
+        receiptImageId: null,
+      });
       navigate(myExpensesPath(shareCode), { replace: true });
     } catch (error) {
       setSubmitError(
@@ -102,7 +96,7 @@ export function ManualExpensePage() {
             <FieldLabel text="결제 시각" />
             <TextField
               value={paidAtText}
-              placeholder="비워두면 오늘로 기록돼요"
+              placeholder="예: 2026-08-21 20:14"
               aria-label="결제 시각"
               errorMessage={paidAtValid ? undefined : '2026-08-21 20:14 형식으로 적어주세요'}
               onChange={(event) => setPaidAtText(event.target.value)}

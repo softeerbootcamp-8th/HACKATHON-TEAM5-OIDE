@@ -88,12 +88,8 @@ export interface ParsedPaymentDraft {
   paidAt: IsoDateTime | null;
   amount: string | null;
   currency: CurrencyCode | null;
-}
-
-/** 스크린샷 1장을 파싱한 결과. */
-export interface ParseReceiptResult {
-  image: ReceiptImage;
-  drafts: ParsedPaymentDraft[];
+  /** 서버가 기본 통화로 보정했을 때 수정 화면의 초기 선택값. */
+  suggestedCurrency?: CurrencyCode | null;
 }
 
 /** 결제 내역 등록 입력. 파싱 결과 확정과 직접 입력이 함께 쓴다. */

@@ -1,8 +1,7 @@
 /**
  * 참여자 조회.
  *
- * 방 조회 응답에 members 가 포함되지만, 참여자만 다시 읽어야 하는 화면을 위해
- * 별도 엔드포인트를 계약에 두고 서비스로도 노출한다.
+ * 방 조회 응답의 members와 결제 목록을 화면이 쓰는 조회 형태로 정리한다.
  */
 
 import { USE_MOCK } from '../api/apiConfig';
@@ -12,6 +11,8 @@ import { mockRoomStore } from '../mocks/mockRoomStore';
 import { ApiError } from '../types/api';
 import type { MemberPaymentSummary } from '../types/payment';
 import type { RoomMember } from '../types/room';
+import { getPayments } from './paymentService';
+import { getRoomByShareCode } from './roomService';
 
 /** 방에 등록된 참여자 목록. displayOrder 오름차순. */
 export async function getRoomMembers(shareCode: string): Promise<RoomMember[]> {
@@ -30,7 +31,6 @@ export async function getRoomMembers(shareCode: string): Promise<RoomMember[]> {
 
 /**
  * 참여자별 결제 내역 등록 요약. B-01 의 "내역 있음" 판정에 쓰인다.
- * 결제 내역 등록(flow #2)이 붙기 전까지는 조회 전용이다.
  */
 export async function getMemberPaymentSummaries(
   shareCode: string,
@@ -45,7 +45,22 @@ export async function getMemberPaymentSummaries(
     return mockDelay(mockRoomStore.findPaymentSummaries(room.id));
   }
 
-  return httpClient.get<MemberPaymentSummary[]>(
-    `/rooms/${shareCode}/member-payment-summaries`,
-  );
+  // 백엔드는 별도 집계 API 없이 방 결제 전체를 제공한다. 화면에 필요한 모양은
+  // 서비스 경계에서 만들어 페이지가 서버 DTO 차이를 알지 않게 한다.
+  const [room, payments] = await Promise.all([
+    getRoomByShareCode(shareCode),
+    getPayments(shareCode),
+  ]);
+  const counts = new Map<string, number>();
+  payments.forEach((payment) => {
+    counts.set(payment.payerMemberId, (counts.get(payment.payerMemberId) ?? 0) + 1);
+  });
+
+  return room.members.flatMap((member) => {
+    const memberId = String(member.id);
+    const paymentCount = counts.get(memberId) ?? 0;
+    return paymentCount > 0
+      ? [{ memberId, nickname: member.nickname, paymentCount }]
+      : [];
+  });
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Banner } from '../components/common/Banner';
 import { Button } from '../components/common/Button';
@@ -11,7 +11,11 @@ import { BottomActionBar } from '../components/layout/BottomActionBar';
 import { MobileFrame } from '../components/layout/MobileFrame';
 import { ScreenBody } from '../components/layout/ScreenBody';
 import { ScreenHeader } from '../components/layout/ScreenHeader';
-import { ACCEPTED_IMAGE_TYPES, MAX_SCREENSHOT_COUNT } from '../constants/roomRules';
+import {
+  ACCEPTED_IMAGE_TYPES,
+  MAX_SCREENSHOT_BYTES,
+  MAX_SCREENSHOT_COUNT,
+} from '../constants/roomRules';
 import { expenseMethodPath, screenshotParsingPath } from '../constants/routes';
 import { useExpenseDraft } from '../hooks/useExpenseDraft';
 import { useLeaveConsumedScreen } from '../hooks/useLeaveConsumedScreen';
@@ -26,7 +30,7 @@ export function ScreenshotUploadPage() {
   const { shareCode = '' } = useParams<{ shareCode: string }>();
   const { screenshots, addScreenshots, removeScreenshot } = useExpenseDraft();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const overflowRef = useRef(0);
+  const [selectionWarning, setSelectionWarning] = useState<string | null>(null);
 
   // 고른 파일이 사라졌으면 그릴 것이 없다.
   const leave = useLeaveConsumedScreen(expenseMethodPath(shareCode));
@@ -39,8 +43,21 @@ export function ScreenshotUploadPage() {
   const handleAdd = (fileList: FileList | null) => {
     if (!fileList) return;
     const picked = Array.from(fileList);
-    overflowRef.current = Math.max(0, picked.length - remaining);
-    addScreenshots(picked.slice(0, remaining));
+    const supported = picked.filter((file) => ACCEPTED_IMAGE_TYPES.includes(file.type));
+    const withinSize = supported.filter((file) => file.size <= MAX_SCREENSHOT_BYTES);
+    const accepted = withinSize.slice(0, remaining);
+
+    const unsupportedCount = picked.length - supported.length;
+    const oversizedCount = supported.length - withinSize.length;
+    const overflowCount = Math.max(0, withinSize.length - remaining);
+    const warnings = [
+      unsupportedCount > 0 ? `지원하지 않는 형식 ${unsupportedCount}장` : null,
+      oversizedCount > 0 ? `10MB를 넘는 이미지 ${oversizedCount}장` : null,
+      overflowCount > 0 ? `20장 제한 초과 ${overflowCount}장` : null,
+    ].filter((message): message is string => message !== null);
+
+    setSelectionWarning(warnings.length > 0 ? `${warnings.join(', ')}은 빼고 담았어요.` : null);
+    if (accepted.length > 0) addScreenshots(accepted);
   };
 
   if (screenshots.length === 0) return null;
@@ -79,11 +96,7 @@ export function ScreenshotUploadPage() {
         />
       </ScreenBody>
       <BottomActionBar>
-        {overflowRef.current > 0 && (
-          <Banner
-            message={`한 번에 ${MAX_SCREENSHOT_COUNT}장까지 올릴 수 있어요. ${overflowRef.current}장은 빼고 담았어요.`}
-          />
-        )}
+        {selectionWarning && <Banner message={selectionWarning} />}
         <Button onClick={() => navigate(screenshotParsingPath(shareCode))}>
           {screenshots.length}장 분석하기
         </Button>

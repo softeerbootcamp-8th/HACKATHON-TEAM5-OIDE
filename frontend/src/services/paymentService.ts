@@ -1,79 +1,31 @@
 /**
- * 결제 내역 파싱 · 등록 · 조회.
- *
- * 스크린샷은 한 장씩 파싱을 요청한다. 진행률(`3장 중 2장째`)은 프론트가 완료 개수로 센다.
- * 서버에 파싱 작업 상태 테이블이 필요 없고, 한 장이 실패해도 나머지는 살릴 수 있다.
+ * 결제 내역 확정 등록 · 직접 입력 · 조회.
+ * 스크린샷 비동기 추출은 paymentExtractionService가 담당한다.
  */
 
-import { API_BASE_URL, USE_MOCK } from '../api/apiConfig';
+import { USE_MOCK } from '../api/apiConfig';
 import { httpClient } from '../api/httpClient';
 import { mockDelay, mockDelayReject } from '../mocks/mockDelay';
-import { draftsForImage } from '../mocks/mockPayments';
 import { mockPaymentStore } from '../mocks/mockPaymentStore';
 import { mockRoomStore } from '../mocks/mockRoomStore';
 import { ApiError } from '../types/api';
 import type {
   CreatePaymentInput,
-  ParseReceiptResult,
   Payment,
   PaymentShare,
   SplitMethod,
 } from '../types/payment';
+import type { CurrencyCode } from '../types/room';
+import { getRoomIdByShareCode } from './roomService';
 
-/** 목 모드에서 스크린샷 순번을 매기기 위한 카운터. */
-let mockImageCounter = 0;
-
-/**
- * 스크린샷 1장을 파싱한다.
- * @param imageIndex 이번 업로드에서 몇 번째 장인지. 화면의 `스크린샷 n` 표기에 쓴다.
- */
-export async function parseReceiptImage(
-  shareCode: string,
-  file: File,
-  imageIndex: number,
-): Promise<ParseReceiptResult> {
-  if (USE_MOCK) {
-    mockImageCounter += 1;
-    const imageId = `img-${Date.now()}-${mockImageCounter}`;
-    return mockDelay(
-      {
-        image: {
-          id: imageId,
-          // 목 모드에서는 실제로 올린 파일을 그대로 미리보기에 쓴다.
-          url: URL.createObjectURL(file),
-          displayOrder: imageIndex,
-        },
-        drafts: draftsForImage(imageIndex, imageId),
-      },
-      700,
-    );
-  }
-
-  const body = new FormData();
-  body.append('image', file);
-  body.append('displayOrder', String(imageIndex));
-
-  // multipart 는 Content-Type 을 브라우저가 boundary 와 함께 정해야 해서
-  // JSON 전용인 httpClient 를 쓰지 않는다.
-  let response: Response;
-  try {
-    response = await fetch(`${API_BASE_URL}/rooms/${shareCode}/receipt-images`, {
-      method: 'POST',
-      body,
-    });
-  } catch {
-    throw new ApiError('NETWORK_ERROR', '연결이 원활하지 않아요. 잠시 후 다시 시도해주세요.');
-  }
-
-  if (!response.ok) {
-    throw new ApiError(
-      'UNKNOWN_ERROR',
-      `스크린샷을 읽지 못했어요. (${response.status})`,
-      response.status,
-    );
-  }
-
-  return (await response.json()) as ParseReceiptResult;
+interface PaymentResponseDto {
+  id: number | string;
+  payerMemberId: number | string;
+  merchant: string | null;
+  paidAt: string | null;
+  amount: number | string;
+  currency: string;
+  splitMethod: SplitMethod | null;
 }
 
 /** 확정한 결제 내역을 한 번에 등록한다. */
@@ -90,10 +42,42 @@ export async function createPayments(
     return mockDelay(mockPaymentStore.createMany(room.id, payerMemberId, payments));
   }
 
-  return httpClient.post<Payment[]>(`/rooms/${shareCode}/payments`, {
-    payerMemberId,
-    payments,
+  const roomId = await getRoomIdByShareCode(shareCode);
+  const responses = await httpClient.post<PaymentResponseDto[]>(`/rooms/${roomId}/payments/bulk`, {
+    payments: payments.map((payment) => ({
+      payerMemberId,
+      merchant: payment.merchant,
+      paidAt: toBackendLocalDateTime(payment.paidAt),
+      amount: payment.amount,
+      currency: payment.currency,
+    })),
   });
+  return responses.map((response, index) => toPayment(response, roomId, payments[index]));
+}
+
+/** 스크린샷 없이 직접 입력한 결제 내역 한 건을 등록한다. */
+export async function createPayment(
+  shareCode: string,
+  payerMemberId: string,
+  payment: CreatePaymentInput,
+): Promise<Payment> {
+  if (USE_MOCK) {
+    const room = mockRoomStore.findByShareCode(shareCode);
+    if (!room) {
+      return mockDelayReject(new ApiError('ROOM_NOT_FOUND', '정산방을 찾을 수 없어요.', 404));
+    }
+    return mockDelay(mockPaymentStore.createMany(room.id, payerMemberId, [payment])[0]);
+  }
+
+  const roomId = await getRoomIdByShareCode(shareCode);
+  const response = await httpClient.post<PaymentResponseDto>(`/rooms/${roomId}/payments`, {
+    payerMemberId,
+    merchant: payment.merchant,
+    paidAt: toBackendLocalDateTime(payment.paidAt),
+    amount: payment.amount,
+    currency: payment.currency,
+  });
+  return toPayment(response, roomId, payment);
 }
 
 /** 방에 등록된 결제 내역. memberId 를 주면 그 사람이 결제한 것만 가져온다. */
@@ -112,8 +96,12 @@ export async function getPayments(
     );
   }
 
-  const query = payerMemberId ? `?payerMemberId=${encodeURIComponent(payerMemberId)}` : '';
-  return httpClient.get<Payment[]>(`/rooms/${shareCode}/payments${query}`);
+  const roomId = await getRoomIdByShareCode(shareCode);
+  const responses = await httpClient.get<PaymentResponseDto[]>(`/rooms/${roomId}/payments`);
+  const payments = responses.map((response) => toPayment(response, roomId));
+  return payerMemberId
+    ? payments.filter((payment) => payment.payerMemberId === String(payerMemberId))
+    : payments;
 }
 
 /** 정산에 포함할지 여부를 바꾼다. (B-02 의 원형 체크) */
@@ -165,4 +153,45 @@ export async function setPaymentSplit(
     splitMethod: method,
     shares,
   });
+}
+
+function toPayment(
+  response: PaymentResponseDto,
+  roomId: string,
+  input?: CreatePaymentInput,
+): Payment {
+  const now = new Date().toISOString();
+  return {
+    id: String(response.id),
+    roomId,
+    payerMemberId: String(response.payerMemberId),
+    splitGroupId: null,
+    merchant: response.merchant,
+    paidAt: response.paidAt,
+    amount: String(response.amount),
+    currency: response.currency as CurrencyCode,
+    splitMethod: response.splitMethod,
+    includedInSettlement: input?.includedInSettlement ?? false,
+    receiptImageId: input?.receiptImageId ?? null,
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+/** Spring LocalDateTime 계약에 맞춰 시간대 없는 로컬 시각 문자열로 보낸다. */
+function toBackendLocalDateTime(value: string | null): string | null {
+  if (value === null) return null;
+
+  const localDateTime = value.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})(?::(\d{2}))?$/);
+  if (localDateTime) {
+    return `${localDateTime[1]}T${localDateTime[2]}:${localDateTime[3] ?? '00'}`;
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  const pad = (number: number) => String(number).padStart(2, '0');
+  return [
+    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`,
+    `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`,
+  ].join('T');
 }

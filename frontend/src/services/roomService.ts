@@ -12,6 +12,12 @@ import { mockRoomStore } from '../mocks/mockRoomStore';
 import { ApiError } from '../types/api';
 import type { CreateRoomRequest, SettlementRoom } from '../types/room';
 
+interface RoomIdResponse {
+  roomId: number | string;
+}
+
+const roomIdCache = new Map<string, string>();
+
 function isExpired(room: SettlementRoom): boolean {
   return new Date(room.expiresAt).getTime() <= Date.now();
 }
@@ -43,4 +49,23 @@ export async function createRoom(request: CreateRoomRequest): Promise<Settlement
   }
 
   return httpClient.post<SettlementRoom>('/rooms', request);
+}
+
+/** shareCode URL을 유지하면서 roomId 기반 하위 API를 호출하기 위한 식별자 조회. */
+export async function getRoomIdByShareCode(shareCode: string): Promise<string> {
+  if (USE_MOCK) {
+    const room = mockRoomStore.findByShareCode(shareCode);
+    if (!room) {
+      return mockDelayReject(new ApiError('ROOM_NOT_FOUND', '정산방을 찾을 수 없어요.', 404));
+    }
+    return room.id;
+  }
+
+  const cached = roomIdCache.get(shareCode);
+  if (cached) return cached;
+
+  const room = await httpClient.get<RoomIdResponse>(`/rooms/${shareCode}`);
+  const roomId = String(room.roomId);
+  roomIdCache.set(shareCode, roomId);
+  return roomId;
 }

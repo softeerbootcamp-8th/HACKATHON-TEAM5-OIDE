@@ -35,7 +35,9 @@ export function ParsedItemEditPage() {
     draft?.paidAt ? formatDateTimeInput(draft.paidAt) : '',
   );
   const [amount, setAmount] = useState(draft?.amount ?? '');
-  const [currency, setCurrency] = useState<CurrencyCode>(draft?.currency ?? DEFAULT_CURRENCY);
+  const [currency, setCurrency] = useState<CurrencyCode>(
+    draft?.currency ?? draft?.suggestedCurrency ?? DEFAULT_CURRENCY,
+  );
   const [showPreview, setShowPreview] = useState(false);
 
   // 새로고침 등으로 초안이 사라진 경우. 렌더 도중 navigate 를 부르면 멈추므로

@@ -35,7 +35,7 @@ export const DEFAULT_CURRENCY = 'JPY' as const;
 export const MAX_SCREENSHOT_COUNT = 20;
 
 /** 업로드 허용 이미지 형식. */
-export const ACCEPTED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/heic'];
+export const ACCEPTED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
 
 /** 스크린샷 1장당 최대 용량(바이트). */
 export const MAX_SCREENSHOT_BYTES = 10 * 1024 * 1024;

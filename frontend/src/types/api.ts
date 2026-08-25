@@ -16,6 +16,22 @@ export type ApiErrorCode =
   | 'DUPLICATE_NICKNAME'
   /** 참여자가 최소 인원 미만 (400) */
   | 'TOO_FEW_MEMBERS'
+  /** 업로드할 스크린샷이 없음 */
+  | 'NO_SCREENSHOT_UPLOADED'
+  /** 한 번에 올릴 수 있는 스크린샷 수를 초과함 */
+  | 'TOO_MANY_SCREENSHOTS'
+  /** 서버가 지원하지 않는 이미지 형식 */
+  | 'UNSUPPORTED_IMAGE_TYPE'
+  /** 스크린샷 한 장의 크기 제한을 초과함 */
+  | 'SCREENSHOT_TOO_LARGE'
+  /** 폴링할 추출 작업을 찾을 수 없음 */
+  | 'EXTRACTION_JOB_NOT_FOUND'
+  /** 등록할 결제 내역이 없음 */
+  | 'NO_PAYMENT_TO_REGISTER'
+  /** 결제 금액이 유효하지 않음 */
+  | 'INVALID_PAYMENT_AMOUNT'
+  /** 통화 코드가 유효하지 않음 */
+  | 'INVALID_CURRENCY'
   /** 네트워크 단절 · 타임아웃 */
   | 'NETWORK_ERROR'
   /** 5xx 또는 분류되지 않은 실패 */
@@ -39,6 +55,7 @@ export function isApiError(error: unknown): error is ApiError {
 
 /** 서버가 내려주는 에러 응답 바디. */
 export interface ApiErrorResponse {
-  code: ApiErrorCode;
+  /** 백엔드의 숫자형 도메인 코드(예: ROOM_003)를 그대로 받는다. */
+  code: string;
   message: string;
 }
