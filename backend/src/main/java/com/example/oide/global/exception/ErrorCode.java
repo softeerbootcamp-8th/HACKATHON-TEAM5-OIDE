@@ -31,7 +31,7 @@ public enum ErrorCode {
 	INVALID_SHARE_AMOUNT(HttpStatus.BAD_REQUEST, "PAYMENT_006", "분담 금액은 0 이상이어야 합니다."),
 	UNBALANCED_PAYMENT_SHARE(HttpStatus.BAD_REQUEST, "PAYMENT_007", "분담 금액 합계가 결제 금액과 다릅니다."),
 	INVALID_PAYMENT_AMOUNT(HttpStatus.BAD_REQUEST, "PAYMENT_008", "결제 금액은 0보다 커야 합니다."),
-	INVALID_CURRENCY(HttpStatus.BAD_REQUEST, "PAYMENT_009", "통화는 ISO 4217 세 자리 코드여야 합니다."),
+	INVALID_CURRENCY(HttpStatus.BAD_REQUEST, "PAYMENT_009", "지원하지 않는 통화입니다."),
 	NO_PAYMENT_TO_REGISTER(HttpStatus.BAD_REQUEST, "PAYMENT_010", "등록할 결제 내역이 없습니다."),
 
 	// Group
