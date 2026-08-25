@@ -9,6 +9,13 @@ spring:
       ddl-auto: create
     open-in-view: false
 
+  servlet:
+    multipart:
+      # FR-02: 스크린샷 20장을 한 번에 올린다. 장당 크기 제한의 유일한 기준이며,
+      # 초과분은 컨테이너가 본문을 다 읽기 전에 거절한다.
+      max-file-size: 10MB
+      max-request-size: 200MB
+
 exim:
   base-url: ${EXIM_BASE_URL:https://oapi.koreaexim.go.kr/site/program/financial/exchangeJSON}
   api-key: ${EXIM_API_KEY:}
