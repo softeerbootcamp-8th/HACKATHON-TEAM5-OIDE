@@ -9,6 +9,10 @@ spring:
       ddl-auto: create
     open-in-view: false
 
+exim:
+  base-url: ${EXIM_BASE_URL:https://oapi.koreaexim.go.kr/site/program/financial/exchangeJSON}
+  api-key: ${EXIM_API_KEY:}
+
 oide:
   gemini:
     # 서버 환경변수로 주입한다. 비어 있으면 GeminiConfig가 기동을 중단한다.

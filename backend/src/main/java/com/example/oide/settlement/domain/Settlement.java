@@ -15,13 +15,14 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Getter
 @Entity
-@Table(name = "settlement")
+@Table(name = "settlement", uniqueConstraints = @UniqueConstraint(columnNames = "room_id"))
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Settlement {
 
@@ -46,6 +47,11 @@ public class Settlement {
 	public Settlement(SettlementRoom room, String status, LocalDateTime calculatedAt) {
 		this.room = room;
 		this.status = status;
+		this.calculatedAt = calculatedAt;
+	}
+
+	public void recalculate(LocalDateTime calculatedAt) {
+		this.status = "COMPLETED";
 		this.calculatedAt = calculatedAt;
 	}
 }

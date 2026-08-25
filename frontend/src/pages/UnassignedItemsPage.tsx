@@ -9,7 +9,7 @@ import { MobileFrame } from '../components/layout/MobileFrame';
 import { ScreenBody } from '../components/layout/ScreenBody';
 import { ScreenHeader } from '../components/layout/ScreenHeader';
 import { ALL_GROUP_NAME } from '../constants/roomRules';
-import { joinRoomPath, settlementPath, splitGroupsPath } from '../constants/routes';
+import { joinRoomPath, settlementStartPath, splitGroupsPath } from '../constants/routes';
 import { useAsync } from '../hooks/useAsync';
 import { useLocalIdentity } from '../hooks/useLocalIdentity';
 import { getPayments } from '../services/paymentService';
@@ -77,7 +77,7 @@ export function UnassignedItemsPage() {
           </ScreenBody>
 
           <BottomActionBar>
-            <Button onClick={() => navigate(settlementPath(shareCode))}>
+            <Button onClick={() => navigate(settlementStartPath(shareCode))}>
               이대로 환율 적용하기
             </Button>
             <Button variant="text" onClick={() => navigate(splitGroupsPath(shareCode))}>
@@ -89,3 +89,4 @@ export function UnassignedItemsPage() {
     </MobileFrame>
   );
 }
+

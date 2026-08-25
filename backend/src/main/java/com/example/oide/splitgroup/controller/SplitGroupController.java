@@ -13,6 +13,13 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import com.example.oide.global.exception.ErrorResponse;
 import com.example.oide.splitgroup.dto.CreateSplitGroupRequest;
 import com.example.oide.splitgroup.dto.SplitGroupDetailResponse;
 import com.example.oide.splitgroup.dto.SplitGroupResponse;
@@ -26,60 +33,63 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/rooms/{roomId}/split-groups")
-// 정산 그룹과 그룹별 결제 선택 API를 제공한다.
+@Tag(name = "Split Group", description = "정산 그룹과 그룹별 결제 선택 API")
 public class SplitGroupController {
 
 	private final SplitGroupService splitGroupService;
 
-	// 사용자 지정 그룹을 생성한다.
 	@PostMapping
+	@Operation(summary = "정산 그룹 생성", description = "이름과 참여자를 지정해 사용자 그룹을 만든다.")
+	@ApiResponses({
+			@ApiResponse(responseCode = "201", description = "생성 성공"),
+			@ApiResponse(responseCode = "400", description = "그룹 이름 또는 참여자 수가 유효하지 않음", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+			@ApiResponse(responseCode = "404", description = "방 또는 참여자를 찾을 수 없음", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+	})
 	public ResponseEntity<SplitGroupResponse> create(
 			@PathVariable Long roomId,
 			@Valid @RequestBody CreateSplitGroupRequest request) {
-		// 요청 본문 검증을 통과한 그룹 생성 정보를 서비스에 전달한다.
 		return ResponseEntity.status(HttpStatus.CREATED).body(splitGroupService.create(roomId, request));
 	}
 
-	// 정산방의 그룹 목록을 조회한다.
 	@GetMapping
+	@Operation(summary = "정산 그룹 목록 조회", description = "전체 그룹을 포함한 방의 정산 그룹 목록을 조회한다.")
+	@ApiResponses({
+			@ApiResponse(responseCode = "200", description = "조회 성공"),
+			@ApiResponse(responseCode = "404", description = "방을 찾을 수 없음", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+	})
 	public ResponseEntity<List<SplitGroupResponse>> findAll(@PathVariable Long roomId) {
-		// 전체 그룹을 포함한 현재 정산방의 그룹 목록을 반환한다.
 		return ResponseEntity.ok(splitGroupService.findAll(roomId));
 	}
 
-	// 그룹 구성원과 결제 선택 상태를 상세 조회한다.
 	@GetMapping("/{groupId}")
+	@Operation(summary = "정산 그룹 상세 조회", description = "그룹 구성원과 결제별 선택 상태를 조회한다.")
 	public ResponseEntity<SplitGroupDetailResponse> findDetail(
 			@PathVariable Long roomId, @PathVariable Long groupId) {
-		// 그룹 상세 화면에 필요한 그룹 정보와 결제 선택 상태를 함께 반환한다.
 		return ResponseEntity.ok(splitGroupService.findDetail(roomId, groupId));
 	}
 
-	// 사용자 지정 그룹명과 구성원을 수정한다.
 	@PutMapping("/{groupId}")
+	@Operation(summary = "정산 그룹 수정", description = "사용자 그룹의 이름과 구성원을 변경한다. 전체 그룹은 수정할 수 없다.")
 	public ResponseEntity<SplitGroupResponse> update(
 			@PathVariable Long roomId,
 			@PathVariable Long groupId,
 			@Valid @RequestBody UpdateSplitGroupRequest request) {
-		// URL의 정산방·그룹 식별자와 변경 데이터를 서비스에 전달한다.
 		return ResponseEntity.ok(splitGroupService.update(roomId, groupId, request));
 	}
 
-	// 그룹 완료 시 선택한 결제 목록을 저장한다.
 	@PutMapping("/{groupId}/payments")
+	@Operation(summary = "그룹 결제 선택 저장", description = "그룹이 분담할 결제 목록을 저장한다. 다른 그룹에 선택된 결제는 지정할 수 없다.")
 	public ResponseEntity<Void> updatePayments(
 			@PathVariable Long roomId,
 			@PathVariable Long groupId,
 			@Valid @RequestBody UpdateGroupPaymentsRequest request) {
-		// 선택 결과를 저장한 뒤 응답 본문 없이 완료 상태만 반환한다.
 		splitGroupService.updatePayments(roomId, groupId, request);
 		return ResponseEntity.noContent().build();
 	}
 
-	// 사용자 지정 그룹을 삭제한다.
 	@DeleteMapping("/{groupId}")
+	@Operation(summary = "정산 그룹 삭제", description = "사용자 그룹을 삭제한다. 전체 그룹은 삭제할 수 없다.")
 	public ResponseEntity<Void> delete(@PathVariable Long roomId, @PathVariable Long groupId) {
-		// 그룹 삭제가 완료되면 반환 본문 없이 성공 상태만 전달한다.
 		splitGroupService.delete(roomId, groupId);
 		return ResponseEntity.noContent().build();
 	}

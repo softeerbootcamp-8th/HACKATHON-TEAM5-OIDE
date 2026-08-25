@@ -18,7 +18,12 @@ import { RoomCreatedPage } from './pages/RoomCreatedPage';
 import { RoomHomePage } from './pages/RoomHomePage';
 import { ScreenshotParsingPage } from './pages/ScreenshotParsingPage';
 import { ScreenshotUploadPage } from './pages/ScreenshotUploadPage';
-import { SettlementPlaceholderPage } from './pages/SettlementPlaceholderPage';
+import { RateEditPage } from './pages/RateEditPage';
+import { SettlementDonePage } from './pages/SettlementDonePage';
+import { SettlementStartPage } from './pages/SettlementStartPage';
+import { SettlementSummaryPage } from './pages/SettlementSummaryPage';
+import { TransferDetailPage } from './pages/TransferDetailPage';
+import { TransferListPage } from './pages/TransferListPage';
 import { SplitGroupItemsPage } from './pages/SplitGroupItemsPage';
 import { SplitGroupListPage } from './pages/SplitGroupListPage';
 import { SplitGroupMembersPage } from './pages/SplitGroupMembersPage';
@@ -26,7 +31,7 @@ import { SplitMethodPage } from './pages/SplitMethodPage';
 import { UnassignedItemsPage } from './pages/UnassignedItemsPage';
 
 /**
- * flow #1 (방 개설 · 참여) · flow #2 (결제 내역 등록) · flow #3 (그룹 분담) 라우팅.
+ * flow #1 (방 개설 · 참여) · #2 (결제 내역 등록) · #3 (그룹 분담) · #4 (환율 · 최종 정산) 라우팅.
  *
  * 방 생성 위저드와 스크린샷 등록 흐름은 각각 화면 사이에서 입력을 공유하므로
  * Provider 로 감싼다.
@@ -63,7 +68,13 @@ export function App() {
             <Route path={ROUTES.paymentSplit} element={<PaymentSplitPage />} />
             <Route path={ROUTES.splitGroupMethod} element={<SplitMethodPage />} />
             <Route path={ROUTES.splitGroups} element={<SplitGroupListPage />} />
-            <Route path={ROUTES.settlement} element={<SettlementPlaceholderPage />} />
+            {/* 고정 경로가 :index 보다 먼저 와야 한다. */}
+            <Route path={ROUTES.rateEdit} element={<RateEditPage />} />
+            <Route path={ROUTES.settlementSummary} element={<SettlementSummaryPage />} />
+            <Route path={ROUTES.settlementDone} element={<SettlementDonePage />} />
+            <Route path={ROUTES.transferDetail} element={<TransferDetailPage />} />
+            <Route path={ROUTES.transferList} element={<TransferListPage />} />
+            <Route path={ROUTES.settlementStart} element={<SettlementStartPage />} />
 
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
@@ -72,3 +83,4 @@ export function App() {
     </BrowserRouter>
   );
 }
+

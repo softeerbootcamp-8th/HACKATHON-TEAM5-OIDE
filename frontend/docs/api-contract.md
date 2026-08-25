@@ -324,6 +324,82 @@ B-01의 "내역 있음" 상태를 그리기 위한 참여자별 등록 요약.
 
 ---
 
+## GET /rooms/{shareCode}/rates
+
+방에 적용되는 통화별 환율. **방을 개설한 시점으로 고정**되어 모든 참여자에게 똑같이 적용된다.
+
+참여자마다 정산을 끝내는 시각이 달라서, 정산 시점 환율을 쓰면 사람마다 다른 값이
+적용된다. 그래서 개설 시점으로 못박는다.
+
+**응답 `200`**
+
+```json
+{
+  "rates": [
+    {
+      "id": "1",
+      "settlementId": "1",
+      "currency": "JPY",
+      "rateToKrw": "9.31",
+      "rateSource": "AUTO",
+      "effectiveDate": "2026-08-23",
+      "quotedAt": "2026-08-23T23:17:00Z"
+    }
+  ],
+  "editedByNickname": null
+}
+```
+
+- `quotedAt` 을 **항상 함께** 내려준다. 화면은 환율 숫자를 단독으로 노출하지 않는다 (FR-04)
+- 직접 입력된 환율이면 `rateSource: "MANUAL"` 이고 `editedByNickname` 에 바꾼 사람이 담긴다
+
+## PUT /rooms/{shareCode}/rates
+
+환율을 직접 지정한다. **방 전원에게 적용된다.**
+
+**요청** — `{ "currency": "JPY", "rateToKrw": "9.48" }`
+**응답 `200`** — 위와 같은 형태
+
+## DELETE /rooms/{shareCode}/rates
+
+직접 입력한 환율을 지우고 자동 환율로 되돌린다.
+
+**응답 `200`** — 위와 같은 형태
+
+## GET /rooms/{shareCode}/settlement/progress
+
+자기 정산을 끝낸 참여자들의 id.
+
+**응답 `200`** — `["11", "12"]`
+
+## POST /rooms/{shareCode}/settlement/complete
+
+내 정산을 확정한다.
+
+**요청** — `{ "memberId": "11" }`
+**응답 `200`** — 갱신된 진행 목록
+
+전원이 확정해야 최종 송금 리스트를 볼 수 있다.
+
+### 최종 정산 계산 규칙 (FR-04 · FR-05)
+
+프론트가 이렇게 계산한다. 서버가 계산을 맡게 되면 같은 규칙을 쓴다.
+
+```
+참여자별 결제액 = 그 사람이 결제자인 내역의 원화 환산 합
+참여자별 부담액 = 그 사람의 PAYMENT_SHARE 원화 환산 합
+             (아직 나누지 않은 항목은 `전체` 그룹이 N빵)
+잔액 = 결제액 - 부담액   (양수면 받을 돈, 음수면 보낼 돈)
+```
+
+- **환산은 참여자별 금액 각각에 반올림**한다. 개인별 합과 총액이 1~2원 어긋나도
+  보정하지 않고 화면에 드러내지도 않는다. 사용자가 실제로 보낼 숫자는 개인별 금액이다
+- 송금은 받을 사람과 보낼 사람을 **큰 금액부터 맞물려** 만든다. 매번 한쪽 잔액이 0이 되므로
+  **최대 (인원 − 1)건**이다. 모든 쌍의 채무를 나열하지 않는다
+- 최종 송금 금액은 **원화로만** 보여준다. 외화는 근거 내역에만 남긴다
+
+---
+
 ## ERD 보완 제안
 
 화면을 그리는 데 필요하지만 제공된 ERD에 없는 것들이다. **백엔드에서 확정이 필요하다.**
@@ -363,7 +439,24 @@ RECEIPT_IMAGE {
 PAYMENT + receipt_image_id FK  "nullable, 직접 입력한 내역은 null"
 ```
 
-### 5. 닉네임 선점 상태 — **의도적으로 만들지 않음**
+### 5. `SETTLEMENT_MEMBER_RESULT` 에 받을/보낼 금액 (선택)
+
+ERD 에는 `paid_krw` · `owed_krw` 만 있다. FR-05 가 요구하는 네 값 중
+`받을 금액` · `보낼 금액` 은 두 값의 차이로 파생되므로 저장하지 않아도 된다.
+지금 프론트는 파생해서 쓴다. 저장해두려면 컬럼을 더하면 된다.
+
+### 6. 정산 진행 상태 (필수)
+
+참여자마다 자기 정산을 확정하는 시각이 다르고, 전원이 끝나야 최종 송금 리스트가 열린다.
+`SETTLEMENT` 에 방 단위 `status` 만 있어서 **누가 끝냈는지**를 담을 자리가 없다.
+
+```
+SETTLEMENT_MEMBER_RESULT + completed_at  datetime "nullable"
+```
+
+또는 별도 테이블로 둔다. 위 progress API 가 이 값을 읽는다.
+
+### 7. 닉네임 선점 상태 — **의도적으로 만들지 않음**
 
 `ROOM_MEMBER`에 claim 관련 컬럼이 없는 것은 설계 결정이다.
 서버는 누가 어떤 닉네임을 가져갔는지 알지 않는다.
@@ -382,3 +475,4 @@ PAYMENT + receipt_image_id FK  "nullable, 직접 입력한 내역은 null"
 `src/types/payment.ts` · `src/types/settlement.ts`에 타입만 확정해두었다.
 `SPLIT_GROUP.type`은 `ALL`/`CUSTOM`, `PAYMENT.split_method`는 `EQUAL`/`CUSTOM`,
 `SETTLEMENT.status`는 `NOT_STARTED`/`IN_PROGRESS`/`DONE`/`OUTDATED`를 쓴다.
+
