@@ -14,6 +14,7 @@ import com.example.oide.global.exception.ErrorCode;
 import com.example.oide.payment.domain.Payment;
 import com.example.oide.payment.repository.PaymentRepository;
 import com.example.oide.payment.repository.PaymentShareRepository;
+import com.example.oide.payment.service.PaymentShareService;
 import com.example.oide.room.domain.RoomMember;
 import com.example.oide.room.domain.SettlementRoom;
 import com.example.oide.room.repository.RoomMemberRepository;
@@ -46,6 +47,7 @@ public class SplitGroupService {
 	private final SplitGroupMemberRepository groupMemberRepository;
 	private final PaymentRepository paymentRepository;
 	private final PaymentShareRepository paymentShareRepository;
+	private final PaymentShareService paymentShareService;
 
 	// 정산방에 전체 그룹이 없으면 생성한다.
 	@Transactional
@@ -121,6 +123,7 @@ public class SplitGroupService {
 		// 기존 연결 삭제를 먼저 반영해 같은 참여자를 새 구성원으로 다시 저장할 수 있게 한다.
 		groupMemberRepository.flush();
 		groupMemberRepository.saveAll(createGroupMembers(group, members));
+		paymentShareService.adjustGroupPayments(group);
 		// 변경된 그룹 정보와 구성원을 응답으로 반환한다.
 		long paymentCount = paymentRepository.findAllByRoomIdAndSplitGroupId(roomId, groupId).size();
 		return toResponse(group, members, paymentCount);
