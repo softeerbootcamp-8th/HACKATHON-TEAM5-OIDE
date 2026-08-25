@@ -1,0 +1,32 @@
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--touch-target-min);
+  height: var(--touch-target-min);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font-size: 18px;
+  color: var(--color-text);
+}
+
+.button:disabled {
+  color: var(--color-disabled-text);
+}
+
+.value {
+  min-width: 40px;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}

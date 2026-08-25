@@ -1,0 +1,45 @@
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 0 var(--space-screen-x);
+  margin-bottom: var(--space-lg);
+}
+
+.editLink {
+  font-size: var(--font-size-body);
+  color: var(--color-text-muted);
+}
+
+.content {
+  padding: 0 var(--space-screen-x);
+}
+
+.section + .section {
+  margin-top: var(--space-sm);
+}
+
+.sectionHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.selectAll {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-muted);
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.addMissing {
+  width: 100%;
+  padding: var(--space-lg) 0 var(--space-md);
+  font-size: var(--font-size-body);
+  color: var(--color-text-muted);
+}

@@ -1,0 +1,21 @@
+.bar {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  height: var(--app-bar-height);
+  padding: 0 var(--space-screen-x);
+}
+
+.backButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--touch-target-min);
+  height: var(--touch-target-min);
+  margin-left: -12px;
+  color: var(--color-text);
+}
+
+.chevron {
+  display: block;
+}

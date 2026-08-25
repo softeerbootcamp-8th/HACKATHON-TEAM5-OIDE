@@ -1,0 +1,10 @@
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: 0 var(--space-screen-x);
+}
+
+.fileInput {
+  display: none;
+}

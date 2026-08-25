@@ -1,0 +1,17 @@
+/* 모바일 웹 기준 컨테이너. 390px 는 디자인 기준 폭이지 고정 폭이 아니다. */
+.frame {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: var(--frame-max-width);
+  min-height: 100dvh;
+  margin: 0 auto;
+  background: var(--color-bg);
+}
+
+.content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
