@@ -87,7 +87,7 @@ export function ManualExpensePage() {
   const currency = pickedCurrency ?? room?.defaultCurrency;
 
   return (
-    <MobileFrame>
+    <MobileFrame tone="white">
       <AppBar backTo={expenseMethodPath(shareCode)} />
       {status === 'loading' && <LoadingState />}
 

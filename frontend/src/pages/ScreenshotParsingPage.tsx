@@ -64,7 +64,7 @@ export function ScreenshotParsingPage() {
     extraction.status === 'success' && extraction.result?.drafts.length === 0;
   if (extraction.status === 'error' || noExtractedPayments) {
     return (
-      <MobileFrame>
+      <MobileFrame tone="white">
         <AppBar backTo={screenshotUploadPath(shareCode)} />
         <ErrorState
           iconSrc={stateErrorIcon}
@@ -84,7 +84,7 @@ export function ScreenshotParsingPage() {
   const current = Math.min(extraction.finishedImages + 1, total);
 
   return (
-    <MobileFrame>
+    <MobileFrame tone="white">
       <AppBar showBack={false} />
       <ScreenBody>
         <ScreenHeader

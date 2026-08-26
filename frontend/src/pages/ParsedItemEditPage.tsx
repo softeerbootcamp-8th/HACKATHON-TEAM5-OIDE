@@ -75,7 +75,7 @@ export function ParsedItemEditPage() {
   };
 
   return (
-    <MobileFrame>
+    <MobileFrame tone="white">
       <AppBar backTo={parsedResultPath(shareCode)} />
       <ScreenBody>
         <div className={styles.content}>
