@@ -24,6 +24,7 @@ import com.example.oide.payment.domain.Payment;
 import com.example.oide.payment.domain.PaymentShare;
 import com.example.oide.payment.repository.PaymentRepository;
 import com.example.oide.payment.repository.PaymentShareRepository;
+import com.example.oide.payment.service.PaymentShareService;
 import com.example.oide.room.domain.RoomMember;
 import com.example.oide.room.domain.SettlementRoom;
 import com.example.oide.room.repository.RoomMemberRepository;
@@ -58,6 +59,7 @@ public class SettlementService {
 	private final RoomMemberRepository roomMemberRepository;
 	private final PaymentRepository paymentRepository;
 	private final PaymentShareRepository paymentShareRepository;
+	private final PaymentShareService paymentShareService;
 	private final ExchangeRateRepository exchangeRateRepository;
 	private final SettlementRepository settlementRepository;
 	private final SettlementRateRepository settlementRateRepository;
@@ -67,6 +69,7 @@ public class SettlementService {
 
 	@Transactional
 	public SettlementPreviewResponse getPreview(Long roomId) {
+		paymentShareService.repairIncompleteShares(roomId);
 		SettlementRoom room = findRoom(roomId);
 		List<Payment> payments = paymentRepository
 				.findAllByRoomIdAndIncludedInSettlementTrueOrderByPaidAtDescIdDesc(roomId);
@@ -74,8 +77,9 @@ public class SettlementService {
 		return createPreview(room, payments, Map.of(), rates);
 	}
 
-	@Transactional(readOnly = true)
+	@Transactional
 	public SettlementPreviewResponse previewWithManualRates(Long roomId, ManualRatesRequest request) {
+		paymentShareService.repairIncompleteShares(roomId);
 		SettlementRoom room = findRoom(roomId);
 		List<Payment> payments = paymentRepository
 				.findAllByRoomIdAndIncludedInSettlementTrueOrderByPaidAtDescIdDesc(roomId);
@@ -87,6 +91,7 @@ public class SettlementService {
 	public SettlementResponse confirm(Long roomId, ManualRatesRequest request) {
 		SettlementRoom room = roomRepository.findByIdForUpdate(roomId)
 				.orElseThrow(() -> new BusinessException(ErrorCode.ROOM_NOT_FOUND));
+		paymentShareService.repairIncompleteShares(roomId);
 		List<Payment> payments = paymentRepository
 				.findAllByRoomIdAndIncludedInSettlementTrueOrderByPaidAtDescIdDesc(roomId);
 		Map<String, ResolvedRate> automaticRates = loadAutomaticRates(room, getCurrencies(payments), false);
