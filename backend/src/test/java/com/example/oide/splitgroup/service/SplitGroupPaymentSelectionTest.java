@@ -130,6 +130,24 @@ class SplitGroupPaymentSelectionTest {
 	}
 
 	@Test
+	void allowsPayerToAssignPaymentToGroupTheyAreNotIn() {
+		SplitGroupResponse group = createGroup("식사", secondMember, thirdMember);
+		Payment payment = createPayment("식당", 1, firstMember);
+
+		splitGroupService.updatePayments(
+				room.getId(), group.id(), new UpdateGroupPaymentsRequest(firstMember.getId(), List.of(payment.getId())));
+
+		assertEquals(group.id(), payment.getSplitGroup().getId());
+		assertEquals(SplitMethod.EQUAL, payment.getSplitMethod());
+		assertEquals(
+				List.of(secondMember.getId(), thirdMember.getId()),
+				paymentShareRepository.findAllByPaymentId(payment.getId()).stream()
+						.map(share -> share.getMember().getId())
+						.sorted()
+						.toList());
+	}
+
+	@Test
 	void keepsOtherMembersPaymentsWhenSelectionIsReplaced() {
 		Payment firstPayment = createPayment("식당", 1, firstMember);
 		Payment secondPayment = createPayment("택시", 2, secondMember);

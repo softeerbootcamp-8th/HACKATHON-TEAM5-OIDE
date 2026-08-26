@@ -135,10 +135,6 @@ public class SplitGroupService {
 		// 전체 그룹을 포함해 해당 방의 그룹인지 먼저 확인한다.
 		SplitGroup group = findGroup(roomId, groupId);
 		RoomMember member = findMembers(roomId, List.of(request.memberId())).getFirst();
-		if (findGroupMembers(group, roomId).stream()
-				.noneMatch(groupMember -> groupMember.getId().equals(member.getId()))) {
-			throw new BusinessException(ErrorCode.INVALID_PAYMENT_SELECTION);
-		}
 		// 같은 결제를 두 번 선택한 요청은 상태를 모호하게 만들므로 거절한다.
 		Set<Long> requestedPaymentIds = new HashSet<>(request.paymentIds());
 		if (requestedPaymentIds.size() != request.paymentIds().size()) {
