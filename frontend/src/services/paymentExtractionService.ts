@@ -92,19 +92,16 @@ function toPaymentExtractionResult(
   job: ExtractionJobResponse,
   screenshots: ExtractionScreenshot[],
 ): PaymentExtractionResult {
-  const selectedImageIndexes = new Set(
-    job.items.filter((item) => item.selected).map((item) => item.imageIndex),
-  );
+  const extractedImageIndexes = new Set(job.items.map((item) => item.imageIndex));
   const images = screenshots
     .map((screenshot, imageIndex): ReceiptImage => ({
       id: imageId(imageIndex),
       url: screenshot.previewUrl,
       displayOrder: imageIndex,
     }))
-    .filter((image) => selectedImageIndexes.has(image.displayOrder));
+    .filter((image) => extractedImageIndexes.has(image.displayOrder));
 
   const drafts = job.items
-    .filter((item) => item.selected)
     .sort((left, right) => left.imageIndex - right.imageIndex)
     .map((item): ParsedPaymentDraft => ({
       id: item.id,

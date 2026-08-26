@@ -4,7 +4,7 @@
   flex-direction: column;
   width: 100%;
   max-width: var(--frame-max-width);
-  min-height: 100dvh;
+  height: 100dvh;
   margin: 0 auto;
   background: var(--color-page);
 }
