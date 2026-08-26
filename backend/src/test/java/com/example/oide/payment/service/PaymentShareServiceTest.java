@@ -39,12 +39,12 @@ class PaymentShareServiceTest {
 		Long roomId = 1L;
 		Long paymentId = 2L;
 		when(roomRepository.findByIdForUpdate(roomId)).thenReturn(Optional.of(mock(SettlementRoom.class)));
-		when(paymentRepository.findById(paymentId)).thenReturn(Optional.empty());
+		when(paymentRepository.findByRoomIdAndIdForUpdate(roomId, paymentId)).thenReturn(Optional.empty());
 
 		assertThrows(BusinessException.class, () -> service.saveEqual(roomId, paymentId));
 
 		InOrder lockOrder = inOrder(roomRepository, paymentRepository);
 		lockOrder.verify(roomRepository).findByIdForUpdate(roomId);
-		lockOrder.verify(paymentRepository).findById(paymentId);
+		lockOrder.verify(paymentRepository).findByRoomIdAndIdForUpdate(roomId, paymentId);
 	}
 }

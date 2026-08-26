@@ -22,9 +22,11 @@ import com.example.oide.global.currency.SupportedCurrency;
 import com.example.oide.global.exception.BusinessException;
 import com.example.oide.global.exception.ErrorCode;
 import com.example.oide.payment.domain.Payment;
-import com.example.oide.payment.domain.PaymentShare;
+import com.example.oide.payment.domain.SplitMethod;
+import com.example.oide.payment.dto.CustomShareRequest;
 import com.example.oide.payment.repository.PaymentRepository;
 import com.example.oide.payment.repository.PaymentShareRepository;
+import com.example.oide.payment.service.PaymentShareService;
 import com.example.oide.room.domain.RoomMember;
 import com.example.oide.room.domain.SettlementRoom;
 import com.example.oide.room.repository.RoomMemberRepository;
@@ -37,6 +39,7 @@ import com.example.oide.splitgroup.dto.SplitGroupDetailResponse;
 import com.example.oide.splitgroup.dto.SplitGroupResponse;
 import com.example.oide.splitgroup.dto.UpdateGroupPaymentsRequest;
 import com.example.oide.splitgroup.dto.CreateSplitGroupRequest;
+import com.example.oide.splitgroup.dto.UpdateSplitGroupRequest;
 import com.example.oide.splitgroup.repository.SplitGroupRepository;
 
 @SpringBootTest
@@ -57,6 +60,9 @@ class SplitGroupPaymentSelectionTest {
 
 	@Autowired
 	private PaymentShareRepository paymentShareRepository;
+
+	@Autowired
+	private PaymentShareService paymentShareService;
 
 	@Autowired
 	private SplitGroupRepository groupRepository;
@@ -165,7 +171,6 @@ class SplitGroupPaymentSelectionTest {
 		Payment payment = createPayment("식당", 1);
 		splitGroupService.updatePayments(
 				room.getId(), group.id(), new UpdateGroupPaymentsRequest(firstMember.getId(), List.of(payment.getId())));
-		paymentShareRepository.save(new PaymentShare(payment, firstMember, BigDecimal.valueOf(10_000)));
 
 		splitGroupService.updatePayments(
 				room.getId(), group.id(), new UpdateGroupPaymentsRequest(firstMember.getId(), List.of()));
@@ -173,6 +178,42 @@ class SplitGroupPaymentSelectionTest {
 		assertNull(payment.getSplitGroup());
 		assertNull(payment.getSplitMethod());
 		assertTrue(paymentShareRepository.findAll().isEmpty());
+	}
+
+	@Test
+	void initializesEqualSharesWhenPaymentIsAssignedToGroup() {
+		SplitGroupResponse group = createGroup("식사", firstMember, secondMember);
+		Payment payment = createPayment("식당", 1);
+
+		splitGroupService.updatePayments(
+				room.getId(), group.id(), new UpdateGroupPaymentsRequest(firstMember.getId(), List.of(payment.getId())));
+
+		assertEquals(SplitMethod.EQUAL, payment.getSplitMethod());
+		assertEquals(2, paymentShareRepository.findAllByPaymentId(payment.getId()).size());
+		BigDecimal total = paymentShareRepository.findAllByPaymentId(payment.getId()).stream()
+				.map(share -> share.getShareAmount())
+				.reduce(BigDecimal.ZERO, BigDecimal::add);
+		assertEquals(0, payment.getAmount().compareTo(total));
+	}
+
+	@Test
+	void resetsUnbalancedCustomSharesWhenGroupMembersChange() {
+		SplitGroupResponse group = createGroup("식사", firstMember, secondMember);
+		Payment payment = createPayment("식당", 1);
+		splitGroupService.updatePayments(
+				room.getId(), group.id(), new UpdateGroupPaymentsRequest(firstMember.getId(), List.of(payment.getId())));
+		paymentShareService.saveCustom(room.getId(), payment.getId(), new CustomShareRequest(List.of(
+				new CustomShareRequest.ShareAmountRequest(firstMember.getId(), BigDecimal.valueOf(8_000)),
+				new CustomShareRequest.ShareAmountRequest(secondMember.getId(), BigDecimal.valueOf(2_000)))));
+
+		splitGroupService.update(room.getId(), group.id(), new UpdateSplitGroupRequest(
+				"식사", List.of(firstMember.getId(), thirdMember.getId())));
+
+		assertEquals(SplitMethod.EQUAL, payment.getSplitMethod());
+		BigDecimal total = paymentShareRepository.findAllByPaymentId(payment.getId()).stream()
+				.map(share -> share.getShareAmount())
+				.reduce(BigDecimal.ZERO, BigDecimal::add);
+		assertEquals(0, payment.getAmount().compareTo(total));
 	}
 
 	private SplitGroupResponse createGroup(String name, RoomMember first, RoomMember second) {
