@@ -15,7 +15,8 @@ import { useAsync } from '../hooks/useAsync';
 import { useLocalIdentity } from '../hooks/useLocalIdentity';
 import { getConfirmedSettlement } from '../services/settlementService';
 import { copyToClipboard } from '../utils/clipboard';
-import { formatKrw, formatQuotedAt, formatRateLine } from '../utils/krw';
+import { formatKrw, formatQuotedAt } from '../utils/krw';
+import { buildSettlementClipboardText } from '../utils/settlementClipboard';
 import { RoomExpiredPage } from './RoomExpiredPage';
 import styles from './TransferListPage.module.css';
 
@@ -51,17 +52,17 @@ export function TransferListPage() {
   }
 
   const handleCopy = async () => {
-    const lines = transfers.map(
-      (transfer) =>
-        `${transfer.senderNickname} → ${transfer.receiverNickname} ${formatKrw(transfer.amountKrw)}`,
+    const text = buildSettlementClipboardText(
+      primaryRate?.rateToKrw && primaryRate.quotedAt
+        ? formatQuotedAt(primaryRate.quotedAt).replace(/ 기준$/, '')
+        : null,
+      transfers.map((transfer) => ({
+        senderNickname: transfer.senderNickname,
+        receiverNickname: transfer.receiverNickname,
+        amountKrw: formatKrw(transfer.amountKrw),
+      })),
     );
-    if (primaryRate?.rateToKrw && primaryRate.quotedAt) {
-      lines.push(
-        '',
-        `적용된 환율 ${formatRateLine(primaryRate.currency, primaryRate.rateToKrw)} · ${formatQuotedAt(primaryRate.quotedAt)}`,
-      );
-    }
-    const succeeded = await copyToClipboard(lines.join('\n'));
+    const succeeded = await copyToClipboard(text);
     setCopyState(succeeded ? 'copied' : 'failed');
     window.setTimeout(() => setCopyState('idle'), 2000);
   };
