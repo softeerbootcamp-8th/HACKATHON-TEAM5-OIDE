@@ -6,14 +6,51 @@
  */
 
 import { USE_MOCK } from '../api/apiConfig';
+import { getRoom } from '../api/generated/client';
+import type { RoomResponse } from '../api/generated/models';
 import { httpClient } from '../api/httpClient';
+import { callOrval } from '../api/orvalResponse';
 import { mockDelay, mockDelayReject } from '../mocks/mockDelay';
 import { mockRoomStore } from '../mocks/mockRoomStore';
 import { ApiError } from '../types/api';
 import type { CreateRoomRequest, SettlementRoom } from '../types/room';
 
 function isExpired(room: SettlementRoom): boolean {
+  if (!room.expiresAt) return false;
   return new Date(room.expiresAt).getTime() <= Date.now();
+}
+
+function mapRoom(response: RoomResponse): SettlementRoom {
+  if (
+    response.roomId === undefined ||
+    !response.shareCode ||
+    !response.title ||
+    !response.defaultCurrency ||
+    !response.members
+  ) {
+    throw new ApiError('UNKNOWN_ERROR', '정산방 응답 형식이 올바르지 않아요.');
+  }
+
+  const members = response.members.map((member) => {
+    if (member.id === undefined || !member.nickname || member.displayOrder === undefined) {
+      throw new ApiError('UNKNOWN_ERROR', '참여자 응답 형식이 올바르지 않아요.');
+    }
+
+    return {
+      id: String(member.id),
+      roomId: String(response.roomId),
+      nickname: member.nickname,
+      displayOrder: member.displayOrder,
+    };
+  });
+
+  return {
+    id: String(response.roomId),
+    shareCode: response.shareCode,
+    title: response.title,
+    defaultCurrency: response.defaultCurrency as SettlementRoom['defaultCurrency'],
+    members,
+  };
 }
 
 /** 공유 코드로 정산방을 조회한다. 만료된 방은 ROOM_EXPIRED 로 실패한다. */
@@ -33,7 +70,8 @@ export async function getRoomByShareCode(shareCode: string): Promise<SettlementR
     return mockDelay(room);
   }
 
-  return httpClient.get<SettlementRoom>(`/rooms/${shareCode}`);
+  const response = await callOrval<RoomResponse>(() => getRoom(shareCode));
+  return mapRoom(response);
 }
 
 /** 정산방을 만든다. 성공하면 공유 코드가 담긴 방이 돌아온다. */

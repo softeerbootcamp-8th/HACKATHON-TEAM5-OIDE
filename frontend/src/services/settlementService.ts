@@ -27,6 +27,9 @@ export async function getRoomRates(shareCode: string): Promise<RoomRates> {
     if (!room) {
       return mockDelayReject(new ApiError('ROOM_NOT_FOUND', '정산방을 찾을 수 없어요.', 404));
     }
+    if (!room.createdAt) {
+      return mockDelayReject(new ApiError('UNKNOWN_ERROR', '정산방 생성 시각이 없어요.'));
+    }
 
     const rates = buildSeedRates(room.createdAt);
     const manual = mockSettlementStore.findManualRate(room.id);
@@ -106,4 +109,3 @@ export async function completeMySettlement(
 
   return httpClient.post<string[]>(`/rooms/${shareCode}/settlement/complete`, { memberId });
 }
-

@@ -21,11 +21,15 @@ import {
 } from '../constants/routes';
 import { useAsync } from '../hooks/useAsync';
 import { useLocalIdentity } from '../hooks/useLocalIdentity';
-import { createPayments, getPayments } from '../services/paymentService';
+import { createPayments } from '../services/paymentService';
 import { getRoomByShareCode } from '../services/roomService';
-import { assignPaymentsToGroup, getSplitGroups } from '../services/splitGroupService';
+import {
+  assignPaymentsToGroup,
+  getSplitGroupOverview,
+  type SplitGroupPaymentSummary,
+} from '../services/splitGroupService';
 import { isApiError } from '../types/api';
-import type { CreatePaymentInput, Payment, SplitGroup } from '../types/payment';
+import type { CreatePaymentInput, SplitGroup } from '../types/payment';
 import type { SettlementRoom } from '../types/room';
 import { formatAmount, formatDateSection, toDateKey } from '../utils/formatters';
 import { RoomExpiredPage } from './RoomExpiredPage';
@@ -34,7 +38,7 @@ import styles from './SplitGroupItemsPage.module.css';
 interface ItemsData {
   room: SettlementRoom;
   groups: SplitGroup[];
-  payments: Payment[];
+  payments: SplitGroupPaymentSummary[];
 }
 
 /**
@@ -49,12 +53,11 @@ export function SplitGroupItemsPage() {
   const { identity } = useLocalIdentity(shareCode);
 
   const load = useCallback(async (): Promise<ItemsData> => {
-    const [room, groups, payments] = await Promise.all([
+    const [room, overview] = await Promise.all([
       getRoomByShareCode(shareCode),
-      getSplitGroups(shareCode),
-      getPayments(shareCode),
+      getSplitGroupOverview(shareCode),
     ]);
-    return { room, groups, payments };
+    return { room, groups: overview.groups, payments: overview.payments };
   }, [shareCode]);
 
   const { status, data, error, retry } = useAsync(load, [shareCode, groupId]);
@@ -68,7 +71,7 @@ export function SplitGroupItemsPage() {
 
   // 정산 대상으로 고른 항목만 다룬다.
   const targetPayments = useMemo(
-    () => data?.payments.filter((payment) => payment.includedInSettlement) ?? [],
+    () => data?.payments ?? [],
     [data],
   );
 
@@ -94,7 +97,7 @@ export function SplitGroupItemsPage() {
   const groupNameOf = (id: string | null) =>
     data?.groups.find((item) => item.id === id)?.name ?? '';
 
-  const isTaken = (payment: Payment) =>
+  const isTaken = (payment: SplitGroupPaymentSummary) =>
     payment.splitGroupId !== null && payment.splitGroupId !== groupId;
 
   // 한 번의 렌더 안에서 여러 번 눌려도 앞선 선택이 사라지지 않도록 함수형으로 갱신한다.
@@ -107,7 +110,7 @@ export function SplitGroupItemsPage() {
     });
   };
 
-  const toggleSection = (items: Payment[]) => {
+  const toggleSection = (items: SplitGroupPaymentSummary[]) => {
     const selectable = items.filter((item) => !isTaken(item)).map((item) => item.id);
     setPicked((current) => {
       const base = current ?? initialSelection;
@@ -270,11 +273,11 @@ export function SplitGroupItemsPage() {
 interface DateSection {
   key: string;
   label: string;
-  items: Payment[];
+  items: SplitGroupPaymentSummary[];
 }
 
 /** 결제 시각 기준으로 날짜별로 묶는다. 시각을 모르는 건 마지막 묶음으로 보낸다. */
-function groupByDate(payments: Payment[]): DateSection[] {
+function groupByDate(payments: SplitGroupPaymentSummary[]): DateSection[] {
   const sections: DateSection[] = [];
   for (const payment of payments) {
     const key = payment.paidAt ? toDateKey(payment.paidAt) : 'unknown';

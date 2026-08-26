@@ -77,10 +77,11 @@ export function SplitGroupMembersPage() {
     setSubmitError(null);
     try {
       const memberIds = selectedMembers.map((member) => member.id);
+      const groupName = buildGroupName(selectedMembers);
       if (groupId) {
-        await updateSplitGroup(shareCode, groupId, memberIds);
+        await updateSplitGroup(shareCode, groupId, groupName, memberIds);
       } else {
-        await createSplitGroup(shareCode, memberIds);
+        await createSplitGroup(shareCode, groupName, memberIds);
       }
       navigate(splitGroupsPath(shareCode), { replace: true });
     } catch (caught) {

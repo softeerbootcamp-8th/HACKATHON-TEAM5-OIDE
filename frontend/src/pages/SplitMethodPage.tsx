@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { AvatarStack } from '../components/common/AvatarStack';
 import { Button } from '../components/common/Button';
@@ -13,10 +13,12 @@ import { ScreenHeader } from '../components/layout/ScreenHeader';
 import { joinRoomPath, paymentSplitPath, splitGroupsPath } from '../constants/routes';
 import { useAsync } from '../hooks/useAsync';
 import { useLocalIdentity } from '../hooks/useLocalIdentity';
-import { getPayments } from '../services/paymentService';
 import { getRoomByShareCode } from '../services/roomService';
-import { getSplitGroups } from '../services/splitGroupService';
-import type { Payment, SplitGroup } from '../types/payment';
+import {
+  getSplitGroupOverview,
+  type SplitGroupPaymentSummary,
+} from '../services/splitGroupService';
+import type { SplitGroup } from '../types/payment';
 import type { SettlementRoom } from '../types/room';
 import { formatAmount, formatDayTime } from '../utils/formatters';
 import { RoomExpiredPage } from './RoomExpiredPage';
@@ -25,14 +27,13 @@ import styles from './SplitMethodPage.module.css';
 interface MethodData {
   room: SettlementRoom;
   groups: SplitGroup[];
-  payments: Payment[];
+  payments: SplitGroupPaymentSummary[];
 }
 
 /**
  * D-05 금액 나누기.
  *
- * 그룹에 담은 항목은 모두 N빵이 기본이다. 다르게 나눌 항목만 눌러서 바꾸는데,
- * 그 상세 화면은 다음 범위라 아직 붙이지 않았다.
+ * 그룹에 담은 항목은 모두 N빵이 기본이다. 다르게 나눌 항목만 눌러서 바꾼다.
  */
 export function SplitMethodPage() {
   const navigate = useNavigate();
@@ -40,21 +41,17 @@ export function SplitMethodPage() {
   const { identity } = useLocalIdentity(shareCode);
 
   const load = useCallback(async (): Promise<MethodData> => {
-    const [room, groups, payments] = await Promise.all([
+    const [room, overview] = await Promise.all([
       getRoomByShareCode(shareCode),
-      getSplitGroups(shareCode),
-      getPayments(shareCode),
+      getSplitGroupOverview(shareCode),
     ]);
-    return { room, groups, payments };
+    return { room, ...overview };
   }, [shareCode]);
 
   const { status, data, error, retry } = useAsync(load, [shareCode, groupId]);
 
   const group = data?.groups.find((item) => item.id === groupId);
-  const items = useMemo(
-    () => data?.payments.filter((payment) => payment.splitGroupId === groupId) ?? [],
-    [data, groupId],
-  );
+  const items = data?.payments.filter((payment) => payment.splitGroupId === groupId) ?? [];
 
   if (status === 'error' && error?.code === 'ROOM_EXPIRED') {
     return <RoomExpiredPage />;
