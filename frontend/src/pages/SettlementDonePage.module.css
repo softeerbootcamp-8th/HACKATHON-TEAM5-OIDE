@@ -38,6 +38,10 @@
   text-align: left;
 }
 
+.card:disabled {
+  opacity: 0.5;
+}
+
 .nickname {
   flex: 1;
   font-size: 16px;

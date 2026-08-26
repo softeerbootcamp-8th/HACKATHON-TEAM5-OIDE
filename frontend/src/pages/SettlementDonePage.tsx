@@ -67,23 +67,32 @@ export function SettlementDonePage() {
                   <span className={styles.highlight}>내 정산</span>이 완료되었어요!
                 </>
               }
-              description="다른 사람들의 정산이 끝날 때까지 기다려주세요."
+              description={
+                everyoneDone
+                  ? '모두 정산을 마쳤어요. 최종 결과를 확인해보세요.'
+                  : '다른 사람들의 정산이 끝날 때까지 기다려주세요.'
+              }
             />
             <div className={styles.content}>
               <ul className={styles.cards}>
-                {data.members.map((member) => (
-                  <li key={member.memberId}>
-                    <button
-                      type="button"
-                      className={styles.card}
-                      onClick={() => navigate(memberSummaryPath(shareCode, member.memberId))}
-                    >
-                      <Avatar nickname={member.nickname} />
-                      <span className={styles.nickname}>{member.nickname}</span>
-                      <span className={styles.trailing}>내역 보기</span>
-                    </button>
-                  </li>
-                ))}
+                {data.members.map((member) => {
+                  const isCompleted = data.completedMemberIds.includes(member.memberId);
+
+                  return (
+                    <li key={member.memberId}>
+                      <button
+                        type="button"
+                        className={styles.card}
+                        disabled={!isCompleted}
+                        onClick={() => navigate(memberSummaryPath(shareCode, member.memberId))}
+                      >
+                        <Avatar nickname={member.nickname} />
+                        <span className={styles.nickname}>{member.nickname}</span>
+                        {isCompleted && <span className={styles.trailing}>내역 보기</span>}
+                      </button>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           </ScreenBody>
