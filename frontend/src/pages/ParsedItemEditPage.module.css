@@ -51,16 +51,3 @@
   display: flex;
   flex-direction: column;
 }
-
-/* 통화는 코드만 고르는 C-09 와 달리 한 줄을 다 쓰고 `JPY (엔)` 을 그대로 보여준다. */
-.currency {
-  width: 100%;
-  min-height: var(--control-height);
-  padding: 0 var(--space-md);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-bg);
-  font-size: var(--font-size-input);
-  color: var(--color-text);
-  appearance: auto;
-}

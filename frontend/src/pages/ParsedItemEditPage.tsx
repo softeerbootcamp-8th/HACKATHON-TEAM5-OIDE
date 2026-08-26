@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../components/common/Button';
+import { CurrencySelect } from '../components/common/CurrencySelect';
 import { DatePickerSheet } from '../components/common/DatePickerSheet';
 import { DateSelectField } from '../components/common/DateSelectField';
 import { FieldLabel } from '../components/common/FieldLabel';
@@ -11,7 +12,7 @@ import { AppBar } from '../components/layout/AppBar';
 import { BottomActionBar } from '../components/layout/BottomActionBar';
 import { MobileFrame } from '../components/layout/MobileFrame';
 import { ScreenBody } from '../components/layout/ScreenBody';
-import { CURRENCY_OPTIONS, findCurrency } from '../constants/currencies';
+import { findCurrency } from '../constants/currencies';
 import { DEFAULT_CURRENCY } from '../constants/roomRules';
 import { joinRoomPath, parsedResultPath } from '../constants/routes';
 import { useExpenseDraft } from '../hooks/useExpenseDraft';
@@ -145,18 +146,7 @@ export function ParsedItemEditPage() {
 
           <div className={styles.field}>
             <FieldLabel text="통화" required />
-            <select
-              className={styles.currency}
-              value={currency}
-              aria-label="통화"
-              onChange={(event) => setCurrency(event.target.value as CurrencyCode)}
-            >
-              {CURRENCY_OPTIONS.map((option) => (
-                <option key={option.code} value={option.code}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+            <CurrencySelect value={currency} onChange={setCurrency} />
           </div>
         </div>
       </ScreenBody>

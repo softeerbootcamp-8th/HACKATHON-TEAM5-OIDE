@@ -1,6 +1,7 @@
-import { CURRENCY_OPTIONS, findCurrency } from '../../constants/currencies';
+import { findCurrency } from '../../constants/currencies';
 import type { CurrencyCode } from '../../types/room';
 import { sanitizeAmountInput } from '../../utils/formatters';
+import { CurrencySelect } from './CurrencySelect';
 import styles from './AmountCurrencyInput.module.css';
 
 interface AmountCurrencyInputProps {
@@ -28,18 +29,7 @@ export function AmountCurrencyInput({
 
   return (
     <div className={styles.group}>
-      <select
-        className={styles.currency}
-        value={currency}
-        aria-label="통화"
-        onChange={(event) => onCurrencyChange(event.target.value as CurrencyCode)}
-      >
-        {CURRENCY_OPTIONS.map((option) => (
-          <option key={option.code} value={option.code}>
-            {option.code}
-          </option>
-        ))}
-      </select>
+      <CurrencySelect variant="compact" value={currency} onChange={onCurrencyChange} />
 
       <div className={`${styles.amountWrapper} ${invalid ? styles.invalid : ''}`}>
         <input
