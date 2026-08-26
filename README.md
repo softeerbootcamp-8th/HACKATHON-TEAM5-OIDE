@@ -1,6 +1,6 @@
 ## 서비스 설명
 
-여러 명이 번갈아 결제한 여행 비용을 간편하게 정산하는 서비스
+<img width="4764" height="3368" alt="nbbang" src="https://github.com/user-attachments/assets/2dc3fd48-41fd-43f4-91ad-a794dc6c53ac" />
 
 ## Tech Stack
 
@@ -12,7 +12,11 @@
 
 ## 서비스 아키텍처
 
+<img width="6888" height="4408" alt="infra-architecture drawio" src="https://github.com/user-attachments/assets/4605d960-3ed6-4451-9566-a86e25b029a4" />
+
 ## ERD
+
+<img width="5362" height="4360" alt="erd" src="https://github.com/user-attachments/assets/47927df5-cdd5-42d3-b52b-32ff8f0c2052" />
 
 ## Known Issues
 
