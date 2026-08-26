@@ -179,6 +179,7 @@ public class SplitGroupService {
 	// 사용자 지정 그룹을 삭제한다.
 	@Transactional
 	public void delete(Long roomId, Long groupId) {
+		findRoomForUpdate(roomId);
 		// 전체 그룹 삭제나 다른 정산방의 그룹 삭제를 막는다.
 		SplitGroup group = findCustomGroup(roomId, groupId);
 		// 삭제 전에 이 그룹에 연결된 결제를 해제해 결제의 외래 키 참조를 없앤다.
