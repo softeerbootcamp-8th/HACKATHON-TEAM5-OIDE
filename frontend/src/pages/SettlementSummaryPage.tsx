@@ -3,6 +3,7 @@ import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-
 import { Avatar } from '../components/common/Avatar';
 import { Banner } from '../components/common/Banner';
 import { Button } from '../components/common/Button';
+import { EmptyState } from '../components/common/EmptyState';
 import { ErrorState } from '../components/common/ErrorState';
 import { LoadingState } from '../components/common/LoadingState';
 import { AppBar } from '../components/layout/AppBar';
@@ -18,27 +19,57 @@ import {
 } from '../constants/routes';
 import { useAsync } from '../hooks/useAsync';
 import { useLocalIdentity } from '../hooks/useLocalIdentity';
+import { getPaymentShares, getPayments } from '../services/paymentService';
 import {
   completeMySettlement,
   getConfirmedSettlement,
 } from '../services/settlementService';
 import { isApiError } from '../types/api';
-import { formatKrw, formatQuotedAt, formatRateLine } from '../utils/krw';
+import type { Payment, PaymentShare } from '../types/payment';
+import { formatAmount, formatDayTime } from '../utils/formatters';
+import { formatQuotedAt, formatRateLine } from '../utils/krw';
 import { RoomExpiredPage } from './RoomExpiredPage';
 import styles from './SettlementSummaryPage.module.css';
 
+interface SettlementHistoryData {
+  settlement: Awaited<ReturnType<typeof getConfirmedSettlement>>;
+  payments: Payment[];
+  sharesByPaymentId: Record<string, PaymentShare[]>;
+}
+
 /**
- * E-05 참여자별 요약.
+ * E-05 참여자별 결제 내역.
  *
- * 확정된 정산 결과에서 환율과 참여자별 부담 금액을 보여준다.
+ * 참여자가 올린 정산 대상 결제와 결제별 분담 금액을 보여준다.
  */
 export function SettlementSummaryPage() {
   const navigate = useNavigate();
   const { shareCode = '' } = useParams<{ shareCode: string }>();
   const [searchParams] = useSearchParams();
   const { identity } = useLocalIdentity(shareCode);
-  const load = useCallback(() => getConfirmedSettlement(shareCode), [shareCode]);
-  const { status, data, error, retry } = useAsync(load, [shareCode]);
+  const selectedMemberId = searchParams.get('member');
+  const viewMemberId = selectedMemberId ?? identity?.memberId ?? '';
+  const load = useCallback(async (): Promise<SettlementHistoryData> => {
+    const [settlement, paymentList] = await Promise.all([
+      getConfirmedSettlement(shareCode),
+      getPayments(shareCode),
+    ]);
+    const payments = paymentList.filter(
+      (payment) =>
+        payment.payerMemberId === viewMemberId && payment.includedInSettlement,
+    );
+    const shareLists = await Promise.all(
+      payments.map((payment) => getPaymentShares(shareCode, payment.id)),
+    );
+    return {
+      settlement,
+      payments,
+      sharesByPaymentId: Object.fromEntries(
+        payments.map((payment, index) => [payment.id, shareLists[index]]),
+      ),
+    };
+  }, [shareCode, viewMemberId]);
+  const { status, data, error, retry } = useAsync(load, [shareCode, viewMemberId]);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -49,12 +80,15 @@ export function SettlementSummaryPage() {
     return <Navigate to={joinRoomPath(shareCode)} replace />;
   }
 
-  // E-12 에서 `내역 보기` 로 들어온 경우 그 사람의 요약을 본다.
-  const selectedMemberId = searchParams.get('member');
-  const viewMemberId = selectedMemberId ?? identity.memberId;
   const isReadOnly = selectedMemberId !== null;
-  const alreadyDone = data?.completedMemberIds.includes(identity.memberId) ?? false;
-  const primaryRate = data?.rates.find((rate) => rate.currency !== 'KRW');
+  const settlement = data?.settlement;
+  const viewMember = settlement?.members.find((member) => member.memberId === viewMemberId);
+  const alreadyDone = settlement?.completedMemberIds.includes(identity.memberId) ?? false;
+  const primaryRate = settlement?.rates.find((rate) => rate.currency !== 'KRW');
+
+  if (status === 'success' && !viewMember) {
+    return <Navigate to={settlementDonePath(shareCode)} replace />;
+  }
 
   const handleComplete = async () => {
     setSubmitting(true);
@@ -70,19 +104,21 @@ export function SettlementSummaryPage() {
 
   return (
     <MobileFrame tone="subtle">
-      <AppBar backTo={settlementStartPath(shareCode)} />
+      <AppBar
+        backTo={isReadOnly ? settlementDonePath(shareCode) : settlementStartPath(shareCode)}
+      />
       {status === 'loading' && <LoadingState />}
 
       {status === 'error' && (
         <ErrorState title="불러오지 못했어요" description={error?.message} onRetry={retry} />
       )}
 
-      {status === 'success' && data && (
+      {status === 'success' && data && viewMember && (
         <>
           <ScreenBody>
             <ScreenHeader
               className={styles.header}
-              title="환율이 적용된 내 정산 내용이에요"
+              title={`${viewMember.nickname}님이 올린 정산 내역이에요`}
               description={
                 primaryRate?.rateToKrw && primaryRate.quotedAt
                   ? `${formatRateLine(primaryRate.currency, primaryRate.rateToKrw)} · ${formatQuotedAt(primaryRate.quotedAt)}`
@@ -90,21 +126,47 @@ export function SettlementSummaryPage() {
               }
             />
             <div className={styles.content}>
-              <ul className={styles.cards}>
-                {data.members.map((member) => (
-                  <li
-                    key={member.memberId}
-                    className={`${styles.card} ${member.memberId === viewMemberId ? styles.mine : ''}`}
-                  >
-                    <Avatar nickname={member.nickname} />
-                    <span className={styles.nickname}>
-                      {member.nickname}
-                      {member.memberId === identity.memberId ? ' (나)' : ''}
-                    </span>
-                    <span className={styles.amount}>{formatKrw(member.owedKrw)}</span>
-                  </li>
-                ))}
-              </ul>
+              {data.payments.length === 0 ? (
+                <EmptyState title="정산에 포함된 결제 내역이 없어요" />
+              ) : (
+                <ul className={styles.payments}>
+                  {data.payments.map((payment) => (
+                    <li key={payment.id} className={styles.paymentCard}>
+                      <div className={styles.paymentHeader}>
+                        <span className={styles.paymentInfo}>
+                          <span className={styles.merchant}>
+                            {payment.merchant ?? '결제처 없음'}
+                          </span>
+                          <span className={styles.paymentMeta}>
+                            {payment.paidAt ? `${formatDayTime(payment.paidAt)} · ` : ''}
+                            {payment.currency}
+                          </span>
+                        </span>
+                        <span className={styles.paymentAmount}>
+                          {formatAmount(payment.amount, payment.currency)}
+                        </span>
+                      </div>
+                      <ul className={styles.shares}>
+                        {(data.sharesByPaymentId[payment.id] ?? []).map((share) => {
+                          const member = data.settlement.members.find(
+                            (item) => item.memberId === share.memberId,
+                          );
+                          if (!member) return null;
+                          return (
+                            <li key={share.id} className={styles.shareRow}>
+                              <Avatar nickname={member.nickname} />
+                              <span className={styles.nickname}>{member.nickname}</span>
+                              <span className={styles.shareAmount}>
+                                {formatAmount(share.shareAmount, payment.currency)}
+                              </span>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           </ScreenBody>
 
