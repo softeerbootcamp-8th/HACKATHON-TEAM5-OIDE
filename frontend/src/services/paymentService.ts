@@ -16,6 +16,7 @@ import type {
   SplitMethod,
 } from '../types/payment';
 import type { CurrencyCode } from '../types/room';
+import { getIncludedPaymentIds, setPaymentIncluded } from './paymentInclusionStore';
 import { getRoomIdByShareCode } from './roomService';
 
 interface PaymentResponseDto {
@@ -52,7 +53,17 @@ export async function createPayments(
       currency: payment.currency,
     })),
   });
-  return responses.map((response, index) => toPayment(response, roomId, payments[index]));
+  const created = responses.map((response, index) =>
+    toPayment(response, roomId, payments[index]),
+  );
+  created.forEach((payment, index) => {
+    setPaymentIncluded(
+      shareCode,
+      payment.id,
+      payments[index]?.includedInSettlement ?? false,
+    );
+  });
+  return created;
 }
 
 /** 스크린샷 없이 직접 입력한 결제 내역 한 건을 등록한다. */
@@ -77,7 +88,9 @@ export async function createPayment(
     amount: payment.amount,
     currency: payment.currency,
   });
-  return toPayment(response, roomId, payment);
+  const created = toPayment(response, roomId, payment);
+  setPaymentIncluded(shareCode, created.id, payment.includedInSettlement ?? false);
+  return created;
 }
 
 /** 방에 등록된 결제 내역. memberId 를 주면 그 사람이 결제한 것만 가져온다. */
@@ -98,7 +111,15 @@ export async function getPayments(
 
   const roomId = await getRoomIdByShareCode(shareCode);
   const responses = await httpClient.get<PaymentResponseDto[]>(`/rooms/${roomId}/payments`);
-  const payments = responses.map((response) => toPayment(response, roomId));
+  const includedPaymentIds = getIncludedPaymentIds(shareCode);
+  const payments = responses.map((response) =>
+    toPayment(
+      response,
+      roomId,
+      undefined,
+      includedPaymentIds.has(String(response.id)),
+    ),
+  );
   return payerMemberId
     ? payments.filter((payment) => payment.payerMemberId === String(payerMemberId))
     : payments;
@@ -109,14 +130,15 @@ export async function updatePaymentInclusion(
   shareCode: string,
   paymentId: string,
   includedInSettlement: boolean,
-): Promise<Payment> {
+): Promise<void> {
   if (USE_MOCK) {
-    return mockDelay(mockPaymentStore.setIncluded(paymentId, includedInSettlement), 150);
+    await mockDelay(mockPaymentStore.setIncluded(paymentId, includedInSettlement), 150);
+    return;
   }
 
-  return httpClient.patch<Payment>(`/rooms/${shareCode}/payments/${paymentId}`, {
-    includedInSettlement,
-  });
+  // 백엔드 Payment에는 정산 포함 필드와 PATCH API가 없다. 이 선택은 그룹 분담 전까지
+  // 필요한 UI 상태이므로 방별 세션 상태로 보관하고 이후 조회 시 다시 합성한다.
+  setPaymentIncluded(shareCode, paymentId, includedInSettlement);
 }
 
 /** 결제 1건의 참여자별 부담액. 아직 나누지 않았으면 빈 배열이다. */
@@ -159,6 +181,7 @@ function toPayment(
   response: PaymentResponseDto,
   roomId: string,
   input?: CreatePaymentInput,
+  includedInSettlement?: boolean,
 ): Payment {
   const now = new Date().toISOString();
   return {
@@ -171,7 +194,7 @@ function toPayment(
     amount: String(response.amount),
     currency: response.currency as CurrencyCode,
     splitMethod: response.splitMethod,
-    includedInSettlement: input?.includedInSettlement ?? false,
+    includedInSettlement: includedInSettlement ?? input?.includedInSettlement ?? false,
     receiptImageId: input?.receiptImageId ?? null,
     createdAt: now,
     updatedAt: now,
