@@ -6,6 +6,7 @@
  * OpenAPI spec version: v1
  */
 import type { RoomMemberResponse } from './roomMemberResponse';
+import type { RoomResponseDefaultCurrency } from './roomResponseDefaultCurrency';
 
 export interface RoomResponse {
   /** 정산방 ID */
@@ -15,7 +16,7 @@ export interface RoomResponse {
   /** 방 이름 */
   title?: string;
   /** 기본 통화 (현재는 KRW로 고정) */
-  defaultCurrency?: string;
+  defaultCurrency?: RoomResponseDefaultCurrency;
   /** 참여자 목록 */
   members?: RoomMemberResponse[];
 }

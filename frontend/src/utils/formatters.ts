@@ -101,6 +101,16 @@ export function formatAmount(amount: string, currency: CurrencyCode): string {
   });
 }
 
+export function sumAmountsByCurrency(
+  items: { amount: string; currency: CurrencyCode }[],
+): { currency: CurrencyCode; amount: number }[] {
+  const totals = new Map<CurrencyCode, number>();
+  for (const item of items) {
+    totals.set(item.currency, (totals.get(item.currency) ?? 0) + Number(item.amount));
+  }
+  return [...totals].map(([currency, amount]) => ({ currency, amount }));
+}
+
 /** 입력 중인 금액 문자열에서 숫자와 소수점만 남긴다. */
 export function sanitizeAmountInput(value: string, fractionDigits: number): string {
   const cleaned = value.replace(/[^\d.]/g, '');

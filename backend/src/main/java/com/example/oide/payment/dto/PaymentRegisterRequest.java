@@ -32,9 +32,11 @@ public record PaymentRegisterRequest(
 					@NotNull @Positive BigDecimal amount,
 			@Schema(description = "ISO 4217 세 자리 통화 코드", example = "JPY", minLength = 3, maxLength = 3)
 					@NotNull @Size(min = 3, max = 3)
-					String currency) {
+					String currency,
+			@Schema(description = "정산 대상 포함 여부", example = "true") boolean includedInSettlement) {
 
 	public PaymentRegistration toRegistration() {
-		return new PaymentRegistration(payerMemberId, merchant, paidAt, amount, currency);
+		return new PaymentRegistration(
+				payerMemberId, merchant, paidAt, amount, currency, includedInSettlement);
 	}
 }

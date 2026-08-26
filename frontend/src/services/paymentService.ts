@@ -4,6 +4,7 @@
  */
 
 import { USE_MOCK } from '../api/apiConfig';
+import { findCurrency } from '../constants/currencies';
 import {
   findAll1,
   getShares,
@@ -11,6 +12,7 @@ import {
   registerBulk,
   saveCustom,
   saveEqual,
+  updateInclusion,
 } from '../api/generated/client';
 import type { PaymentResponse, PaymentShareResponse } from '../api/generated/models';
 import { callOrval, parseApiId } from '../api/orvalResponse';
@@ -18,6 +20,7 @@ import { resolveRoomId } from '../api/roomIdResolver';
 import { mockDelay, mockDelayReject } from '../mocks/mockDelay';
 import { mockPaymentStore } from '../mocks/mockPaymentStore';
 import { mockRoomStore } from '../mocks/mockRoomStore';
+import { mockSplitGroupStore } from '../mocks/mockSplitGroupStore';
 import { ApiError } from '../types/api';
 import type {
   CreatePaymentInput,
@@ -25,19 +28,19 @@ import type {
   PaymentShare,
   SplitMethod,
 } from '../types/payment';
-import { getIncludedPaymentIds, setPaymentIncluded } from './paymentInclusionStore';
+import { calculateEqualSplit } from '../utils/splitCalculation';
 
 function mapPayment(
   roomId: number,
   response: PaymentResponse,
-  includedInSettlement: boolean,
   receiptImageId: string | null = null,
 ): Payment {
   if (
     response.id === undefined ||
     response.payerMemberId === undefined ||
     response.amount === undefined ||
-    !response.currency
+    !response.currency ||
+    typeof response.includedInSettlement !== 'boolean'
   ) {
     throw new ApiError('UNKNOWN_ERROR', '결제 응답 형식이 올바르지 않아요.');
   }
@@ -52,7 +55,7 @@ function mapPayment(
     amount: String(response.amount),
     currency: response.currency as Payment['currency'],
     splitMethod: response.splitMethod ?? null,
-    includedInSettlement,
+    includedInSettlement: response.includedInSettlement,
     receiptImageId,
   };
 }
@@ -77,6 +80,7 @@ function toRegisterRequest(payerMemberId: string, payment: CreatePaymentInput) {
     paidAt: toLocalDateTime(payment.paidAt),
     amount: Number(payment.amount),
     currency: payment.currency,
+    includedInSettlement: payment.includedInSettlement ?? false,
   };
 }
 
@@ -101,18 +105,9 @@ export async function createPayments(
     }),
   );
 
-  return responses.map((response, index) => {
-    const input = payments[index];
-    const includedInSettlement = input?.includedInSettlement ?? false;
-    const created = mapPayment(
-      roomId,
-      response,
-      includedInSettlement,
-      input?.receiptImageId ?? null,
-    );
-    setPaymentIncluded(shareCode, created.id, includedInSettlement);
-    return created;
-  });
+  return responses.map((response, index) =>
+    mapPayment(roomId, response, payments[index]?.receiptImageId ?? null),
+  );
 }
 
 /** 스크린샷 없이 직접 입력한 결제 내역 한 건을 등록한다. */
@@ -134,15 +129,7 @@ export async function createPayment(
     register(roomId, toRegisterRequest(payerMemberId, payment)),
   );
 
-  const includedInSettlement = payment.includedInSettlement ?? false;
-  const created = mapPayment(
-    roomId,
-    response,
-    includedInSettlement,
-    payment.receiptImageId ?? null,
-  );
-  setPaymentIncluded(shareCode, created.id, includedInSettlement);
-  return created;
+  return mapPayment(roomId, response, payment.receiptImageId ?? null);
 }
 
 /** 방에 등록된 결제 내역. memberId 를 주면 그 사람이 결제한 것만 가져온다. */
@@ -163,10 +150,7 @@ export async function getPayments(
 
   const roomId = await resolveRoomId(shareCode);
   const responses = await callOrval<PaymentResponse[]>(() => findAll1(roomId));
-  const includedPaymentIds = getIncludedPaymentIds(shareCode);
-  const payments = responses.map((response) =>
-    mapPayment(roomId, response, includedPaymentIds.has(String(response.id))),
-  );
+  const payments = responses.map((response) => mapPayment(roomId, response));
 
   return payerMemberId
     ? payments.filter((payment) => payment.payerMemberId === payerMemberId)
@@ -184,9 +168,10 @@ export async function updatePaymentInclusion(
     return;
   }
 
-  // 백엔드 Payment에는 정산 포함 필드와 PATCH API가 없다. 이 선택은 그룹 분담 전까지
-  // 필요한 UI 상태이므로 방별 세션 상태로 보관하고 이후 조회 시 다시 합성한다.
-  setPaymentIncluded(shareCode, paymentId, includedInSettlement);
+  const roomId = await resolveRoomId(shareCode);
+  await callOrval<void>(() =>
+    updateInclusion(roomId, parseApiId(paymentId), { includedInSettlement }),
+  );
 }
 
 /** 결제 1건의 참여자별 부담액. 아직 나누지 않았으면 빈 배열이다. */
@@ -234,7 +219,29 @@ export async function setPaymentSplit(
   shares: { memberId: string; shareAmount: string }[],
 ): Promise<void> {
   if (USE_MOCK) {
-    await mockDelay(mockPaymentStore.setSplit(paymentId, method, shares));
+    const room = mockRoomStore.findByShareCode(shareCode);
+    if (!room) {
+      return mockDelayReject(new ApiError('ROOM_NOT_FOUND', '정산방을 찾을 수 없어요.', 404));
+    }
+    const payment = mockPaymentStore.findByRoom(room.id).find((item) => item.id === paymentId);
+    const group = mockSplitGroupStore
+      .findByRoom(room.id, room.members)
+      .find((item) => item.id === payment?.splitGroupId);
+    const resolvedShares =
+      method === 'EQUAL' && shares.length === 0 && payment && group
+        ? calculateEqualSplit(
+            Number(payment.amount),
+            room.members
+              .filter((member) => group.memberIds.includes(member.id))
+              .map((member) => ({ memberId: member.id, nickname: member.nickname })),
+            payment.payerMemberId,
+            findCurrency(payment.currency).fractionDigits,
+          ).shares.map((share) => ({
+            memberId: share.memberId,
+            shareAmount: String(share.amount),
+          }))
+        : shares;
+    await mockDelay(mockPaymentStore.setSplit(paymentId, method, resolvedShares));
     return;
   }
 

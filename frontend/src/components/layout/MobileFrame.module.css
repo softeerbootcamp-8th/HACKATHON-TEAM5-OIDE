@@ -17,6 +17,10 @@
   background: var(--color-page-subtle);
 }
 
+.white {
+  background: var(--color-bg);
+}
+
 .content {
   display: flex;
   flex: 1;

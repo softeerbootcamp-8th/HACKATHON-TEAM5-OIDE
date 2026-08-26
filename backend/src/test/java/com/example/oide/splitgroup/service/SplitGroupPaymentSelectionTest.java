@@ -1,6 +1,7 @@
 package com.example.oide.splitgroup.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -104,6 +105,20 @@ class SplitGroupPaymentSelectionTest {
 	}
 
 	@Test
+	void excludesPaymentsNotIncludedInSettlementFromGroupDetail() {
+		SplitGroupResponse group = createGroup("식사", firstMember, secondMember);
+		Payment includedPayment = createPayment("식당", 1);
+		Payment excludedPayment = createPayment("기념품", 2);
+		excludedPayment.changeInclusion(false);
+
+		SplitGroupDetailResponse detail = splitGroupService.findDetail(room.getId(), group.id());
+
+		List<Long> paymentIds = detail.payments().stream().map(GroupPaymentResponse::id).toList();
+		assertTrue(paymentIds.contains(includedPayment.getId()));
+		assertFalse(paymentIds.contains(excludedPayment.getId()));
+	}
+
+	@Test
 	void clearsGroupAndPaymentSharesWhenPaymentIsDeselected() {
 		SplitGroupResponse group = createGroup("식사", firstMember, secondMember);
 		Payment payment = createPayment("식당", 1);
@@ -132,6 +147,7 @@ class SplitGroupPaymentSelectionTest {
 				LocalDateTime.of(2026, 8, day, 12, 0),
 				BigDecimal.valueOf(10_000),
 				SupportedCurrency.KRW,
-				null));
+				null,
+				true));
 	}
 }
