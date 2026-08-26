@@ -78,7 +78,7 @@ export function SplitGroupMembersPage() {
     (data?.groups.some(
       (group) =>
         group.id !== groupId &&
-        group.creatorMemberId === identity.memberId &&
+        (group.type === 'ALL' || group.creatorMemberId === identity.memberId) &&
         hasSameMemberIds(group.memberIds, selectedMemberIds),
     ) ?? false);
   const canSubmit =
