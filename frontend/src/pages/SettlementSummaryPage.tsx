@@ -70,7 +70,7 @@ export function SettlementSummaryPage() {
     setSubmitError(null);
     try {
       await completeMySettlement(shareCode, identity.memberId);
-      navigate(settlementDonePath(shareCode));
+      navigate(settlementDonePath(shareCode), { replace: true });
     } catch (caught) {
       setSubmitError(isApiError(caught) ? caught.message : '완료하지 못했어요.');
       setSubmitting(false);
@@ -123,7 +123,10 @@ export function SettlementSummaryPage() {
             <BottomActionBar>
               {submitError && <Banner message={submitError} />}
               {alreadyDone ? (
-                <Button className={styles.action} onClick={() => navigate(splitGroupsPath(shareCode))}>
+                <Button
+                  className={styles.action}
+                  onClick={() => navigate(splitGroupsPath(shareCode), { replace: true })}
+                >
                   수정하기
                 </Button>
               ) : (

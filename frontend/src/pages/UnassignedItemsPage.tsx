@@ -11,6 +11,7 @@ import { ScreenBody } from '../components/layout/ScreenBody';
 import { ScreenHeader } from '../components/layout/ScreenHeader';
 import { joinRoomPath, settlementStartPath, splitGroupsPath } from '../constants/routes';
 import { useAsync } from '../hooks/useAsync';
+import { useBackNavigation } from '../hooks/useBackNavigation';
 import { useLocalIdentity } from '../hooks/useLocalIdentity';
 import { updatePaymentInclusion } from '../services/paymentService';
 import { getSplitGroupOverview } from '../services/splitGroupService';
@@ -28,6 +29,7 @@ export function UnassignedItemsPage() {
   const navigate = useNavigate();
   const { shareCode = '' } = useParams<{ shareCode: string }>();
   const { identity } = useLocalIdentity(shareCode);
+  const { goBack } = useBackNavigation(splitGroupsPath(shareCode));
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -51,7 +53,7 @@ export function UnassignedItemsPage() {
       await Promise.all(
         unassigned.map((payment) => updatePaymentInclusion(shareCode, payment.id, false)),
       );
-      navigate(settlementStartPath(shareCode));
+      navigate(settlementStartPath(shareCode), { replace: true });
     } catch (caught) {
       setSubmitError(isApiError(caught) ? caught.message : '미선택 항목을 제외하지 못했어요.');
       setSubmitting(false);
@@ -112,7 +114,7 @@ export function UnassignedItemsPage() {
             <Button
               className={styles.textButton}
               variant="text"
-              onClick={() => navigate(splitGroupsPath(shareCode))}
+              onClick={() => goBack()}
             >
               돌아가기
             </Button>

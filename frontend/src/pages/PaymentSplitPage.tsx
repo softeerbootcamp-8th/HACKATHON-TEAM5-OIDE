@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Navigate, useNavigate, useParams } from 'react-router-dom';
+import { Navigate, useParams } from 'react-router-dom';
 import { Avatar } from '../components/common/Avatar';
 import { Banner } from '../components/common/Banner';
 import { Button } from '../components/common/Button';
@@ -13,6 +13,7 @@ import { ScreenBody } from '../components/layout/ScreenBody';
 import { findCurrency } from '../constants/currencies';
 import { joinRoomPath, splitGroupMethodPath, splitGroupsPath } from '../constants/routes';
 import { useAsync } from '../hooks/useAsync';
+import { useBackNavigation } from '../hooks/useBackNavigation';
 import { useLocalIdentity } from '../hooks/useLocalIdentity';
 import { getPaymentShares, getPayments, setPaymentSplit } from '../services/paymentService';
 import { getRoomByShareCode } from '../services/roomService';
@@ -50,13 +51,14 @@ const SEGMENTS = [
  * 직접 입력은 합계가 결제 금액과 같아야 진행할 수 있다.
  */
 export function PaymentSplitPage() {
-  const navigate = useNavigate();
   const { shareCode = '', groupId = '', paymentId = '' } = useParams<{
     shareCode: string;
     groupId: string;
     paymentId: string;
   }>();
   const { identity } = useLocalIdentity(shareCode);
+  const splitMethodPath = splitGroupMethodPath(shareCode, groupId);
+  const { goBack } = useBackNavigation(splitMethodPath);
 
   const load = useCallback(async (): Promise<SplitData> => {
     const [room, overview, payments, shares] = await Promise.all([
@@ -139,7 +141,7 @@ export function PaymentSplitPage() {
             }));
 
       await setPaymentSplit(shareCode, paymentId, effectiveMethod, shares);
-      navigate(splitGroupMethodPath(shareCode, groupId), { replace: true });
+      goBack();
     } catch (caught) {
       setSubmitError(isApiError(caught) ? caught.message : '저장하지 못했어요.');
       setSubmitting(false);
@@ -148,7 +150,7 @@ export function PaymentSplitPage() {
 
   return (
     <MobileFrame tone="white">
-      <AppBar backTo={splitGroupMethodPath(shareCode, groupId)} />
+      <AppBar backTo={splitMethodPath} />
       {status === 'loading' && <LoadingState />}
 
       {status === 'error' && (
