@@ -54,11 +54,7 @@ export function RateEditPage() {
   }
 
   const targetCurrencies = [
-    ...new Set(
-      data?.payments
-        .filter((payment) => payment.currency !== 'KRW')
-        .map((payment) => payment.currency) ?? [],
-    ),
+    ...new Set(data?.payments.map((payment) => payment.currency) ?? []),
   ];
   const editableRates = targetCurrencies.map((currency) => ({
     currency,

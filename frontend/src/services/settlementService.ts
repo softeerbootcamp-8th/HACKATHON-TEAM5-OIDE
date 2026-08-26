@@ -182,11 +182,7 @@ export async function confirmSettlement(
     if (!room) {
       return mockDelayReject(new ApiError('ROOM_NOT_FOUND', '정산방을 찾을 수 없어요.', 404));
     }
-    const manualRate = manualRates[0];
-    mockSettlementStore.setManualRate(
-      room.id,
-      manualRate ?? null,
-    );
+    mockSettlementStore.setManualRates(room.id, manualRates);
     await mockDelay(undefined);
     return;
   }
@@ -344,14 +340,18 @@ async function getMockRoomRates(shareCode: string): Promise<RoomRates> {
   }
 
   const rates = buildSeedRates(room.createdAt);
-  const manual = mockSettlementStore.findManualRate(room.id);
-  if (!manual) return mockDelay({ rates });
+  const manualRates = mockSettlementStore.findManualRates(room.id);
+  if (manualRates.length === 0) return mockDelay({ rates });
+  const manualRatesByCurrency = new Map(
+    manualRates.map((rate) => [rate.currency, rate.rateToKrw]),
+  );
 
   return mockDelay({
-    rates: rates.map((rate) =>
-      rate.currency === manual.currency
-        ? { ...rate, rateToKrw: manual.rateToKrw, rateSource: 'MANUAL' as const }
-        : rate,
-    ),
+    rates: rates.map((rate) => {
+      const manualRate = manualRatesByCurrency.get(rate.currency);
+      return manualRate
+        ? { ...rate, rateToKrw: manualRate, rateSource: 'MANUAL' as const }
+        : rate;
+    }),
   });
 }

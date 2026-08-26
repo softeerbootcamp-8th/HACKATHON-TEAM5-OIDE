@@ -168,6 +168,30 @@ class SettlementServiceTest {
 	}
 
 	@Test
+	void appliesManualRateToKrwPayments() {
+		SettlementRoom room = roomRepository.save(
+				new SettlementRoom("krw-rate-code", "여행", SupportedCurrency.KRW));
+		RoomMember memberA = roomMemberRepository.save(new RoomMember(room, "A", 1));
+		RoomMember memberB = roomMemberRepository.save(new RoomMember(room, "B", 2));
+		SplitGroup group = splitGroupRepository.save(new SplitGroup(room, "전체", SplitGroupType.ALL));
+		Payment payment = paymentRepository.save(new Payment(
+				room, memberA, "식사", LocalDateTime.now(), new BigDecimal("10000"),
+				SupportedCurrency.KRW, SplitMethod.EQUAL, true));
+		payment.assignGroup(group);
+		paymentShareRepository.saveAll(List.of(
+				new PaymentShare(payment, memberA, new BigDecimal("5000")),
+				new PaymentShare(payment, memberB, new BigDecimal("5000"))));
+
+		SettlementResponse response = settlementService.confirm(
+				room.getId(), new ManualRatesRequest(List.of(
+						new ManualRatesRequest.ManualRateRequest("KRW", new BigDecimal("2")))));
+
+		assertThat(response.result().memberResults())
+				.extracting(result -> result.nickname() + ":" + result.paidKrw() + ":" + result.owedKrw())
+				.containsExactly("A:20000:10000", "B:0:10000");
+	}
+
+	@Test
 	void rejectsMemberFromAnotherRoom() {
 		ConfirmedSettlement confirmed = createConfirmedSettlement("member-room-code");
 		SettlementRoom anotherRoom = roomRepository.save(

@@ -43,8 +43,7 @@ export interface SettlementResult {
  * 반올림은 참여자별 부담액 각각에 적용하고, 총액과의 1~2원 차이는 보정하지 않는다.
  */
 export function toKrw(amount: number, currency: CurrencyCode, rates: RateTable): number {
-  if (currency === 'KRW') return Math.round(amount);
-  const rate = rates[currency];
+  const rate = rates[currency] ?? (currency === 'KRW' ? 1 : 0);
   if (!rate) return 0;
   return Math.round(amount * rate);
 }
@@ -203,4 +202,3 @@ export function findMemberBreakdown(params: {
 
   return rows;
 }
-

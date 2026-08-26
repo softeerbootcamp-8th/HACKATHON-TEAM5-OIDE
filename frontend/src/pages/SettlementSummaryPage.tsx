@@ -54,7 +54,8 @@ export function SettlementSummaryPage() {
   const isReadOnly = viewMemberId !== identity.memberId;
   const viewMember = data?.members.find((member) => member.memberId === viewMemberId);
   const alreadyDone = data?.completedMemberIds.includes(identity.memberId) ?? false;
-  const primaryRate = data?.rates.find((rate) => rate.currency !== 'KRW');
+  const primaryRate =
+    data?.rates.find((rate) => rate.currency !== 'KRW') ?? data?.rates[0];
   const title =
     viewMemberId === identity.memberId
       ? '환율이 적용된 내 정산 내용이에요'

@@ -13,19 +13,21 @@ interface ManualRate {
 }
 
 export const mockSettlementStore = {
-  findManualRate(roomId: string): ManualRate | null {
+  findManualRates(roomId: string): ManualRate[] {
     try {
       const raw = window.sessionStorage.getItem(`${RATE_KEY}:${roomId}`);
-      return raw ? (JSON.parse(raw) as ManualRate) : null;
+      if (!raw) return [];
+      const parsed = JSON.parse(raw) as ManualRate | ManualRate[];
+      return Array.isArray(parsed) ? parsed : [parsed];
     } catch {
-      return null;
+      return [];
     }
   },
 
-  setManualRate(roomId: string, rate: ManualRate | null): void {
+  setManualRates(roomId: string, rates: ManualRate[]): void {
     try {
       const key = `${RATE_KEY}:${roomId}`;
-      if (rate) window.sessionStorage.setItem(key, JSON.stringify(rate));
+      if (rates.length > 0) window.sessionStorage.setItem(key, JSON.stringify(rates));
       else window.sessionStorage.removeItem(key);
     } catch {
       // 무시한다.
