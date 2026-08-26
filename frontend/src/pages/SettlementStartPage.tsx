@@ -174,9 +174,11 @@ export function SettlementStartPage() {
             >
               다음
             </Button>
-            <Button variant="text" onClick={() => navigate(rateEditPath(shareCode))}>
-              환율 직접 입력하기
-            </Button>
+            {usedCurrencies.length > 0 && (
+              <Button variant="text" onClick={() => navigate(rateEditPath(shareCode))}>
+                환율 직접 입력하기
+              </Button>
+            )}
           </BottomActionBar>
         </>
       )}
