@@ -11,7 +11,7 @@ import { MobileFrame } from '../components/layout/MobileFrame';
 import { ScreenBody } from '../components/layout/ScreenBody';
 import { ScreenHeader } from '../components/layout/ScreenHeader';
 import { MIN_GROUP_MEMBER_COUNT } from '../constants/roomRules';
-import { joinRoomPath, splitGroupsPath } from '../constants/routes';
+import { joinRoomPath, splitGroupItemsPath, splitGroupsPath } from '../constants/routes';
 import { useAsync } from '../hooks/useAsync';
 import { useLocalIdentity } from '../hooks/useLocalIdentity';
 import { getRoomByShareCode } from '../services/roomService';
@@ -83,8 +83,11 @@ export function SplitGroupMembersPage() {
   const submitLabel = isDuplicateGroup
     ? '존재하는 그룹이에요'
     : groupId
-      ? '수정 완료'
+      ? '그룹 수정'
       : '그룹 만들기';
+  const returnPath = groupId
+    ? splitGroupItemsPath(shareCode, groupId)
+    : splitGroupsPath(shareCode);
 
   // 연속으로 눌러도 앞선 선택이 사라지지 않도록 함수형으로 갱신한다.
   const toggle = (memberId: string) => {
@@ -106,7 +109,7 @@ export function SplitGroupMembersPage() {
       } else {
         await createSplitGroup(shareCode, groupName, selectedMemberIds);
       }
-      navigate(splitGroupsPath(shareCode), { replace: true });
+      navigate(returnPath, { replace: true });
     } catch (caught) {
       setSubmitError(isApiError(caught) ? caught.message : '그룹을 저장하지 못했어요.');
       setSubmitting(false);
@@ -114,8 +117,8 @@ export function SplitGroupMembersPage() {
   };
 
   return (
-    <MobileFrame>
-      <AppBar backTo={splitGroupsPath(shareCode)} />
+    <MobileFrame tone="white">
+      <AppBar backTo={returnPath} />
       {status === 'loading' && <LoadingState />}
 
       {status === 'error' && (

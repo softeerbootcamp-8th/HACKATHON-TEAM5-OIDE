@@ -72,7 +72,7 @@ export function ManualExpenseModal({
 
           <div className={styles.fields}>
             <div className={styles.field}>
-              <FieldLabel text="결제 금액과 통화" required />
+              <FieldLabel text="결제 금액과 통화" required size="large" />
               <AmountCurrencyInput
                 amount={amount}
                 currency={currency}
@@ -80,25 +80,28 @@ export function ManualExpenseModal({
                 onAmountChange={setAmount}
                 onCurrencyChange={setCurrency}
                 autoFocus
+                compact
               />
             </div>
 
             <div className={styles.field}>
-              <FieldLabel text="결제처" />
+              <FieldLabel text="결제처" size="large" />
               <TextField
                 value={merchant}
                 placeholder="예: 이치란 라멘"
                 aria-label="결제처"
+                strongBorder
                 onChange={(event) => setMerchant(event.target.value)}
               />
             </div>
 
             <div className={styles.field}>
-              <FieldLabel text="결제 시각" />
+              <FieldLabel text="결제 시각" size="large" />
               <TextField
                 value={paidAtText}
                 placeholder="비워두면 오늘로 기록돼요"
                 aria-label="결제 시각"
+                strongBorder
                 errorMessage={paidAtValid ? undefined : '2026-08-21 20:14 형식으로 적어주세요'}
                 onChange={(event) => setPaidAtText(event.target.value)}
               />
@@ -115,6 +118,7 @@ export function ManualExpenseModal({
           </button>
           <div className={styles.submit}>
             <Button
+              className={styles.submitButton}
               disabled={!amountValid || !paidAtValid}
               loading={submitting}
               loadingLabel="등록하고 있어요…"
@@ -128,4 +132,3 @@ export function ManualExpenseModal({
     </div>
   );
 }
-

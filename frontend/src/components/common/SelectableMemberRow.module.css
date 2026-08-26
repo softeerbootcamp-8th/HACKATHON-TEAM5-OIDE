@@ -5,8 +5,8 @@
   width: 100%;
   min-height: 64px;
   padding: 0 var(--space-md);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border: 1px solid #dfdfdf;
+  border-radius: 10px;
   text-align: left;
   transition:
     border-color 0.12s ease,
@@ -20,14 +20,14 @@
 
 .nickname {
   flex: 1;
-  font-size: var(--font-size-body);
+  font-size: 16px;
   color: var(--color-text);
   overflow-wrap: anywhere;
 }
 
 .selected .nickname {
   color: var(--color-primary);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .trailing {

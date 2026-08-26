@@ -1,3 +1,5 @@
+import idleCheckIcon from '../../assets/check-circle-idle.svg';
+import selectedCheckIcon from '../../assets/check-circle-selected.svg';
 import styles from './CheckCircle.module.css';
 
 interface CheckCircleProps {
@@ -11,15 +13,11 @@ export function CheckCircle({ checked }: CheckCircleProps) {
       className={`${styles.circle} ${checked ? styles.checked : ''}`}
       aria-hidden="true"
     >
-      <svg width="12" height="9" viewBox="0 0 12 9" fill="none">
-        <path
-          d="M1 4.5L4.5 8L11 1"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
+      <img
+        className={styles.checkIcon}
+        src={checked ? selectedCheckIcon : idleCheckIcon}
+        alt=""
+      />
     </span>
   );
 }

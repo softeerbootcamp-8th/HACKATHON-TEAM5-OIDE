@@ -68,7 +68,7 @@ export function TransferListPage() {
   };
 
   return (
-    <MobileFrame>
+    <MobileFrame tone="white">
       <AppBar backTo={settlementDonePath(shareCode)} />
       {status === 'loading' && <LoadingState />}
 

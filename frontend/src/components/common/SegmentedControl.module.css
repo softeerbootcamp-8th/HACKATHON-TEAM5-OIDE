@@ -1,8 +1,8 @@
 .control {
   display: flex;
-  gap: var(--space-xs);
+  gap: 4px;
   padding: 4px;
-  border-radius: var(--radius-md);
+  border-radius: 10px;
   background: var(--color-surface);
 }
 
@@ -10,8 +10,8 @@
   flex: 1;
   min-height: 42px;
   border-radius: var(--radius-sm);
-  font-size: var(--font-size-body);
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 400;
   color: var(--color-text-muted);
   transition:
     background-color 0.12s ease,

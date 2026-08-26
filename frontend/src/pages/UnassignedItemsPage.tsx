@@ -117,7 +117,7 @@ export function UnassignedItemsPage() {
               loadingLabel="그룹에 담고 있어요…"
               onClick={handleApplyRates}
             >
-              이대로 환율 적용하기
+              환율 적용하기
             </Button>
             <Button
               className={styles.textButton}

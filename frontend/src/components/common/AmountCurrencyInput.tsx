@@ -11,6 +11,7 @@ interface AmountCurrencyInputProps {
   onCurrencyChange: (next: CurrencyCode) => void;
   invalid?: boolean;
   autoFocus?: boolean;
+  compact?: boolean;
 }
 
 /**
@@ -24,12 +25,25 @@ export function AmountCurrencyInput({
   onCurrencyChange,
   invalid = false,
   autoFocus = false,
+  compact = false,
 }: AmountCurrencyInputProps) {
   const fractionDigits = findCurrency(currency).fractionDigits;
 
   return (
-    <div className={styles.group}>
-      <CurrencySelect variant="compact" value={currency} onChange={onCurrencyChange} />
+    <div className={`${styles.group} ${compact ? styles.compact : ''}`}>
+      <select
+        className={styles.currency}
+        value={currency}
+        aria-label="통화"
+        onChange={(event) => onCurrencyChange(event.target.value as CurrencyCode)}
+      >
+        {CURRENCY_OPTIONS.map((option) => (
+          <option key={option.code} value={option.code}>
+            {option.code}
+          </option>
+        ))}
+      </select>
+
 
       <div className={`${styles.amountWrapper} ${invalid ? styles.invalid : ''}`}>
         <input

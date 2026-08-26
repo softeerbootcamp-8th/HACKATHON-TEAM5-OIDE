@@ -115,7 +115,7 @@ export function SplitGroupListPage() {
   };
 
   return (
-    <MobileFrame>
+    <MobileFrame tone="white">
       <AppBar />
       {status === 'loading' && <LoadingState />}
 
@@ -187,7 +187,7 @@ export function SplitGroupListPage() {
               loadingLabel="N빵을 저장하고 있어요…"
               onClick={handleComplete}
             >
-              내 정산 완료하기
+              환율 적용하기
             </Button>
           </BottomActionBar>
         </>
