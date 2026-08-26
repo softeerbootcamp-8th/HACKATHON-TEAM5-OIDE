@@ -4,7 +4,11 @@
   flex-direction: column;
   width: 100%;
   max-width: var(--frame-max-width);
-  min-height: 100dvh;
+  /*
+   * min-height 가 아니라 height 다. min-height 로 두면 내용이 길어질 때 프레임이 같이
+   * 늘어나서 ScreenBody 의 내부 스크롤이 걸리지 않고, 하단 액션 바가 화면 밖으로 밀린다.
+   */
+  height: 100dvh;
   margin: 0 auto;
   background: var(--color-page);
 }
