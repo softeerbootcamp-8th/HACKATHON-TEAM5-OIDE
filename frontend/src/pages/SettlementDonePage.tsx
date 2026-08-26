@@ -12,12 +12,17 @@ import { ScreenHeader } from '../components/layout/ScreenHeader';
 import {
   joinRoomPath,
   memberSummaryPath,
+  roomHomePath,
   settlementSummaryPath,
   transferListPath,
 } from '../constants/routes';
 import { useAsync } from '../hooks/useAsync';
 import { useLocalIdentity } from '../hooks/useLocalIdentity';
-import { getConfirmedSettlement } from '../services/settlementService';
+import {
+  getConfirmedSettlement,
+  getSettlementProgress,
+} from '../services/settlementService';
+import { isApiError } from '../types/api';
 import { RoomExpiredPage } from './RoomExpiredPage';
 import styles from './SettlementDonePage.module.css';
 
@@ -30,11 +35,19 @@ export function SettlementDonePage() {
   const navigate = useNavigate();
   const { shareCode = '' } = useParams<{ shareCode: string }>();
   const { identity } = useLocalIdentity(shareCode);
-  const load = useCallback(() => getConfirmedSettlement(shareCode), [shareCode]);
+  const load = useCallback(async () => {
+    const [progress, settlement] = await Promise.all([
+      getSettlementProgress(shareCode),
+      getConfirmedSettlement(shareCode).catch((caught) => {
+        if (isApiError(caught) && caught.code === 'SETTLEMENT_NOT_FOUND') return null;
+        throw caught;
+      }),
+    ]);
+    return { progress, settlement };
+  }, [shareCode]);
   const { status, data, error, retry } = useAsync(load, [shareCode]);
 
-  const everyoneDone =
-    data !== null && data.completedMemberIds.length === data.members.length;
+  const everyoneDone = data?.progress.allCompleted ?? false;
 
   useEffect(() => {
     if (status !== 'success' || everyoneDone) return;
@@ -51,14 +64,26 @@ export function SettlementDonePage() {
   if (
     status === 'success' &&
     data &&
-    !data.completedMemberIds.includes(identity.memberId)
+    !data.progress.members.find((member) => member.memberId === identity.memberId)?.completed
   ) {
-    return <Navigate to={settlementSummaryPath(shareCode)} replace />;
+    const currentMember = data.progress.members.find(
+      (member) => member.memberId === identity.memberId,
+    );
+    return (
+      <Navigate
+        to={
+          currentMember?.hasPayments && data.settlement
+            ? settlementSummaryPath(shareCode)
+            : roomHomePath(shareCode)
+        }
+        replace
+      />
+    );
   }
 
   return (
     <MobileFrame tone="subtle">
-      <AppBar />
+      <AppBar fixedBackTo={roomHomePath(shareCode)} />
       {status === 'loading' && !data && <LoadingState />}
 
       {status === 'error' && (
@@ -83,25 +108,37 @@ export function SettlementDonePage() {
             />
             <div className={styles.content}>
               <ul className={styles.cards}>
-                {data.members.map((member) => {
-                  const isCompleted = data.completedMemberIds.includes(member.memberId);
+                {data.progress.members.map((member) => {
+                  const canViewDetails = member.completed && member.hasPayments && data.settlement;
+                  const cardContent = (
+                    <>
+                      <Avatar nickname={member.nickname} />
+                      <span className={styles.nickname}>{member.nickname}</span>
+                      {member.hasPayments && (
+                        <span className={styles.trailing}>
+                          {member.completed ? '내역 보기' : '정산 중'}
+                        </span>
+                      )}
+                    </>
+                  );
 
                   return (
                     <li key={member.memberId}>
-                      <button
-                        type="button"
-                        className={styles.card}
-                        disabled={!isCompleted}
-                        onClick={() =>
-                          navigate(memberSummaryPath(shareCode, member.memberId))
-                        }
-                      >
-                        <Avatar nickname={member.nickname} />
-                        <span className={styles.nickname}>{member.nickname}</span>
-                        <span className={styles.trailing}>
-                          {isCompleted ? '내역 보기' : '정산 중'}
-                        </span>
-                      </button>
+                      {canViewDetails ? (
+                        <button
+                          type="button"
+                          className={styles.card}
+                          onClick={() =>
+                            navigate(memberSummaryPath(shareCode, member.memberId))
+                          }
+                        >
+                          {cardContent}
+                        </button>
+                      ) : (
+                        <div className={`${styles.card} ${!member.completed ? styles.pending : ''}`}>
+                          {cardContent}
+                        </div>
+                      )}
                     </li>
                   );
                 })}
@@ -112,10 +149,12 @@ export function SettlementDonePage() {
           <BottomActionBar>
             <Button
               className={styles.action}
-              disabled={!everyoneDone}
+              disabled={!everyoneDone || !data.settlement || !data.progress.hasAnyPayments}
               onClick={() => navigate(transferListPath(shareCode))}
             >
-              최종 정산하기
+              {everyoneDone && !data.progress.hasAnyPayments
+                ? '정산할 거래가 없어요'
+                : '최종 정산하기'}
             </Button>
           </BottomActionBar>
         </>

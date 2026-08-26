@@ -18,13 +18,16 @@ import {
 } from '../constants/routes';
 import { useAsync } from '../hooks/useAsync';
 import { useLocalIdentity } from '../hooks/useLocalIdentity';
+import { getPaymentShares, getPayments } from '../services/paymentService';
+import { getRoomByShareCode } from '../services/roomService';
 import {
   completeMySettlement,
   getConfirmedSettlement,
-  uncompleteMySettlement,
+  getSettlementProgress,
 } from '../services/settlementService';
 import { isApiError } from '../types/api';
 import { formatKrw, formatQuotedAt, formatRateLine } from '../utils/krw';
+import { calculateSettlement } from '../utils/settlementCalculation';
 import { RoomExpiredPage } from './RoomExpiredPage';
 import styles from './SettlementSummaryPage.module.css';
 
@@ -40,8 +43,37 @@ export function SettlementSummaryPage() {
   const { identity } = useLocalIdentity(shareCode);
   const selectedMemberId = searchParams.get('member');
   const viewMemberId = selectedMemberId ?? identity?.memberId ?? '';
-  const load = useCallback(() => getConfirmedSettlement(shareCode), [shareCode]);
-  const { status, data, error, retry } = useAsync(load, [shareCode]);
+  const load = useCallback(async () => {
+    const progress = await getSettlementProgress(shareCode);
+    const targetMember = progress.members.find((member) => member.memberId === viewMemberId);
+    if (!targetMember?.hasPayments) {
+      return { progress, settlement: null, summaryMembers: [] };
+    }
+
+    const [settlement, room, payments] = await Promise.all([
+      getConfirmedSettlement(shareCode),
+      getRoomByShareCode(shareCode),
+      getPayments(shareCode, viewMemberId),
+    ]);
+    const includedPayments = payments.filter((payment) => payment.includedInSettlement);
+    const shareLists = await Promise.all(
+      includedPayments.map((payment) => getPaymentShares(shareCode, payment.id)),
+    );
+    const rates = Object.fromEntries(
+      settlement.rates
+        .filter((rate) => rate.rateToKrw !== null)
+        .map((rate) => [rate.currency, Number(rate.rateToKrw)]),
+    );
+    const result = calculateSettlement({
+      members: room.members,
+      payments: includedPayments,
+      shares: shareLists.flat(),
+      rates,
+      fallbackMemberIds: room.members.map((member) => member.id),
+    });
+    return { progress, settlement, summaryMembers: result.members };
+  }, [shareCode, viewMemberId]);
+  const { status, data, error, retry } = useAsync(load, [shareCode, viewMemberId]);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -53,16 +85,19 @@ export function SettlementSummaryPage() {
   }
 
   const isReadOnly = viewMemberId !== identity.memberId;
-  const viewMember = data?.members.find((member) => member.memberId === viewMemberId);
-  const alreadyDone = data?.completedMemberIds.includes(identity.memberId) ?? false;
+  const viewMember = data?.progress.members.find((member) => member.memberId === viewMemberId);
+  const alreadyDone =
+    data?.progress.members.find((member) => member.memberId === identity.memberId)?.completed ??
+    false;
   const primaryRate =
-    data?.rates.find((rate) => rate.currency !== 'KRW') ?? data?.rates[0];
+    data?.settlement?.rates.find((rate) => rate.currency !== 'KRW') ??
+    data?.settlement?.rates[0];
   const title =
     viewMemberId === identity.memberId
       ? '환율이 적용된 내 정산 내용이에요'
       : `${viewMember?.nickname ?? ''}님의 정산내역이에요`;
 
-  if (status === 'success' && !viewMember) {
+  if (status === 'success' && (!viewMember || !viewMember.hasPayments || !data?.settlement)) {
     return <Navigate to={settlementDonePath(shareCode)} replace />;
   }
 
@@ -78,24 +113,14 @@ export function SettlementSummaryPage() {
     }
   };
 
-  // 완료 상태를 유지한 채 그룹으로 돌아가면, 재확정 후에도 완료가 그대로 보존되어
-  // "완료하기" 화면으로 다시 돌아오지 못한다. 수정하러 나가는 시점에 완료를 취소해둔다.
-  const handleEdit = async () => {
-    setSubmitting(true);
-    setSubmitError(null);
-    try {
-      await uncompleteMySettlement(shareCode, identity.memberId);
-      navigate(splitGroupsPath(shareCode), { replace: true });
-    } catch (caught) {
-      setSubmitError(isApiError(caught) ? caught.message : '수정하지 못했어요.');
-      setSubmitting(false);
-    }
-  };
-
   return (
     <MobileFrame tone="subtle">
       <AppBar
-        backTo={isReadOnly ? settlementDonePath(shareCode) : settlementStartPath(shareCode)}
+        backTo={
+          isReadOnly || alreadyDone
+            ? settlementDonePath(shareCode)
+            : settlementStartPath(shareCode)
+        }
       />
       {status === 'loading' && <LoadingState />}
 
@@ -103,7 +128,7 @@ export function SettlementSummaryPage() {
         <ErrorState title="불러오지 못했어요" description={error?.message} onRetry={retry} />
       )}
 
-      {status === 'success' && data && viewMember && (
+      {status === 'success' && data?.settlement && viewMember && (
         <>
           <ScreenBody>
             <ScreenHeader
@@ -117,7 +142,7 @@ export function SettlementSummaryPage() {
             />
             <div className={styles.content}>
               <ul className={styles.cards}>
-                {data.members.map((member) => (
+                {data.summaryMembers.map((member) => (
                   <li
                     key={member.memberId}
                     className={`${styles.card} ${member.memberId === viewMemberId ? styles.mine : ''}`}
@@ -140,9 +165,7 @@ export function SettlementSummaryPage() {
               {alreadyDone ? (
                 <Button
                   className={styles.action}
-                  loading={submitting}
-                  loadingLabel="이동하고 있어요…"
-                  onClick={handleEdit}
+                  onClick={() => navigate(splitGroupsPath(shareCode), { replace: true })}
                 >
                   수정하기
                 </Button>

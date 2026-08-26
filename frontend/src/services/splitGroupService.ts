@@ -23,6 +23,7 @@ import { resolveRoomId } from '../api/roomIdResolver';
 import { mockDelay, mockDelayReject } from '../mocks/mockDelay';
 import { mockPaymentStore } from '../mocks/mockPaymentStore';
 import { mockRoomStore } from '../mocks/mockRoomStore';
+import { mockSettlementStore } from '../mocks/mockSettlementStore';
 import { mockSplitGroupStore } from '../mocks/mockSplitGroupStore';
 import { ApiError } from '../types/api';
 import type { Payment, SplitGroup } from '../types/payment';
@@ -212,7 +213,15 @@ export async function updateSplitGroup(
     try {
       const room = requireRoom(shareCode);
       const members = room.members.filter((member) => memberIds.includes(member.id));
-      return mockDelay(mockSplitGroupStore.update(groupId, requesterMemberId, members));
+      const previous = mockSplitGroupStore
+        .findByRoom(room.id, room.members)
+        .find((group) => group.id === groupId);
+      const changed =
+        previous?.memberIds.length !== memberIds.length ||
+        memberIds.some((memberId) => !previous?.memberIds.includes(memberId));
+      const updated = mockSplitGroupStore.update(groupId, requesterMemberId, members);
+      if (changed) mockSettlementStore.uncompleteMember(room.id, requesterMemberId);
+      return mockDelay(updated);
     } catch (error) {
       return mockDelayReject(error as ApiError);
     }
@@ -238,9 +247,15 @@ export async function deleteSplitGroup(
 ): Promise<void> {
   if (USE_MOCK) {
     try {
-      requireRoom(shareCode);
+      const room = requireRoom(shareCode);
+      const hasAssignedPayments = mockPaymentStore
+        .findByRoom(room.id)
+        .some((payment) => payment.splitGroupId === groupId);
       mockSplitGroupStore.remove(groupId, requesterMemberId);
       mockPaymentStore.releaseGroup(groupId);
+      if (hasAssignedPayments) {
+        mockSettlementStore.uncompleteMember(room.id, requesterMemberId);
+      }
       return mockDelay(undefined);
     } catch (error) {
       return mockDelayReject(error as ApiError);
@@ -265,6 +280,13 @@ export async function assignPaymentsToGroup(
   if (USE_MOCK) {
     try {
       const room = requireRoom(shareCode);
+      const previousPaymentIds = mockPaymentStore
+        .findByRoom(room.id)
+        .filter(
+          (payment) =>
+            payment.payerMemberId === memberId && payment.splitGroupId === groupId,
+        )
+        .map((payment) => payment.id);
       const assignedPayments = await mockDelay(
         mockPaymentStore.assignToGroup(room.id, groupId, memberId, paymentIds),
       );
@@ -280,6 +302,10 @@ export async function assignPaymentsToGroup(
             setPaymentSplit(shareCode, payment.id, 'EQUAL', [], memberId),
           ),
       );
+      const changed =
+        previousPaymentIds.length !== paymentIds.length ||
+        paymentIds.some((paymentId) => !previousPaymentIds.includes(paymentId));
+      if (changed) mockSettlementStore.uncompleteMember(room.id, memberId);
       return;
     } catch (error) {
       return mockDelayReject(error as ApiError);

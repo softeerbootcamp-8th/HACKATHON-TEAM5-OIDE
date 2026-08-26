@@ -21,6 +21,7 @@ import com.example.oide.room.domain.RoomMember;
 import com.example.oide.room.domain.SettlementRoom;
 import com.example.oide.room.repository.RoomMemberRepository;
 import com.example.oide.room.repository.SettlementRoomRepository;
+import com.example.oide.settlement.service.SettlementProgressService;
 import com.example.oide.splitgroup.domain.SplitGroup;
 import com.example.oide.splitgroup.domain.SplitGroupMember;
 import com.example.oide.splitgroup.domain.SplitGroupType;
@@ -48,6 +49,7 @@ public class SplitGroupService {
 	private final PaymentRepository paymentRepository;
 	private final PaymentShareRepository paymentShareRepository;
 	private final PaymentShareService paymentShareService;
+	private final SettlementProgressService settlementProgressService;
 
 	// 사용자 지정 그룹과 구성원을 생성한다.
 	@Transactional
@@ -149,6 +151,12 @@ public class SplitGroupService {
 		}
 		// 방 안에 실제로 존재하는 결제만 선택할 수 있다.
 		List<Payment> roomPayments = paymentRepository.findAllByRoomIdForUpdate(roomId);
+		Set<Long> previousPaymentIds = roomPayments.stream()
+				.filter(payment -> payment.getPayer().getId().equals(member.getId()))
+				.filter(payment -> payment.getSplitGroup() != null
+						&& payment.getSplitGroup().getId().equals(groupId))
+				.map(Payment::getId)
+				.collect(Collectors.toSet());
 		List<Payment> requestedPayments = roomPayments.stream()
 				.filter(payment -> requestedPaymentIds.contains(payment.getId()))
 				.toList();
@@ -187,6 +195,9 @@ public class SplitGroupService {
 				paymentShareService.saveEqual(roomId, payment.getId(), member.getId());
 			}
 		}
+		if (!previousPaymentIds.equals(requestedPaymentIds)) {
+			settlementProgressService.uncomplete(roomId, member.getId());
+		}
 	}
 
 	// 사용자 지정 그룹을 삭제한다.
@@ -200,6 +211,7 @@ public class SplitGroupService {
 		for (Payment payment : paymentRepository.findAllByRoomIdAndSplitGroupIdForUpdate(roomId, groupId)) {
 			payment.clearSplit();
 			paymentShareRepository.deleteAllByPaymentId(payment.getId());
+			settlementProgressService.uncomplete(roomId, payment.getPayer().getId());
 		}
 		// 결제 변경을 먼저 반영해 그룹 삭제 시 외래 키 제약 위반을 막는다.
 		paymentRepository.flush();

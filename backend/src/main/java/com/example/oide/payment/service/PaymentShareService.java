@@ -25,6 +25,7 @@ import com.example.oide.room.repository.SettlementRoomRepository;
 import com.example.oide.splitgroup.domain.SplitGroup;
 import com.example.oide.splitgroup.domain.SplitGroupMember;
 import com.example.oide.splitgroup.repository.SplitGroupMemberRepository;
+import com.example.oide.settlement.service.SettlementProgressService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -38,6 +39,7 @@ public class PaymentShareService {
 	private final SettlementRoomRepository roomRepository;
 	private final SplitGroupMemberRepository groupMemberRepository;
 	private final EqualShareCalculator equalShareCalculator;
+	private final SettlementProgressService settlementProgressService;
 
 	@Transactional
 	public PaymentShareResponse saveEqual(Long roomId, Long paymentId, Long requesterMemberId) {
@@ -46,8 +48,12 @@ public class PaymentShareService {
 		validatePaymentOwner(payment, requesterMemberId);
 		List<RoomMember> members = findGroupMembers(requireGroup(payment));
 		Map<Long, BigDecimal> shares = equalShareCalculator.calculate(payment.getAmount(), members, payment.getPayer().getId());
+		boolean changed = hasShareChange(payment, SplitMethod.EQUAL, shares);
 		replaceShares(payment, members, shares);
 		payment.changeSplitMethod(SplitMethod.EQUAL);
+		if (changed) {
+			settlementProgressService.uncomplete(roomId, requesterMemberId);
+		}
 		return toResponse(payment, members, shares);
 	}
 
@@ -59,8 +65,12 @@ public class PaymentShareService {
 		validatePaymentOwner(payment, requesterMemberId);
 		List<RoomMember> members = findGroupMembers(requireGroup(payment));
 		Map<Long, BigDecimal> shares = validateCustomShares(payment, members, request);
+		boolean changed = hasShareChange(payment, SplitMethod.CUSTOM, shares);
 		replaceShares(payment, members, shares);
 		payment.changeSplitMethod(SplitMethod.CUSTOM);
+		if (changed) {
+			settlementProgressService.uncomplete(roomId, requesterMemberId);
+		}
 		return toResponse(payment, members, shares);
 	}
 
@@ -81,7 +91,12 @@ public class PaymentShareService {
 				group.getRoom().getId(), group.getId());
 		for (Payment payment : payments) {
 			if (payment.getSplitMethod() == SplitMethod.EQUAL) {
-				replaceShares(payment, members, equalShareCalculator.calculate(payment.getAmount(), members, payment.getPayer().getId()));
+				Map<Long, BigDecimal> updated = equalShareCalculator.calculate(
+						payment.getAmount(), members, payment.getPayer().getId());
+				if (hasShareChange(payment, SplitMethod.EQUAL, updated)) {
+					replaceShares(payment, members, updated);
+					settlementProgressService.uncomplete(group.getRoom().getId(), payment.getPayer().getId());
+				}
 			} else if (payment.getSplitMethod() == SplitMethod.CUSTOM) {
 				Map<Long, BigDecimal> previous = paymentShareRepository.findAllByPaymentId(payment.getId()).stream()
 						.collect(Collectors.toMap(share -> share.getMember().getId(), PaymentShare::getShareAmount));
@@ -89,11 +104,16 @@ public class PaymentShareService {
 				for (RoomMember member : members) retained.put(member.getId(), previous.getOrDefault(member.getId(), BigDecimal.ZERO));
 				BigDecimal retainedTotal = retained.values().stream().reduce(BigDecimal.ZERO, BigDecimal::add);
 				if (retainedTotal.compareTo(payment.getAmount()) == 0) {
-					replaceShares(payment, members, retained);
+					if (hasShareChange(payment, SplitMethod.CUSTOM, retained)) {
+						replaceShares(payment, members, retained);
+						settlementProgressService.uncomplete(group.getRoom().getId(), payment.getPayer().getId());
+					}
 				} else {
-					replaceShares(payment, members, equalShareCalculator.calculate(
-							payment.getAmount(), members, payment.getPayer().getId()));
+					Map<Long, BigDecimal> updated = equalShareCalculator.calculate(
+							payment.getAmount(), members, payment.getPayer().getId());
+					replaceShares(payment, members, updated);
 					payment.changeSplitMethod(SplitMethod.EQUAL);
+					settlementProgressService.uncomplete(group.getRoom().getId(), payment.getPayer().getId());
 				}
 			}
 		}
@@ -119,6 +139,7 @@ public class PaymentShareService {
 			replaceShares(payment, members, equalShareCalculator.calculate(
 					payment.getAmount(), members, payment.getPayer().getId()));
 			payment.changeSplitMethod(SplitMethod.EQUAL);
+			settlementProgressService.uncomplete(roomId, payment.getPayer().getId());
 		}
 	}
 
@@ -138,6 +159,19 @@ public class PaymentShareService {
 	private void replaceShares(Payment payment, List<RoomMember> members, Map<Long, BigDecimal> shares) {
 		paymentShareRepository.deleteAllByPaymentId(payment.getId());
 		paymentShareRepository.saveAll(members.stream().map(member -> new PaymentShare(payment, member, shares.getOrDefault(member.getId(), BigDecimal.ZERO))).toList());
+	}
+
+	private boolean hasShareChange(Payment payment, SplitMethod method, Map<Long, BigDecimal> shares) {
+		if (payment.getSplitMethod() != method) {
+			return true;
+		}
+		Map<Long, BigDecimal> existing = paymentShareRepository.findAllByPaymentId(payment.getId()).stream()
+				.collect(Collectors.toMap(share -> share.getMember().getId(), PaymentShare::getShareAmount));
+		if (!existing.keySet().equals(shares.keySet())) {
+			return true;
+		}
+		return shares.entrySet().stream()
+				.anyMatch(entry -> existing.get(entry.getKey()).compareTo(entry.getValue()) != 0);
 	}
 
 	private Payment findPayment(Long roomId, Long paymentId) {

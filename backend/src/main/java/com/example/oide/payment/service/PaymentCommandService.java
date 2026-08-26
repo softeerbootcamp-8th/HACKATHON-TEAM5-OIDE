@@ -19,6 +19,7 @@ import com.example.oide.room.domain.RoomMember;
 import com.example.oide.room.domain.SettlementRoom;
 import com.example.oide.room.repository.RoomMemberRepository;
 import com.example.oide.room.service.RoomAccessService;
+import com.example.oide.settlement.service.SettlementProgressService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -39,6 +40,7 @@ public class PaymentCommandService {
 	private final PaymentShareRepository paymentShareRepository;
 	private final RoomMemberRepository roomMemberRepository;
 	private final RoomAccessService roomAccessService;
+	private final SettlementProgressService settlementProgressService;
 
 	@Transactional
 	public List<Payment> register(Long roomId, List<PaymentRegistration> registrations) {
@@ -54,7 +56,12 @@ public class PaymentCommandService {
 				registrations.stream()
 						.map(registration -> toPayment(room, members, registration))
 						.toList();
-		return paymentRepository.saveAll(payments);
+		List<Payment> savedPayments = paymentRepository.saveAll(payments);
+		savedPayments.stream()
+				.map(payment -> payment.getPayer().getId())
+				.distinct()
+				.forEach(memberId -> settlementProgressService.uncomplete(roomId, memberId));
+		return savedPayments;
 	}
 
 	@Transactional(readOnly = true)
@@ -69,11 +76,15 @@ public class PaymentCommandService {
 		Payment payment = paymentRepository.findByRoomIdAndIdForUpdate(room.getId(), paymentId)
 				.orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND));
 
+		if (payment.isIncludedInSettlement() == includedInSettlement) {
+			return;
+		}
 		payment.changeInclusion(includedInSettlement);
 		if (!includedInSettlement) {
 			payment.clearSplit();
 			paymentShareRepository.deleteAllByPaymentId(paymentId);
 		}
+		settlementProgressService.uncomplete(roomId, payment.getPayer().getId());
 	}
 
 	private Payment toPayment(

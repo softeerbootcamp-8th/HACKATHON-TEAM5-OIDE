@@ -39,4 +39,6 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
 	List<Payment> findAllByRoomIdAndSplitGroupIdAndIncludedInSettlementTrue(Long roomId, Long splitGroupId);
 
 	List<Payment> findAllByRoomIdAndIdIn(Long roomId, List<Long> paymentIds);
+
+	boolean existsByRoomIdAndPayerId(Long roomId, Long payerId);
 }

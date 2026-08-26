@@ -1,6 +1,7 @@
 package com.example.oide.room.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -13,6 +14,8 @@ public interface RoomMemberRepository extends JpaRepository<RoomMember, Long> {
 
 	/** 정산 그룹 등에서 요청된 멤버 id들이 실제로 해당 방에 속하는지 검증할 때 사용. */
 	List<RoomMember> findAllByIdInAndRoomId(List<Long> ids, Long roomId);
+
+	Optional<RoomMember> findByIdAndRoomId(Long id, Long roomId);
 
 	long countByRoomId(Long roomId);
 }
