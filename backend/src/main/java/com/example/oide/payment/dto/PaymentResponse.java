@@ -21,7 +21,8 @@ public record PaymentResponse(
 					LocalDateTime paidAt,
 			@Schema(description = "원 통화 단위 결제 금액", example = "3200") BigDecimal amount,
 			@Schema(description = "지원 통화 코드", example = "JPY") SupportedCurrency currency,
-			@Schema(description = "분담 방식. 아직 분담하지 않았으면 null", nullable = true) SplitMethod splitMethod) {
+			@Schema(description = "분담 방식. 아직 분담하지 않았으면 null", nullable = true) SplitMethod splitMethod,
+			@Schema(description = "정산 대상 포함 여부", example = "true") boolean includedInSettlement) {
 
 	public static PaymentResponse from(Payment payment) {
 		return new PaymentResponse(
@@ -31,6 +32,7 @@ public record PaymentResponse(
 				payment.getPaidAt(),
 				payment.getAmount(),
 				payment.getCurrency(),
-				payment.getSplitMethod());
+				payment.getSplitMethod(),
+				payment.isIncludedInSettlement());
 	}
 }

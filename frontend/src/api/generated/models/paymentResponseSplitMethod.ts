@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * 분담 방식. 아직 분담하지 않았으면 null
+ */
 export type PaymentResponseSplitMethod = typeof PaymentResponseSplitMethod[keyof typeof PaymentResponseSplitMethod];
 
 

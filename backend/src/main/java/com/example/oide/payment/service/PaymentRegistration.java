@@ -17,4 +17,5 @@ public record PaymentRegistration(
 		String merchant,
 		LocalDateTime paidAt,
 		BigDecimal amount,
-		String currency) {}
+		String currency,
+		boolean includedInSettlement) {}

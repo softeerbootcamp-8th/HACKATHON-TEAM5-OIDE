@@ -14,10 +14,11 @@ import com.example.oide.global.exception.BusinessException;
 import com.example.oide.global.exception.ErrorCode;
 import com.example.oide.payment.domain.Payment;
 import com.example.oide.payment.repository.PaymentRepository;
-import com.example.oide.room.service.RoomAccessService;
+import com.example.oide.payment.repository.PaymentShareRepository;
 import com.example.oide.room.domain.RoomMember;
-import com.example.oide.room.repository.RoomMemberRepository;
 import com.example.oide.room.domain.SettlementRoom;
+import com.example.oide.room.repository.RoomMemberRepository;
+import com.example.oide.room.service.RoomAccessService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -28,13 +29,14 @@ import lombok.RequiredArgsConstructor;
  * 못하고, 스크린샷 등록과 직접 입력이 같은 경로를 쓴다.
  *
  * <p>분담({@code PaymentShare})은 만들지 않는다. 누가 얼마를 부담할지는 FR-03에서 정하며, 그때까지
- * {@code splitMethod}는 null로 남아 "분담 미설정 = 정산 대상 아님"을 뜻한다.
+ * {@code splitMethod}는 null로 남아 분담이 아직 설정되지 않았음을 뜻한다.
  */
 @Service
 @RequiredArgsConstructor
 public class PaymentCommandService {
 
 	private final PaymentRepository paymentRepository;
+	private final PaymentShareRepository paymentShareRepository;
 	private final RoomMemberRepository roomMemberRepository;
 	private final RoomAccessService roomAccessService;
 
@@ -61,6 +63,20 @@ public class PaymentCommandService {
 		return paymentRepository.findAllByRoomIdOrderByPaidAtDescIdDesc(room.getId());
 	}
 
+	@Transactional
+	public void updateInclusion(Long roomId, Long paymentId, boolean includedInSettlement) {
+		SettlementRoom room = roomAccessService.getActiveRoom(roomId);
+		Payment payment = paymentRepository.findById(paymentId)
+				.filter(candidate -> candidate.getRoom().getId().equals(room.getId()))
+				.orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND));
+
+		payment.changeInclusion(includedInSettlement);
+		if (!includedInSettlement) {
+			payment.clearSplit();
+			paymentShareRepository.deleteAllByPaymentId(paymentId);
+		}
+	}
+
 	private Payment toPayment(
 			SettlementRoom room, Map<Long, RoomMember> members, PaymentRegistration registration) {
 
@@ -82,6 +98,7 @@ public class PaymentCommandService {
 				registration.paidAt(),
 				amount,
 				currency,
-				null);
+				null,
+				registration.includedInSettlement());
 	}
 }

@@ -5,14 +5,27 @@
  * 정산방 생성/참여, 결제 등록, 정산 계산 API
  * OpenAPI spec version: v1
  */
+import type { PaymentResponseCurrency } from './paymentResponseCurrency';
 import type { PaymentResponseSplitMethod } from './paymentResponseSplitMethod';
 
+/**
+ * 확정 등록된 결제 내역
+ */
 export interface PaymentResponse {
+  /** 결제 내역 ID */
   id?: number;
+  /** 실제로 결제한 정산방 참여자 ID */
   payerMemberId?: number;
+  /** 결제처 */
   merchant?: string;
+  /** 결제 시각. 시간대 없는 ISO-8601 형식 */
   paidAt?: string;
+  /** 원 통화 단위 결제 금액 */
   amount?: number;
-  currency?: string;
+  /** 지원 통화 코드 */
+  currency?: PaymentResponseCurrency;
+  /** 분담 방식. 아직 분담하지 않았으면 null */
   splitMethod?: PaymentResponseSplitMethod;
+  /** 정산 대상 포함 여부 */
+  includedInSettlement?: boolean;
 }

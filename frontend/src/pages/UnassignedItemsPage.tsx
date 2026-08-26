@@ -9,7 +9,6 @@ import { BottomActionBar } from '../components/layout/BottomActionBar';
 import { MobileFrame } from '../components/layout/MobileFrame';
 import { ScreenBody } from '../components/layout/ScreenBody';
 import { ScreenHeader } from '../components/layout/ScreenHeader';
-import { ALL_GROUP_NAME } from '../constants/roomRules';
 import { joinRoomPath, settlementStartPath, splitGroupsPath } from '../constants/routes';
 import { useAsync } from '../hooks/useAsync';
 import { useLocalIdentity } from '../hooks/useLocalIdentity';
@@ -101,7 +100,7 @@ export function UnassignedItemsPage() {
                     </span>
                     <span className={styles.meta}>
                       {payment.paidAt ? `${formatTime(payment.paidAt)} · ` : ''}
-                      {payment.currency} · {ALL_GROUP_NAME} 그룹에 담김
+                      {payment.currency}
                     </span>
                   </li>
                 ))}

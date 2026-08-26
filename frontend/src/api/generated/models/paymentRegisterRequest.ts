@@ -6,18 +6,28 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * 결제 내역 한 건의 확정 등록 요청. 결제처와 결제 시각은 생략할 수 있다.
+ */
 export interface PaymentRegisterRequest {
+  /** 실제로 결제한 정산방 참여자 ID */
   payerMemberId: number;
   /**
+     * 결제처. 알 수 없으면 null
      * @minLength 0
      * @maxLength 255
      */
   merchant?: string;
+  /** 결제 시각. 알 수 없으면 null이며 시간대 없는 ISO-8601 형식 */
   paidAt?: string;
+  /** 원 통화 단위 결제 금액. 0보다 커야 함 */
   amount: number;
   /**
+     * ISO 4217 세 자리 통화 코드
      * @minLength 3
      * @maxLength 3
      */
   currency: string;
+  /** 정산 대상 포함 여부 */
+  includedInSettlement?: boolean;
 }
