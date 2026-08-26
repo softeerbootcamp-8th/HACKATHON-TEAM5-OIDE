@@ -43,8 +43,5 @@ export const MAX_SCREENSHOT_BYTES = 10 * 1024 * 1024;
 /** 그룹을 만들 수 있는 최소 인원. 1명짜리 그룹은 정산 대상 제외로 처리한다. */
 export const MIN_GROUP_MEMBER_COUNT = 2;
 
-/** 그룹 이름에 닉네임을 그대로 나열할 최대 인원. 넘으면 `민서 외 4명` 으로 줄인다. */
-export const GROUP_NAME_MAX_NICKNAMES = 4;
-
 /** 방마다 하나씩 있는 기본 그룹의 이름. */
 export const ALL_GROUP_NAME = '전체';

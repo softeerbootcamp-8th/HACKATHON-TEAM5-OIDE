@@ -135,7 +135,10 @@ public class SplitGroupService {
 			throw new BusinessException(ErrorCode.INVALID_PAYMENT_SELECTION);
 		}
 		// 방 안에 실제로 존재하는 결제만 선택할 수 있다.
-		List<Payment> requestedPayments = paymentRepository.findAllByRoomIdAndIdIn(roomId, request.paymentIds());
+		List<Payment> roomPayments = paymentRepository.findAllByRoomIdForUpdate(roomId);
+		List<Payment> requestedPayments = roomPayments.stream()
+				.filter(payment -> requestedPaymentIds.contains(payment.getId()))
+				.toList();
 		if (requestedPayments.size() != requestedPaymentIds.size()) {
 			throw new BusinessException(ErrorCode.PAYMENT_NOT_FOUND);
 		}
@@ -149,7 +152,10 @@ public class SplitGroupService {
 			}
 		}
 		// 기존에 이 그룹이 선택했지만 이번 요청에서 빠진 결제는 그룹·분담 정보를 함께 해제한다.
-		for (Payment payment : paymentRepository.findAllByRoomIdAndSplitGroupId(roomId, groupId)) {
+		for (Payment payment : roomPayments) {
+			if (payment.getSplitGroup() == null || !payment.getSplitGroup().getId().equals(groupId)) {
+				continue;
+			}
 			if (!requestedPaymentIds.contains(payment.getId())) {
 				payment.clearSplit();
 				paymentShareRepository.deleteAllByPaymentId(payment.getId());
@@ -157,7 +163,11 @@ public class SplitGroupService {
 		}
 		// 새로 선택한 결제와 기존 선택 결제 모두 현재 그룹에 연결한다.
 		for (Payment payment : requestedPayments) {
+			boolean requiresDefaultSplit = payment.getSplitMethod() == null;
 			payment.assignGroup(group);
+			if (requiresDefaultSplit) {
+				paymentShareService.saveEqual(roomId, payment.getId());
+			}
 		}
 	}
 
@@ -167,7 +177,7 @@ public class SplitGroupService {
 		// 전체 그룹 삭제나 다른 정산방의 그룹 삭제를 막는다.
 		SplitGroup group = findCustomGroup(roomId, groupId);
 		// 삭제 전에 이 그룹에 연결된 결제를 해제해 결제의 외래 키 참조를 없앤다.
-		for (Payment payment : paymentRepository.findAllByRoomIdAndSplitGroupId(roomId, groupId)) {
+		for (Payment payment : paymentRepository.findAllByRoomIdAndSplitGroupIdForUpdate(roomId, groupId)) {
 			payment.clearSplit();
 			paymentShareRepository.deleteAllByPaymentId(payment.getId());
 		}

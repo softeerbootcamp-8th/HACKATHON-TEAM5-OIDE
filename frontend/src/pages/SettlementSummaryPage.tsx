@@ -55,6 +55,11 @@ export function SettlementSummaryPage() {
   const isReadOnly = selectedMemberId !== null;
   const alreadyDone = data?.completedMemberIds.includes(identity.memberId) ?? false;
   const primaryRate = data?.rates.find((rate) => rate.currency !== 'KRW');
+  const viewMember = data?.members.find((member) => member.memberId === viewMemberId);
+  const title =
+    viewMemberId === identity.memberId
+      ? '환율이 적용된 내 정산 내용이에요'
+      : `${viewMember?.nickname ?? ''}님의 정산내역이에요`;
 
   const handleComplete = async () => {
     setSubmitting(true);
@@ -82,7 +87,7 @@ export function SettlementSummaryPage() {
           <ScreenBody>
             <ScreenHeader
               className={styles.header}
-              title="환율이 적용된 내 정산 내용이에요"
+              title={title}
               description={
                 primaryRate?.rateToKrw && primaryRate.quotedAt
                   ? `${formatRateLine(primaryRate.currency, primaryRate.rateToKrw)} · ${formatQuotedAt(primaryRate.quotedAt)}`
