@@ -1,3 +1,21 @@
+.header {
+  margin-bottom: var(--space-sm);
+  padding-top: var(--space-md);
+}
+
+.header h1 {
+  font-size: 22px;
+}
+
+.header p {
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.highlight {
+  color: var(--color-primary);
+}
+
 .content {
   padding: 0 var(--space-screen-x);
 }
@@ -13,28 +31,29 @@
   align-items: center;
   gap: var(--space-sm);
   width: 100%;
-  min-height: 64px;
-  padding: var(--space-md);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  padding: 20px var(--space-md);
+  border-radius: 10px;
+  background: var(--color-bg);
+  box-shadow: var(--shadow-card);
   text-align: left;
-}
-
-/* 아직 정산을 끝내지 않은 사람은 흐리게 둔다. 누구를 기다리는지 보인다. */
-.pending {
-  opacity: 0.5;
 }
 
 .nickname {
   flex: 1;
-  font-size: var(--font-size-body);
+  font-size: 16px;
+  font-weight: 500;
   color: var(--color-text);
   overflow-wrap: anywhere;
 }
 
 .trailing {
   flex-shrink: 0;
-  font-size: var(--font-size-caption);
+  font-size: 14px;
   color: var(--color-text-muted);
 }
 
+.action {
+  border-radius: 16px;
+  font-size: 16px;
+  font-weight: 500;
+}

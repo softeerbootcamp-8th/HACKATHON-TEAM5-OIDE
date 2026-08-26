@@ -6,12 +6,17 @@
  */
 
 import { USE_MOCK } from '../api/apiConfig';
-import { confirm, getPreview, getSettlement } from '../api/generated/client';
+import {
+  completeMemberSettlement as requestMemberSettlementCompletion,
+  confirm,
+  getPreview,
+  getSettlement,
+} from '../api/generated/client';
 import type {
   SettlementPreviewResponse,
   SettlementResponse,
 } from '../api/generated/models';
-import { callOrval } from '../api/orvalResponse';
+import { callOrval, parseApiId } from '../api/orvalResponse';
 import { resolveRoomId } from '../api/roomIdResolver';
 import { mockDelay, mockDelayReject } from '../mocks/mockDelay';
 import { mockPaymentStore } from '../mocks/mockPaymentStore';
@@ -62,6 +67,7 @@ export interface ConfirmedTransfer {
 export interface ConfirmedSettlement {
   settlementId: string;
   calculatedAt: string;
+  completedMemberIds: string[];
   rates: SettlementPreviewRate[];
   members: ConfirmedMemberResult[];
   transfers: ConfirmedTransfer[];
@@ -161,6 +167,7 @@ export async function confirmSettlement(
       room.id,
       manualRate ?? null,
     );
+    mockSettlementStore.resetCompletedMembers(room.id);
     await mockDelay(undefined);
     return;
   }
@@ -201,6 +208,7 @@ export async function getConfirmedSettlement(shareCode: string): Promise<Confirm
     return mockDelay({
       settlementId: 'mock-settlement',
       calculatedAt: new Date().toISOString(),
+      completedMemberIds: mockSettlementStore.findCompletedMemberIds(room.id),
       rates: rateInfo.rates.map((rate) => ({
         currency: rate.currency,
         rateToKrw: rate.rateToKrw,
@@ -226,6 +234,7 @@ export async function getConfirmedSettlement(shareCode: string): Promise<Confirm
   if (
     response.settlementId === undefined ||
     !response.calculatedAt ||
+    !response.completedMemberIds ||
     !result?.rates ||
     !result.memberResults ||
     !result.transfers
@@ -236,6 +245,7 @@ export async function getConfirmedSettlement(shareCode: string): Promise<Confirm
   return {
     settlementId: String(response.settlementId),
     calculatedAt: response.calculatedAt,
+    completedMemberIds: response.completedMemberIds.map(String),
     rates: result.rates.map((rate) => {
       if (!rate.currency || rate.rateToKrw === undefined || !rate.quotedAt) {
         throw new ApiError('UNKNOWN_ERROR', '확정 환율 응답 형식이 올바르지 않아요.');
@@ -286,6 +296,23 @@ export async function getConfirmedSettlement(shareCode: string): Promise<Confirm
       };
     }),
   };
+}
+
+export async function completeMySettlement(
+  shareCode: string,
+  memberId: string,
+): Promise<void> {
+  if (USE_MOCK) {
+    const room = mockRoomStore.findByShareCode(shareCode);
+    if (!room) {
+      return mockDelayReject(new ApiError('ROOM_NOT_FOUND', '정산방을 찾을 수 없어요.', 404));
+    }
+    mockSettlementStore.completeMember(room.id, memberId);
+    return mockDelay(undefined);
+  }
+
+  const roomId = await resolveRoomId(shareCode);
+  await callOrval<void>(() => requestMemberSettlementCompletion(roomId, parseApiId(memberId)));
 }
 
 async function getMockRoomRates(shareCode: string): Promise<RoomRates> {

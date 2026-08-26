@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Avatar } from '../components/common/Avatar';
 import { Banner } from '../components/common/Banner';
@@ -14,10 +14,15 @@ import {
   joinRoomPath,
   settlementDonePath,
   settlementStartPath,
+  splitGroupsPath,
 } from '../constants/routes';
 import { useAsync } from '../hooks/useAsync';
 import { useLocalIdentity } from '../hooks/useLocalIdentity';
-import { getConfirmedSettlement } from '../services/settlementService';
+import {
+  completeMySettlement,
+  getConfirmedSettlement,
+} from '../services/settlementService';
+import { isApiError } from '../types/api';
 import { formatKrw, formatQuotedAt, formatRateLine } from '../utils/krw';
 import { RoomExpiredPage } from './RoomExpiredPage';
 import styles from './SettlementSummaryPage.module.css';
@@ -34,6 +39,8 @@ export function SettlementSummaryPage() {
   const { identity } = useLocalIdentity(shareCode);
   const load = useCallback(() => getConfirmedSettlement(shareCode), [shareCode]);
   const { status, data, error, retry } = useAsync(load, [shareCode]);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   if (status === 'error' && error?.code === 'ROOM_EXPIRED') {
     return <RoomExpiredPage />;
@@ -44,10 +51,23 @@ export function SettlementSummaryPage() {
 
   // E-12 에서 `내역 보기` 로 들어온 경우 그 사람의 요약을 본다.
   const viewMemberId = searchParams.get('member') ?? identity.memberId;
+  const alreadyDone = data?.completedMemberIds.includes(identity.memberId) ?? false;
   const primaryRate = data?.rates.find((rate) => rate.currency !== 'KRW');
 
+  const handleComplete = async () => {
+    setSubmitting(true);
+    setSubmitError(null);
+    try {
+      await completeMySettlement(shareCode, identity.memberId);
+      navigate(settlementDonePath(shareCode));
+    } catch (caught) {
+      setSubmitError(isApiError(caught) ? caught.message : '완료하지 못했어요.');
+      setSubmitting(false);
+    }
+  };
+
   return (
-    <MobileFrame>
+    <MobileFrame tone="subtle">
       <AppBar backTo={settlementStartPath(shareCode)} />
       {status === 'loading' && <LoadingState />}
 
@@ -59,6 +79,7 @@ export function SettlementSummaryPage() {
         <>
           <ScreenBody>
             <ScreenHeader
+              className={styles.header}
               title="환율이 적용된 내 정산 내용이에요"
               description={
                 primaryRate?.rateToKrw && primaryRate.quotedAt
@@ -82,17 +103,25 @@ export function SettlementSummaryPage() {
                   </li>
                 ))}
               </ul>
-
-              {data.rates.some((rate) => rate.source === 'MANUAL') && (
-                <Banner message="직접 입력한 환율이 적용되었어요" />
-              )}
             </div>
           </ScreenBody>
 
           <BottomActionBar>
-            <Button onClick={() => navigate(settlementDonePath(shareCode))}>
-              내 정산 완료하기
-            </Button>
+            {submitError && <Banner message={submitError} />}
+            {alreadyDone ? (
+              <Button className={styles.action} onClick={() => navigate(splitGroupsPath(shareCode))}>
+                수정하기
+              </Button>
+            ) : (
+              <Button
+                className={styles.action}
+                loading={submitting}
+                loadingLabel="완료하고 있어요…"
+                onClick={handleComplete}
+              >
+                내 정산 완료하기
+              </Button>
+            )}
           </BottomActionBar>
         </>
       )}

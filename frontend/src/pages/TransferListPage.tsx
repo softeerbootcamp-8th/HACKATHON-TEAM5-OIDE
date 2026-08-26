@@ -43,6 +43,12 @@ export function TransferListPage() {
 
   const transfers = data?.transfers ?? [];
   const primaryRate = data?.rates.find((rate) => rate.currency !== 'KRW');
+  const everyoneDone =
+    data !== null && data.completedMemberIds.length === data.members.length;
+
+  if (status === 'success' && data && !everyoneDone) {
+    return <Navigate to={settlementDonePath(shareCode)} replace />;
+  }
 
   const handleCopy = async () => {
     const lines = transfers.map(
@@ -73,10 +79,16 @@ export function TransferListPage() {
         <>
           <ScreenBody>
             <ScreenHeader
+              className={styles.header}
               title={
                 transfers.length === 0
                   ? '주고받을 돈이 없어요'
-                  : `이렇게 ${transfers.length}번만 보내면 끝나요`
+                  : (
+                    <>
+                      <span className={styles.highlight}>전체 정산 완료!</span>
+                      {'\n'}이렇게 {transfers.length}번만 보내면 끝나요
+                    </>
+                  )
               }
               description={
                 transfers.length === 0
@@ -101,14 +113,22 @@ export function TransferListPage() {
                         onClick={() => navigate(transferDetailPath(shareCode, index))}
                       >
                         <span className={styles.person}>
-                          <Avatar nickname={transfer.senderNickname} size="sm" />
+                          <Avatar
+                            nickname={transfer.senderNickname}
+                            size="sm"
+                            className={styles.transferAvatar}
+                          />
                           {transfer.senderNickname}
                         </span>
                         <span className={styles.arrow} aria-label="에게">
                           →
                         </span>
                         <span className={styles.person}>
-                          <Avatar nickname={transfer.receiverNickname} size="sm" />
+                          <Avatar
+                            nickname={transfer.receiverNickname}
+                            size="sm"
+                            className={styles.transferAvatar}
+                          />
                           {transfer.receiverNickname}
                         </span>
                         <span className={styles.spacer} />
@@ -120,9 +140,8 @@ export function TransferListPage() {
 
                 {primaryRate?.rateToKrw && primaryRate.quotedAt && (
                   <div className={styles.rateBox}>
-                    <span className={styles.rateLabel}>적용된 환율</span>
+                    <span className={styles.rateLabel}>적용 환율</span>
                     <span className={styles.rateValue}>
-                      {formatRateLine(primaryRate.currency, primaryRate.rateToKrw)} ·{' '}
                       {formatQuotedAt(primaryRate.quotedAt)}
                     </span>
                   </div>
@@ -132,7 +151,11 @@ export function TransferListPage() {
           </ScreenBody>
 
           <BottomActionBar>
-            <Button disabled={transfers.length === 0} onClick={handleCopy}>
+            <Button
+              className={styles.action}
+              disabled={transfers.length === 0}
+              onClick={handleCopy}
+            >
               {copyState === 'copied'
                 ? '복사했어요'
                 : copyState === 'failed'
