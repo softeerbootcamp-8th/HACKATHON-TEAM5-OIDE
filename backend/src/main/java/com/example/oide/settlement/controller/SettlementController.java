@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -20,14 +19,10 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import com.example.oide.global.exception.BusinessException;
-import com.example.oide.global.exception.ErrorCode;
 import com.example.oide.global.exception.ErrorResponse;
 import com.example.oide.settlement.dto.ManualRatesRequest;
 import com.example.oide.settlement.dto.SettlementPreviewResponse;
-import com.example.oide.settlement.dto.SettlementProgressResponse;
 import com.example.oide.settlement.dto.SettlementResponse;
-import com.example.oide.settlement.service.SettlementProgressService;
 import com.example.oide.settlement.service.SettlementService;
 
 @RestController
@@ -37,24 +32,6 @@ import com.example.oide.settlement.service.SettlementService;
 public class SettlementController {
 
 	private final SettlementService settlementService;
-	private final SettlementProgressService settlementProgressService;
-
-	@GetMapping("/settlement-progress")
-	@Operation(summary = "참여자별 정산 진행 상태 조회")
-	public ResponseEntity<SettlementProgressResponse> getProgress(@PathVariable Long roomId) {
-		return ResponseEntity.ok(settlementProgressService.getProgress(roomId));
-	}
-
-	@PutMapping("/settlement-progress/members/{memberId}/completion-without-payments")
-	@Operation(summary = "결제 내역 없는 참여자 정산 완료")
-	public ResponseEntity<Void> completeWithoutPayments(
-			@PathVariable Long roomId,
-			@PathVariable Long memberId,
-			@RequestHeader("X-Room-Member-Id") Long requesterMemberId) {
-		validateRequester(memberId, requesterMemberId);
-		settlementProgressService.completeWithoutPayments(roomId, memberId);
-		return ResponseEntity.noContent().build();
-	}
 
 	@GetMapping("/settlement-preview")
 	@Operation(summary = "자동 환율 정산 미리보기", description = "방 생성일 기준 환율을 캐시 또는 수출입은행 API에서 조회해 정산 결과를 미리 계산한다.")
@@ -107,10 +84,7 @@ public class SettlementController {
 			@ApiResponse(responseCode = "404", description = "방, 확정 정산 또는 참여자를 찾을 수 없음", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
 	})
 	public ResponseEntity<Void> completeMemberSettlement(
-			@PathVariable Long roomId,
-			@PathVariable Long memberId,
-			@RequestHeader("X-Room-Member-Id") Long requesterMemberId) {
-		validateRequester(memberId, requesterMemberId);
+			@PathVariable Long roomId, @PathVariable Long memberId) {
 		settlementService.completeMemberSettlement(roomId, memberId);
 		return ResponseEntity.noContent().build();
 	}
@@ -122,17 +96,8 @@ public class SettlementController {
 			@ApiResponse(responseCode = "404", description = "방, 확정 정산 또는 참여자를 찾을 수 없음", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
 	})
 	public ResponseEntity<Void> uncompleteMemberSettlement(
-			@PathVariable Long roomId,
-			@PathVariable Long memberId,
-			@RequestHeader("X-Room-Member-Id") Long requesterMemberId) {
-		validateRequester(memberId, requesterMemberId);
+			@PathVariable Long roomId, @PathVariable Long memberId) {
 		settlementService.uncompleteMemberSettlement(roomId, memberId);
 		return ResponseEntity.noContent().build();
-	}
-
-	private void validateRequester(Long memberId, Long requesterMemberId) {
-		if (!memberId.equals(requesterMemberId)) {
-			throw new BusinessException(ErrorCode.SETTLEMENT_MEMBER_MISMATCH);
-		}
 	}
 }

@@ -20,7 +20,6 @@ import { resolveRoomId } from '../api/roomIdResolver';
 import { mockDelay, mockDelayReject } from '../mocks/mockDelay';
 import { mockPaymentStore } from '../mocks/mockPaymentStore';
 import { mockRoomStore } from '../mocks/mockRoomStore';
-import { mockSettlementStore } from '../mocks/mockSettlementStore';
 import { mockSplitGroupStore } from '../mocks/mockSplitGroupStore';
 import { ApiError } from '../types/api';
 import type {
@@ -96,7 +95,6 @@ export async function createPayments(
     if (!room) {
       return mockDelayReject(new ApiError('ROOM_NOT_FOUND', '정산방을 찾을 수 없어요.', 404));
     }
-    mockSettlementStore.uncompleteMember(room.id, payerMemberId);
     return mockDelay(mockPaymentStore.createMany(room.id, payerMemberId, payments));
   }
 
@@ -123,7 +121,6 @@ export async function createPayment(
     if (!room) {
       return mockDelayReject(new ApiError('ROOM_NOT_FOUND', '정산방을 찾을 수 없어요.', 404));
     }
-    mockSettlementStore.uncompleteMember(room.id, payerMemberId);
     return mockDelay(mockPaymentStore.createMany(room.id, payerMemberId, [payment])[0]);
   }
 
@@ -167,15 +164,7 @@ export async function updatePaymentInclusion(
   includedInSettlement: boolean,
 ): Promise<void> {
   if (USE_MOCK) {
-    const room = mockRoomStore.findByShareCode(shareCode);
-    const previous = room
-      ? mockPaymentStore.findByRoom(room.id).find((payment) => payment.id === paymentId)
-      : undefined;
-    const updated = mockPaymentStore.setIncluded(paymentId, includedInSettlement);
-    if (room && previous?.includedInSettlement !== includedInSettlement) {
-      mockSettlementStore.uncompleteMember(room.id, updated.payerMemberId);
-    }
-    await mockDelay(updated, 150);
+    await mockDelay(mockPaymentStore.setIncluded(paymentId, includedInSettlement), 150);
     return;
   }
 
@@ -258,16 +247,7 @@ export async function setPaymentSplit(
             shareAmount: String(share.amount),
           }))
         : shares;
-    const previousShares = mockPaymentStore.findShares(paymentId);
-    const changed =
-      payment.splitMethod !== method ||
-      previousShares.length !== resolvedShares.length ||
-      resolvedShares.some((share) => {
-        const previous = previousShares.find((item) => item.memberId === share.memberId);
-        return !previous || Number(previous.shareAmount) !== Number(share.shareAmount);
-      });
     await mockDelay(mockPaymentStore.setSplit(paymentId, method, resolvedShares));
-    if (changed) mockSettlementStore.uncompleteMember(room.id, requesterMemberId);
     return;
   }
 

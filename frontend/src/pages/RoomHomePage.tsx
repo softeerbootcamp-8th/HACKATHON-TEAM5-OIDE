@@ -1,6 +1,5 @@
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
-import { Banner } from '../components/common/Banner';
 import { Button } from '../components/common/Button';
 import { EmptyState } from '../components/common/EmptyState';
 import { ErrorState } from '../components/common/ErrorState';
@@ -19,13 +18,11 @@ import {
 } from '../constants/routes';
 import { useAsync } from '../hooks/useAsync';
 import { useLocalIdentity } from '../hooks/useLocalIdentity';
-import { getMemberPaymentSummaries } from '../services/memberService';
-import { getRoomByShareCode } from '../services/roomService';
 import {
-  completeWithoutPayments,
-  getSettlementProgress,
-} from '../services/settlementService';
-import { isApiError } from '../types/api';
+  getMemberPaymentSummaries,
+} from '../services/memberService';
+import { getRoomByShareCode } from '../services/roomService';
+import { getConfirmedSettlement } from '../services/settlementService';
 import type { MemberPaymentSummary } from '../types/payment';
 import type { SettlementRoom } from '../types/room';
 import { RoomExpiredPage } from './RoomExpiredPage';
@@ -34,9 +31,8 @@ import styles from './RoomHomePage.module.css';
 interface RoomHomeData {
   room: SettlementRoom;
   summaries: MemberPaymentSummary[];
-  completedMemberIds: string[];
-  currentMemberHasPayments: boolean;
-  currentMemberCompleted: boolean;
+  /** 정산이 아직 확정되지 않았으면 null. */
+  completedMemberIds: string[] | null;
 }
 
 /**
@@ -50,28 +46,18 @@ export function RoomHomePage() {
   const { identity } = useLocalIdentity(shareCode);
 
   const load = useCallback(async (): Promise<RoomHomeData> => {
-    const [room, summaries, progress] = await Promise.all([
+    const [room, summaries, completedMemberIds] = await Promise.all([
       getRoomByShareCode(shareCode),
       getMemberPaymentSummaries(shareCode),
-      getSettlementProgress(shareCode),
+      // 정산이 아직 확정되지 않은 방이 더 흔한 경우라, 그 실패는 무시하고 진행한다.
+      getConfirmedSettlement(shareCode)
+        .then((settlement) => settlement.completedMemberIds)
+        .catch(() => null),
     ]);
-    const currentMember = progress.members.find(
-      (member) => member.memberId === identity?.memberId,
-    );
-    return {
-      room,
-      summaries,
-      completedMemberIds: progress.members
-        .filter((member) => member.completed)
-        .map((member) => member.memberId),
-      currentMemberHasPayments: currentMember?.hasPayments ?? false,
-      currentMemberCompleted: currentMember?.completed ?? false,
-    };
-  }, [shareCode, identity?.memberId]);
+    return { room, summaries, completedMemberIds };
+  }, [shareCode]);
 
-  const { status, data, error, retry } = useAsync(load, [shareCode, identity?.memberId]);
-  const [submitting, setSubmitting] = useState(false);
-  const [actionError, setActionError] = useState<string | null>(null);
+  const { status, data, error, retry } = useAsync(load, [shareCode]);
 
   if (status === 'error' && error?.code === 'ROOM_EXPIRED') {
     return <RoomExpiredPage />;
@@ -79,23 +65,15 @@ export function RoomHomePage() {
   if (!identity) {
     return <Navigate to={joinRoomPath(shareCode)} replace />;
   }
+  if (status === 'success' && data?.completedMemberIds?.includes(identity.memberId)) {
+    return <Navigate to={settlementDonePath(shareCode)} replace />;
+  }
+
   const completedSummaries =
     data?.summaries.filter((summary) =>
       data.completedMemberIds?.includes(summary.memberId),
     ) ?? [];
   const hasEntries = completedSummaries.length > 0;
-
-  const handleSkipPayments = async () => {
-    setSubmitting(true);
-    setActionError(null);
-    try {
-      await completeWithoutPayments(shareCode, identity.memberId);
-      navigate(settlementDonePath(shareCode), { replace: true });
-    } catch (caught) {
-      setActionError(isApiError(caught) ? caught.message : '완료하지 못했어요.');
-      setSubmitting(false);
-    }
-  };
 
   return (
     <MobileFrame tone="white">
@@ -141,27 +119,9 @@ export function RoomHomePage() {
             )}
           </ScreenBody>
           <BottomActionBar>
-            {actionError && <Banner message={actionError} />}
             <Button onClick={() => navigate(expenseMethodPath(shareCode))}>
-              결제 내역 추가하기
+              결제 내역 추가
             </Button>
-            {data.currentMemberCompleted ? (
-              <Button
-                variant="text"
-                onClick={() => navigate(settlementDonePath(shareCode))}
-              >
-                정산 현황 보기
-              </Button>
-            ) : !data.currentMemberHasPayments ? (
-              <Button
-                variant="text"
-                loading={submitting}
-                loadingLabel="완료하고 있어요…"
-                onClick={handleSkipPayments}
-              >
-                결제 내역 없이 넘어가기
-              </Button>
-            ) : null}
           </BottomActionBar>
         </>
       )}

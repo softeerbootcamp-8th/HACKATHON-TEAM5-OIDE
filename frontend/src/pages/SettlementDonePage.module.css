@@ -38,7 +38,7 @@
   text-align: left;
 }
 
-.pending {
+.card:disabled {
   opacity: 0.5;
 }
 

@@ -53,9 +53,7 @@ public enum ErrorCode {
 
 	// Settlement
 	SETTLEMENT_VALIDATION_FAILED(HttpStatus.BAD_REQUEST, "SETTLEMENT_001", "정산을 완료할 수 없습니다."),
-	SETTLEMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "SETTLEMENT_002", "확정된 정산 결과가 없습니다."),
-	SETTLEMENT_SKIP_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "SETTLEMENT_003", "등록한 결제 내역이 있으면 바로 넘어갈 수 없습니다."),
-	SETTLEMENT_MEMBER_MISMATCH(HttpStatus.FORBIDDEN, "SETTLEMENT_004", "본인의 정산 상태만 변경할 수 있습니다.");
+	SETTLEMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "SETTLEMENT_002", "확정된 정산 결과가 없습니다.");
 
 	private final HttpStatus status;
 	private final String code;

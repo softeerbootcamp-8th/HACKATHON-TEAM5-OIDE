@@ -1,4 +1,3 @@
-import { useNavigate } from 'react-router-dom';
 import { useBackNavigation } from '../../hooks/useBackNavigation';
 import styles from './AppBar.module.css';
 
@@ -10,8 +9,6 @@ interface AppBarProps {
    * 링크로 바로 들어온 경우에 쓰인다. 지정하지 않으면 그 경우 버튼을 숨긴다.
    */
   backTo?: string;
-  /** 히스토리와 무관하게 항상 이 경로로 돌아간다. */
-  fixedBackTo?: string;
 }
 
 /**
@@ -21,10 +18,9 @@ interface AppBarProps {
  * 특정 경로로 새로 이동하면 기록이 쌓여서, 안드로이드 하드웨어 뒤로가기나
  * iOS 스와이프를 눌렀을 때 오히려 앞으로 진행하는 것처럼 보인다.
  */
-export function AppBar({ showBack = true, backTo, fixedBackTo }: AppBarProps) {
-  const navigate = useNavigate();
+export function AppBar({ showBack = true, backTo }: AppBarProps) {
   const { canGoBack, goBack } = useBackNavigation(backTo);
-  const visible = showBack && (Boolean(fixedBackTo) || canGoBack);
+  const visible = showBack && canGoBack;
 
   return (
     <header className={styles.bar}>
@@ -32,9 +28,7 @@ export function AppBar({ showBack = true, backTo, fixedBackTo }: AppBarProps) {
         <button
           type="button"
           className={styles.backButton}
-          onClick={() =>
-            fixedBackTo ? navigate(fixedBackTo, { replace: true }) : goBack()
-          }
+          onClick={() => goBack()}
           aria-label="뒤로 가기"
         >
           <svg

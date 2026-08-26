@@ -14,7 +14,6 @@ import { findCurrency } from '../constants/currencies';
 import {
   joinRoomPath,
   rateEditPath,
-  settlementDonePath,
   settlementSummaryPath,
   splitGroupsPath,
 } from '../constants/routes';
@@ -22,7 +21,6 @@ import { useLocalIdentity } from '../hooks/useLocalIdentity';
 import { useAsync } from '../hooks/useAsync';
 import {
   confirmSettlement,
-  getSettlementProgress,
   getSettlementPreview,
 } from '../services/settlementService';
 import { getSplitGroupOverview } from '../services/splitGroupService';
@@ -45,12 +43,11 @@ export function SettlementStartPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const [overview, preview, progress] = await Promise.all([
+    const [overview, preview] = await Promise.all([
       getSplitGroupOverview(shareCode),
       getSettlementPreview(shareCode),
-      getSettlementProgress(shareCode),
     ]);
-    return { ...overview, preview, progress };
+    return { ...overview, preview };
   }, [shareCode]);
   const { status, data, error, retry } = useAsync(load, [shareCode]);
 
@@ -59,12 +56,6 @@ export function SettlementStartPage() {
   }
   if (!identity) {
     return <Navigate to={joinRoomPath(shareCode)} replace />;
-  }
-  if (
-    status === 'success' &&
-    data?.progress.members.find((member) => member.memberId === identity.memberId)?.completed
-  ) {
-    return <Navigate to={settlementDonePath(shareCode)} replace />;
   }
 
   // 실제 결제에 사용된 통화만 환율과 직접 입력 대상으로 보여준다.

@@ -232,20 +232,6 @@ class SettlementServiceTest {
 				.containsExactly(confirmed.memberA().getId());
 	}
 
-	@Test
-	void resetsPayerCompletionWhenExchangeRateChanges() {
-		ConfirmedSettlement confirmed = createConfirmedSettlement("rate-change-code");
-		settlementService.completeMemberSettlement(confirmed.room().getId(), confirmed.memberA().getId());
-
-		SettlementResponse recalculated = settlementService.confirm(
-				confirmed.room().getId(),
-				new ManualRatesRequest(List.of(
-						new ManualRatesRequest.ManualRateRequest("KRW", new BigDecimal("2")))));
-
-		assertThat(recalculated.completedMemberIds()).isEmpty();
-		assertThat(settlementService.getSettlement(confirmed.room().getId()).completedMemberIds()).isEmpty();
-	}
-
 	private ConfirmedSettlement createConfirmedSettlement(String shareCode) {
 		SettlementRoom room = roomRepository.save(
 				new SettlementRoom(shareCode, "여행", SupportedCurrency.KRW));
