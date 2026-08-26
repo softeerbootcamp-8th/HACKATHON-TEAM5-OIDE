@@ -12,6 +12,8 @@ public enum ErrorCode {
 	INVALID_REQUEST(HttpStatus.BAD_REQUEST, "COMMON_001", "잘못된 요청입니다."),
 	INTERNAL_SERVER_ERROR(
 			HttpStatus.INTERNAL_SERVER_ERROR, "COMMON_002", "서버 내부 오류가 발생했습니다."),
+	RESOURCE_NOT_FOUND(HttpStatus.NOT_FOUND, "COMMON_003", "요청한 리소스를 찾을 수 없습니다."),
+	METHOD_NOT_ALLOWED(HttpStatus.METHOD_NOT_ALLOWED, "COMMON_004", "지원하지 않는 요청 방식입니다."),
 
 	// Room
 	ROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "ROOM_001", "정산방을 찾을 수 없습니다."),
@@ -33,6 +35,13 @@ public enum ErrorCode {
 	INVALID_PAYMENT_AMOUNT(HttpStatus.BAD_REQUEST, "PAYMENT_008", "결제 금액은 0보다 커야 합니다."),
 	INVALID_CURRENCY(HttpStatus.BAD_REQUEST, "PAYMENT_009", "지원하지 않는 통화입니다."),
 	NO_PAYMENT_TO_REGISTER(HttpStatus.BAD_REQUEST, "PAYMENT_010", "등록할 결제 내역이 없습니다."),
+	NO_SCREENSHOT_UPLOADED(HttpStatus.BAD_REQUEST, "PAYMENT_011", "업로드된 스크린샷이 없습니다."),
+	TOO_MANY_SCREENSHOTS(
+			HttpStatus.BAD_REQUEST, "PAYMENT_012", "스크린샷은 한 번에 최대 20장까지 업로드할 수 있습니다."),
+	UNSUPPORTED_IMAGE_TYPE(
+			HttpStatus.BAD_REQUEST, "PAYMENT_013", "JPEG, PNG, WEBP 이미지만 업로드할 수 있습니다."),
+	SCREENSHOT_TOO_LARGE(HttpStatus.BAD_REQUEST, "PAYMENT_014", "스크린샷 한 장의 크기는 10MB를 넘을 수 없습니다."),
+	EXTRACTION_JOB_NOT_FOUND(HttpStatus.NOT_FOUND, "PAYMENT_015", "추출 작업을 찾을 수 없습니다."),
 
 	// Group
 	GROUP_NOT_FOUND(HttpStatus.NOT_FOUND, "GROUP_001", "분담 그룹을 찾을 수 없습니다."),
