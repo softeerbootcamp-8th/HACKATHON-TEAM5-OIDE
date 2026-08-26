@@ -1,8 +1,8 @@
 .content {
   display: flex;
   flex-direction: column;
-  gap: var(--space-md);
-  padding: 0 var(--space-screen-x);
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-screen-x) 0;
 }
 
 /* 지금 나누고 있는 결제가 무엇인지 계속 보이게 한다. */
@@ -10,33 +10,36 @@
   display: flex;
   flex-direction: column;
   padding: 12px 14px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  margin-bottom: 4px;
+  border: 1px solid var(--color-surface);
+  border-radius: 10px;
 }
 
 .merchant {
-  font-size: var(--font-size-caption);
+  font-size: 14px;
+  line-height: 1.5;
   color: var(--color-text-muted);
 }
 
 .amount {
-  font-size: 17px;
+  font-size: 18px;
   font-weight: 700;
   color: var(--color-text);
   font-variant-numeric: tabular-nums;
 }
 
 .meta {
-  font-size: var(--font-size-caption);
-  line-height: 1.3;
+  font-size: 12px;
+  line-height: 1.4;
   color: var(--color-text-muted);
 }
 
 .formula {
   padding: 12px 16px;
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
-  font-size: var(--font-size-body);
+  border-radius: 8px;
+  background: #f6f6f6;
+  font-size: 16px;
+  font-weight: 500;
   color: var(--color-text);
   font-variant-numeric: tabular-nums;
 }
@@ -62,20 +65,22 @@
 }
 
 .nickname {
-  font-size: var(--font-size-body);
+  font-size: 16px;
+  font-weight: 500;
   color: var(--color-text);
   overflow-wrap: anywhere;
 }
 
 /* 나머지를 누가 얼마나 떠안았는지 밝힌다. */
 .payerBadge {
-  font-size: 11px;
-  color: var(--color-text-muted);
+  font-size: 12px;
+  color: #71717a;
 }
 
 .shareAmount {
   flex-shrink: 0;
-  font-size: var(--font-size-body);
+  font-size: 16px;
+  font-weight: 500;
   color: var(--color-text);
   font-variant-numeric: tabular-nums;
 }
@@ -104,10 +109,11 @@
   justify-content: space-between;
   gap: var(--space-sm);
   padding: 14px 16px;
-  border: 1px solid transparent;
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
-  font-size: var(--font-size-body);
+  min-height: 48px;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background: #f6f6f6;
+  font-size: 16px;
   color: var(--color-text);
   font-variant-numeric: tabular-nums;
 }
@@ -124,6 +130,18 @@
 }
 
 .caption {
-  font-size: var(--font-size-caption);
-  color: var(--color-text-muted);
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--color-text-soft);
+}
+
+.primaryButton {
+  border-radius: 16px;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.primaryButton:disabled {
+  background: #e5e5e5;
 }

@@ -68,8 +68,6 @@ export function SplitGroupListPage() {
 
   // 정산 대상으로 고른 항목만 그룹에 담을 수 있다.
   const targetPayments = data?.payments ?? [];
-  const hasGroups = (data?.groups.length ?? 0) > 1;
-
   const itemsOf = (groupId: string) =>
     targetPayments.filter((payment) => payment.splitGroupId === groupId);
 
@@ -136,23 +134,17 @@ export function SplitGroupListPage() {
         <>
           <ScreenBody>
             <ScreenHeader
+              className={styles.screenHeader}
               title="정산할 그룹을 추가해주세요"
               description={
-                hasGroups ? undefined : '일부 인원만 낸 건이 있으면 그룹으로 묶으면 돼요.'
+                <>
+                  그룹을 눌러 해당 그룹에 n빵할 항목을 골라주세요
+                  <br />
+                  옆으로 밀면 삭제할 수 있어요
+                </>
               }
             />
             <div className={styles.content}>
-              <div className={styles.addRow}>
-                <button
-                  type="button"
-                  className={styles.addButton}
-                  onClick={() => navigate(splitGroupNewPath(shareCode))}
-                  aria-label="그룹 추가"
-                >
-                  +
-                </button>
-              </div>
-
               <ul className={styles.groups}>
                 {data.groups.map((group) => {
                   const card = (
@@ -180,22 +172,25 @@ export function SplitGroupListPage() {
                 })}
               </ul>
 
-              {hasGroups && (
-                <p className={styles.hint}>
-                  {'그룹을 눌러 해당 그룹이 낼 항목을 골라주세요\n옆으로 밀면 삭제할 수 있어요'}
-                </p>
-              )}
+              <button
+                type="button"
+                className={styles.addButton}
+                onClick={() => navigate(splitGroupNewPath(shareCode))}
+              >
+                + 추가하기
+              </button>
             </div>
           </ScreenBody>
 
           <BottomActionBar>
             {actionError && <Banner message={actionError} />}
             <Button
+              className={styles.primaryButton}
               loading={completing}
               loadingLabel="N빵을 저장하고 있어요…"
               onClick={handleComplete}
             >
-              환율 적용하기
+              내 정산 완료하기
             </Button>
           </BottomActionBar>
         </>

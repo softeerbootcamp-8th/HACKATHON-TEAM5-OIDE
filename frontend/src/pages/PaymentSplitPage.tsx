@@ -222,6 +222,17 @@ export function PaymentSplitPage() {
                 </>
               ) : (
                 <>
+                  <div
+                    className={`${styles.totalRow} ${balanced ? '' : styles.totalMismatch}`}
+                    aria-live="polite"
+                  >
+                    <span className={styles.totalLabel}>합계</span>
+                    <span>
+                      {formatAmount(String(customTotal), currency)} /{' '}
+                      {formatAmount(payment.amount, currency)}
+                    </span>
+                  </div>
+
                   <ul className={styles.shares}>
                     {members.map((member) => (
                       <li key={member.memberId} className={styles.shareRow}>
@@ -248,17 +259,6 @@ export function PaymentSplitPage() {
                     ))}
                   </ul>
 
-                  <div
-                    className={`${styles.totalRow} ${balanced ? '' : styles.totalMismatch}`}
-                    aria-live="polite"
-                  >
-                    <span className={styles.totalLabel}>합계</span>
-                    <span>
-                      {formatAmount(String(customTotal), currency)} /{' '}
-                      {formatAmount(payment.amount, currency)}
-                    </span>
-                  </div>
-
                   <p className={styles.caption}>
                     {balanced
                       ? `통화는 결제한 ${currency} 그대로 써요`
@@ -274,6 +274,7 @@ export function PaymentSplitPage() {
           <BottomActionBar>
             {submitError && <Banner message={submitError} />}
             <Button
+              className={styles.primaryButton}
               disabled={!canSubmit}
               loading={submitting}
               loadingLabel="저장하고 있어요…"

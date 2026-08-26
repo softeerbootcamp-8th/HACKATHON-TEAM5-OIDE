@@ -69,7 +69,7 @@ export function SplitMethodPage() {
       .filter((nickname): nickname is string => Boolean(nickname)) ?? [];
 
   return (
-    <MobileFrame>
+    <MobileFrame tone="subtle">
       <AppBar />
       {status === 'loading' && <LoadingState />}
 
@@ -81,8 +81,15 @@ export function SplitMethodPage() {
         <>
           <ScreenBody>
             <ScreenHeader
+              className={styles.screenHeader}
               title="결제 금액을 어떻게 나눌까요?"
-              description={'모두 n빵으로 계산해요.\n다르게 나눌 항목만 선택해 주세요.'}
+              description={
+                <>
+                  기본은 <strong className={styles.highlight}>모두 n빵</strong>으로 계산해요.
+                  <br />
+                  다르게 나눌 항목만 선택해 주세요.
+                </>
+              }
             />
             <div className={styles.avatars}>
               <AvatarStack nicknames={nicknames} size="md" />
@@ -105,24 +112,26 @@ export function SplitMethodPage() {
                           navigate(paymentSplitPath(shareCode, groupId, payment.id))
                         }
                       >
-                      <span className={styles.body}>
-                        <span className={styles.merchant}>
-                          {payment.merchant ?? '결제처 없음'}
+                        <span className={styles.body}>
+                          <span className={styles.merchant}>
+                            {payment.merchant ?? '결제처 없음'}
+                          </span>
+                          <span className={styles.amount}>
+                            {formatAmount(payment.amount, payment.currency)}
+                          </span>
+                          <span className={styles.meta}>
+                            {payment.paidAt ? `${formatDayTime(payment.paidAt)} · ` : ''}
+                            {payment.currency}
+                          </span>
                         </span>
-                        <span className={styles.amount}>
-                          {formatAmount(payment.amount, payment.currency)}
+                        <span className={styles.method}>
+                          <span className={styles.methodBadge}>
+                            {payment.splitMethod === 'CUSTOM' ? '직접 분배' : 'n빵'}
+                          </span>
+                          <span className={styles.chevron} aria-hidden="true">
+                            ›
+                          </span>
                         </span>
-                        <span className={styles.meta}>
-                          {payment.paidAt ? `${formatDayTime(payment.paidAt)} · ` : ''}
-                          {payment.currency}
-                        </span>
-                      </span>
-                      <span className={styles.method}>
-                        {payment.splitMethod === 'CUSTOM' ? '직접 분배' : 'n빵'}
-                        <span className={styles.chevron} aria-hidden="true">
-                          ›
-                        </span>
-                      </span>
                       </button>
                     </li>
                   ))}
@@ -132,7 +141,12 @@ export function SplitMethodPage() {
           </ScreenBody>
 
           <BottomActionBar>
-            <Button onClick={() => navigate(splitGroupsPath(shareCode))}>완료하기</Button>
+            <Button
+              className={styles.primaryButton}
+              onClick={() => navigate(splitGroupsPath(shareCode))}
+            >
+              완료하기
+            </Button>
           </BottomActionBar>
         </>
       )}
