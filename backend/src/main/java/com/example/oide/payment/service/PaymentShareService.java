@@ -73,11 +73,8 @@ public class PaymentShareService {
 			if (payment.getSplitMethod() == SplitMethod.EQUAL) {
 				replaceShares(payment, members, equalShareCalculator.calculate(payment.getAmount(), members, payment.getPayer().getId()));
 			} else if (payment.getSplitMethod() == SplitMethod.CUSTOM) {
-				Map<Long, BigDecimal> previous = paymentShareRepository.findAllByPaymentId(payment.getId()).stream()
-						.collect(Collectors.toMap(share -> share.getMember().getId(), PaymentShare::getShareAmount));
-				Map<Long, BigDecimal> retained = new HashMap<>();
-				for (RoomMember member : members) retained.put(member.getId(), previous.getOrDefault(member.getId(), BigDecimal.ZERO));
-				replaceShares(payment, members, retained);
+				paymentShareRepository.deleteAllByPaymentId(payment.getId());
+				payment.clearSplitMethod();
 			}
 		}
 	}
