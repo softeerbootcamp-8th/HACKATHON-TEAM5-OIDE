@@ -131,8 +131,14 @@ public class SplitGroupService {
 	// 그룹 완료 요청으로 선택한 결제 목록을 현재 그룹에 저장한다.
 	@Transactional
 	public void updatePayments(Long roomId, Long groupId, UpdateGroupPaymentsRequest request) {
+		findRoomForUpdate(roomId);
 		// 전체 그룹을 포함해 해당 방의 그룹인지 먼저 확인한다.
 		SplitGroup group = findGroup(roomId, groupId);
+		RoomMember member = findMembers(roomId, List.of(request.memberId())).getFirst();
+		if (findGroupMembers(group, roomId).stream()
+				.noneMatch(groupMember -> groupMember.getId().equals(member.getId()))) {
+			throw new BusinessException(ErrorCode.INVALID_PAYMENT_SELECTION);
+		}
 		// 같은 결제를 두 번 선택한 요청은 상태를 모호하게 만들므로 거절한다.
 		Set<Long> requestedPaymentIds = new HashSet<>(request.paymentIds());
 		if (requestedPaymentIds.size() != request.paymentIds().size()) {
@@ -146,6 +152,10 @@ public class SplitGroupService {
 		if (requestedPayments.stream().anyMatch(payment -> !payment.isIncludedInSettlement())) {
 			throw new BusinessException(ErrorCode.INVALID_PAYMENT_SELECTION);
 		}
+		if (requestedPayments.stream()
+				.anyMatch(payment -> !payment.getPayer().getId().equals(member.getId()))) {
+			throw new BusinessException(ErrorCode.INVALID_PAYMENT_SELECTION);
+		}
 		// 다른 그룹이 이미 선택한 결제는 현재 그룹으로 옮길 수 없다.
 		for (Payment payment : requestedPayments) {
 			if (payment.getSplitGroup() != null && !payment.getSplitGroup().getId().equals(groupId)) {
@@ -154,7 +164,8 @@ public class SplitGroupService {
 		}
 		// 기존에 이 그룹이 선택했지만 이번 요청에서 빠진 결제는 그룹·분담 정보를 함께 해제한다.
 		for (Payment payment : paymentRepository.findAllByRoomIdAndSplitGroupId(roomId, groupId)) {
-			if (!requestedPaymentIds.contains(payment.getId())) {
+			if (payment.getPayer().getId().equals(member.getId())
+					&& !requestedPaymentIds.contains(payment.getId())) {
 				payment.clearSplit();
 				paymentShareRepository.deleteAllByPaymentId(payment.getId());
 			}
@@ -206,6 +217,7 @@ public class SplitGroupService {
 						: GroupPaymentSelectionStatus.LOCKED;
 		return new GroupPaymentResponse(
 				payment.getId(),
+				payment.getPayer().getId(),
 				payment.getMerchant(),
 				payment.getPaidAt(),
 				payment.getAmount(),

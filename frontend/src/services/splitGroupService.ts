@@ -30,6 +30,7 @@ import type { CurrencyCode } from '../types/room';
 
 export interface SplitGroupPaymentSummary {
   id: string;
+  payerMemberId: string;
   splitGroupId: string | null;
   merchant: string | null;
   paidAt: string | null;
@@ -79,12 +80,18 @@ function mapSplitGroup(roomId: number, response: SplitGroupResponse): SplitGroup
 }
 
 function requirePaymentSummary(payment: GroupPaymentResponse): Omit<SplitGroupPaymentSummary, 'splitGroupId'> {
-  if (payment.id === undefined || payment.amount === undefined || !payment.currency) {
+  if (
+    payment.id === undefined ||
+    payment.payerMemberId === undefined ||
+    payment.amount === undefined ||
+    !payment.currency
+  ) {
     throw new ApiError('UNKNOWN_ERROR', '그룹 결제 응답 형식이 올바르지 않아요.');
   }
 
   return {
     id: String(payment.id),
+    payerMemberId: String(payment.payerMemberId),
     merchant: payment.merchant ?? null,
     paidAt: payment.paidAt ?? null,
     amount: String(payment.amount),
@@ -118,6 +125,7 @@ export async function getSplitGroupOverview(shareCode: string): Promise<SplitGro
       .filter((payment) => payment.includedInSettlement)
       .map((payment) => ({
         id: payment.id,
+        payerMemberId: payment.payerMemberId,
         splitGroupId: payment.splitGroupId,
         merchant: payment.merchant,
         paidAt: payment.paidAt,
@@ -227,12 +235,13 @@ export async function deleteSplitGroup(shareCode: string, groupId: string): Prom
 export async function assignPaymentsToGroup(
   shareCode: string,
   groupId: string,
+  memberId: string,
   paymentIds: string[],
 ): Promise<void> {
   if (USE_MOCK) {
     try {
       const room = requireRoom(shareCode);
-      await mockDelay(mockPaymentStore.assignToGroup(room.id, groupId, paymentIds));
+      await mockDelay(mockPaymentStore.assignToGroup(room.id, groupId, memberId, paymentIds));
       return;
     } catch (error) {
       return mockDelayReject(error as ApiError);
@@ -242,6 +251,7 @@ export async function assignPaymentsToGroup(
   const roomId = await resolveRoomId(shareCode);
   await callOrval<void>(() =>
     updateGroupPayments(roomId, parseApiId(groupId), {
+      memberId: parseApiId(memberId),
       paymentIds: paymentIds.map(parseApiId),
     }),
   );
