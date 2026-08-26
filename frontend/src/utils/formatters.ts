@@ -49,6 +49,32 @@ export function parseDateTimeInput(value: string): string | null {
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
+/** 날짜 선택 필드의 표기. 예: `2026-08-21` */
+export function formatDateInput(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+/** `2026-08-21` 을 Date 로 되돌린다. 형식이 틀리면 null. */
+export function parseDateInput(value: string): Date | null {
+  const match = value.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return null;
+  const [, y, mo, d] = match;
+  const date = new Date(Number(y), Number(mo) - 1, Number(d));
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+/**
+ * 날짜 선택값과 시·분 입력을 ISO 로 합친다.
+ * 날짜가 없으면 시각 자체를 알 수 없으므로 null 이다. 시·분이 비어 있으면 00:00 으로 본다.
+ */
+export function toPaidAtIso(dateText: string, hour: string, minute: string): string | null {
+  const date = parseDateInput(dateText);
+  if (!date) return null;
+  date.setHours(Number(hour || '0'), Number(minute || '0'), 0, 0);
+  return date.toISOString();
+}
+
 /** 천 단위 구분. 통화의 소수 자릿수를 따른다. 예: `3,200` */
 export function formatAmount(amount: string, currency: CurrencyCode): string {
   const digits = findCurrency(currency).fractionDigits;
