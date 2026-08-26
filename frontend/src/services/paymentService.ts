@@ -217,6 +217,7 @@ export async function setPaymentSplit(
   paymentId: string,
   method: SplitMethod,
   shares: { memberId: string; shareAmount: string }[],
+  requesterMemberId: string,
 ): Promise<void> {
   if (USE_MOCK) {
     const room = mockRoomStore.findByShareCode(shareCode);
@@ -224,6 +225,11 @@ export async function setPaymentSplit(
       return mockDelayReject(new ApiError('ROOM_NOT_FOUND', '정산방을 찾을 수 없어요.', 404));
     }
     const payment = mockPaymentStore.findByRoom(room.id).find((item) => item.id === paymentId);
+    if (payment?.payerMemberId !== requesterMemberId) {
+      return mockDelayReject(
+        new ApiError('PAYMENT_NOT_OWNER', '결제를 등록한 참여자만 분담 방식을 변경할 수 있어요.', 403),
+      );
+    }
     const group = mockSplitGroupStore
       .findByRoom(room.id, room.members)
       .find((item) => item.id === payment?.splitGroupId);
@@ -249,16 +255,25 @@ export async function setPaymentSplit(
   const numericPaymentId = parseApiId(paymentId);
 
   if (method === 'EQUAL') {
-    await callOrval<PaymentShareResponse>(() => saveEqual(roomId, numericPaymentId));
+    await callOrval<PaymentShareResponse>(() =>
+      saveEqual(roomId, numericPaymentId, {
+        headers: { 'X-Room-Member-Id': requesterMemberId },
+      }),
+    );
     return;
   }
 
   await callOrval<PaymentShareResponse>(() =>
-    saveCustom(roomId, numericPaymentId, {
-      shares: shares.map((share) => ({
-        memberId: parseApiId(share.memberId),
-        amount: Number(share.shareAmount),
-      })),
-    }),
+    saveCustom(
+      roomId,
+      numericPaymentId,
+      {
+        shares: shares.map((share) => ({
+          memberId: parseApiId(share.memberId),
+          amount: Number(share.shareAmount),
+        })),
+      },
+      { headers: { 'X-Room-Member-Id': requesterMemberId } },
+    ),
   );
 }

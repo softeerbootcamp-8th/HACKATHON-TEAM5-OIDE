@@ -48,6 +48,49 @@ export function toKrw(amount: number, currency: CurrencyCode, rates: RateTable):
   return Math.round(amount * rate);
 }
 
+function allocateSharesToKrw(
+  paymentAmount: number,
+  currency: CurrencyCode,
+  shareAmounts: { memberId: string; amount: number }[],
+  rates: RateTable,
+  memberIdsInDisplayOrder: string[],
+): Map<string, number> {
+  const rate = rates[currency] ?? (currency === 'KRW' ? 1 : 0);
+  if (!rate) return new Map(shareAmounts.map((share) => [share.memberId, 0]));
+
+  const displayOrders = new Map(
+    memberIdsInDisplayOrder.map((memberId, index) => [memberId, index]),
+  );
+  const allocations = shareAmounts
+    .map((share) => {
+      const exactAmount = share.amount * rate;
+      const floorAmount = Math.floor(exactAmount);
+      return {
+        memberId: share.memberId,
+        floorAmount,
+        fractionalPart: exactAmount - floorAmount,
+      };
+    })
+    .sort(
+      (first, second) =>
+        second.fractionalPart - first.fractionalPart ||
+        (displayOrders.get(first.memberId) ?? Number.MAX_SAFE_INTEGER) -
+          (displayOrders.get(second.memberId) ?? Number.MAX_SAFE_INTEGER),
+    );
+  const floorTotal = allocations.reduce(
+    (sum, allocation) => sum + allocation.floorAmount,
+    0,
+  );
+  const remainingWon = toKrw(paymentAmount, currency, rates) - floorTotal;
+
+  return new Map(
+    allocations.map((allocation, index) => [
+      allocation.memberId,
+      allocation.floorAmount + (index < remainingWon ? 1 : 0),
+    ]),
+  );
+}
+
 export function calculateSettlement(params: {
   members: RoomMember[];
   payments: Payment[];
@@ -74,12 +117,20 @@ export function calculateSettlement(params: {
     const own = shares.filter((share) => share.paymentId === payment.id);
 
     if (own.length > 0) {
-      // 이미 나눠둔 항목은 저장된 부담액을 그대로 환산한다.
-      for (const share of own) {
+      const allocatedShares = allocateSharesToKrw(
+        Number(payment.amount),
+        payment.currency,
+        own.map((share) => ({
+          memberId: share.memberId,
+          amount: Number(share.shareAmount),
+        })),
+        rates,
+        members.map((member) => member.id),
+      );
+      for (const [memberId, amount] of allocatedShares) {
         owed.set(
-          share.memberId,
-          (owed.get(share.memberId) ?? 0) +
-            toKrw(Number(share.shareAmount), payment.currency, rates),
+          memberId,
+          (owed.get(memberId) ?? 0) + amount,
         );
       }
       continue;
@@ -92,9 +143,18 @@ export function calculateSettlement(params: {
     const payerIndex = targets.indexOf(payment.payerMemberId);
     const remainderTaker = payerIndex >= 0 ? payment.payerMemberId : targets[0];
 
-    for (const memberId of targets) {
-      const share = memberId === remainderTaker ? per + remainder : per;
-      owed.set(memberId, (owed.get(memberId) ?? 0) + toKrw(share, payment.currency, rates));
+    const allocatedShares = allocateSharesToKrw(
+      Number(payment.amount),
+      payment.currency,
+      targets.map((memberId) => ({
+        memberId,
+        amount: memberId === remainderTaker ? per + remainder : per,
+      })),
+      rates,
+      members.map((member) => member.id),
+    );
+    for (const [memberId, amount] of allocatedShares) {
+      owed.set(memberId, (owed.get(memberId) ?? 0) + amount);
     }
   }
 
@@ -167,9 +227,18 @@ export function findMemberBreakdown(params: {
   shares: PaymentShare[];
   rates: RateTable;
   fallbackMemberIds: string[];
+  memberIdsInDisplayOrder: string[];
   groupNameOf: (payment: Payment) => string;
 }): { paymentId: string; merchant: string; groupLabel: string; amountKrw: number }[] {
-  const { memberId, payments, shares, rates, fallbackMemberIds, groupNameOf } = params;
+  const {
+    memberId,
+    payments,
+    shares,
+    rates,
+    fallbackMemberIds,
+    memberIdsInDisplayOrder,
+    groupNameOf,
+  } = params;
   const rows: { paymentId: string; merchant: string; groupLabel: string; amountKrw: number }[] = [];
 
   for (const payment of payments) {
@@ -179,15 +248,34 @@ export function findMemberBreakdown(params: {
     let amount: number | null = null;
 
     if (own.length > 0) {
-      const mine = own.find((share) => share.memberId === memberId);
-      if (mine) amount = toKrw(Number(mine.shareAmount), payment.currency, rates);
+      amount =
+        allocateSharesToKrw(
+          Number(payment.amount),
+          payment.currency,
+          own.map((share) => ({
+            memberId: share.memberId,
+            amount: Number(share.shareAmount),
+          })),
+          rates,
+          memberIdsInDisplayOrder,
+        ).get(memberId) ?? null;
     } else {
       const targets = fallbackMemberIds;
       if (targets.includes(memberId)) {
         const per = Math.floor(Number(payment.amount) / targets.length);
         const remainder = Number(payment.amount) - per * targets.length;
         const taker = targets.includes(payment.payerMemberId) ? payment.payerMemberId : targets[0];
-        amount = toKrw(memberId === taker ? per + remainder : per, payment.currency, rates);
+        amount =
+          allocateSharesToKrw(
+            Number(payment.amount),
+            payment.currency,
+            targets.map((targetMemberId) => ({
+              memberId: targetMemberId,
+              amount: targetMemberId === taker ? per + remainder : per,
+            })),
+            rates,
+            memberIdsInDisplayOrder,
+          ).get(memberId) ?? null;
       }
     }
 

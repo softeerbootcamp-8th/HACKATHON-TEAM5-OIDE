@@ -68,11 +68,14 @@ export const mockSplitGroupStore = {
     return group;
   },
 
-  update(groupId: string, members: RoomMember[]): SplitGroup {
+  update(groupId: string, requesterMemberId: string, members: RoomMember[]): SplitGroup {
     const groups = read();
     const target = groups.find((group) => group.id === groupId);
     if (!target) {
       throw new Error(`그룹을 찾을 수 없습니다: ${groupId}`);
+    }
+    if (target.creatorMemberId !== requesterMemberId) {
+      throw new Error('그룹을 만든 참여자만 수정할 수 있습니다.');
     }
     target.memberIds = members.map((member) => member.id);
     target.name = buildGroupName(members);
@@ -81,7 +84,15 @@ export const mockSplitGroupStore = {
     return target;
   },
 
-  remove(groupId: string): void {
-    write(read().filter((group) => group.id !== groupId));
+  remove(groupId: string, requesterMemberId: string): void {
+    const groups = read();
+    const target = groups.find((group) => group.id === groupId);
+    if (!target) {
+      throw new Error(`그룹을 찾을 수 없습니다: ${groupId}`);
+    }
+    if (target.creatorMemberId !== requesterMemberId) {
+      throw new Error('그룹을 만든 참여자만 삭제할 수 있습니다.');
+    }
+    write(groups.filter((group) => group.id !== groupId));
   },
 };

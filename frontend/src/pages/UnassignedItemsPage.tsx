@@ -38,11 +38,8 @@ export function UnassignedItemsPage() {
 
   const unassigned = useMemo(
     () =>
-      data?.payments.filter(
-        (payment) =>
-          payment.payerMemberId === identity?.memberId && payment.splitGroupId === null,
-      ) ?? [],
-    [data, identity],
+      data?.payments.filter((payment) => payment.splitGroupId === null) ?? [],
+    [data],
   );
   const handleApplyRates = async () => {
     if (!identity) return;

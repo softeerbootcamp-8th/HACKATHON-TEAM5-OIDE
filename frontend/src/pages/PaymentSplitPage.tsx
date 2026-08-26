@@ -61,19 +61,36 @@ export function PaymentSplitPage() {
   const { goBack } = useBackNavigation(splitMethodPath);
 
   const load = useCallback(async (): Promise<SplitData> => {
-    const [room, overview, payments, shares] = await Promise.all([
+    const [room, overview, paymentList] = await Promise.all([
       getRoomByShareCode(shareCode),
       getSplitGroupOverview(shareCode),
       getPayments(shareCode),
-      getPaymentShares(shareCode, paymentId),
     ]);
+    const groupIdByPaymentId = new Map(
+      overview.payments.map((payment) => [payment.id, payment.splitGroupId]),
+    );
+    const payments = paymentList.map((payment) => ({
+      ...payment,
+      splitGroupId: groupIdByPaymentId.get(payment.id) ?? null,
+    }));
+    const target = payments.find(
+      (payment) =>
+        payment.id === paymentId &&
+        payment.payerMemberId === identity?.memberId &&
+        payment.splitGroupId === groupId,
+    );
+    const shares = target ? await getPaymentShares(shareCode, paymentId) : [];
     return { room, groups: overview.groups, payments, shares };
-  }, [shareCode, paymentId]);
+  }, [shareCode, groupId, paymentId, identity?.memberId]);
 
   const { status, data, error, retry } = useAsync(load, [shareCode, paymentId]);
 
   const payment = data?.payments.find((item) => item.id === paymentId);
   const group = data?.groups.find((item) => item.id === groupId);
+  const canManageGroup =
+    group?.type === 'ALL' || group?.creatorMemberId === identity?.memberId;
+  const canManagePayment =
+    payment?.payerMemberId === identity?.memberId && payment?.splitGroupId === groupId;
 
   const [method, setMethod] = useState<SplitMethod | null>(null);
   const [customShares, setCustomShares] = useState<Record<string, string> | null>(null);
@@ -103,7 +120,7 @@ export function PaymentSplitPage() {
   if (!identity) {
     return <Navigate to={joinRoomPath(shareCode)} replace />;
   }
-  if (status === 'success' && (!payment || !group)) {
+  if (status === 'success' && (!payment || !group || !canManageGroup || !canManagePayment)) {
     return <Navigate to={splitGroupsPath(shareCode)} replace />;
   }
 
@@ -140,7 +157,7 @@ export function PaymentSplitPage() {
               shareAmount: String(Number(shareValues[member.memberId]) || 0),
             }));
 
-      await setPaymentSplit(shareCode, paymentId, effectiveMethod, shares);
+      await setPaymentSplit(shareCode, paymentId, effectiveMethod, shares, identity.memberId);
       goBack();
     } catch (caught) {
       setSubmitError(isApiError(caught) ? caught.message : '저장하지 못했어요.');

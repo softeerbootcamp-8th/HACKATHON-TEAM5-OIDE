@@ -131,7 +131,13 @@ export async function getSettlementPreview(shareCode: string): Promise<Settlemen
       ) {
         continue;
       }
-      await setPaymentSplit(shareCode, payment.id, 'EQUAL', []);
+      await setPaymentSplit(
+        shareCode,
+        payment.id,
+        'EQUAL',
+        [],
+        payment.payerMemberId,
+      );
     }
     payments = mockPaymentStore
       .findByRoom(room.id)
