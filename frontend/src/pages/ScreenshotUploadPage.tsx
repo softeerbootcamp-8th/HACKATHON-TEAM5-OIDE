@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { Banner } from '../components/common/Banner';
 import { Button } from '../components/common/Button';
 import {
@@ -16,9 +16,10 @@ import {
   MAX_SCREENSHOT_BYTES,
   MAX_SCREENSHOT_COUNT,
 } from '../constants/roomRules';
-import { expenseMethodPath, screenshotParsingPath } from '../constants/routes';
+import { expenseMethodPath, joinRoomPath, screenshotParsingPath } from '../constants/routes';
 import { useExpenseDraft } from '../hooks/useExpenseDraft';
 import { useLeaveConsumedScreen } from '../hooks/useLeaveConsumedScreen';
+import { useLocalIdentity } from '../hooks/useLocalIdentity';
 import styles from './ScreenshotUploadPage.module.css';
 
 /**
@@ -28,6 +29,7 @@ import styles from './ScreenshotUploadPage.module.css';
 export function ScreenshotUploadPage() {
   const navigate = useNavigate();
   const { shareCode = '' } = useParams<{ shareCode: string }>();
+  const { identity } = useLocalIdentity(shareCode);
   const { screenshots, addScreenshots, removeScreenshot } = useExpenseDraft();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectionWarning, setSelectionWarning] = useState<string | null>(null);
@@ -60,6 +62,9 @@ export function ScreenshotUploadPage() {
     if (accepted.length > 0) addScreenshots(accepted);
   };
 
+  if (!identity) {
+    return <Navigate to={joinRoomPath(shareCode)} replace />;
+  }
   if (screenshots.length === 0) return null;
 
   return (
