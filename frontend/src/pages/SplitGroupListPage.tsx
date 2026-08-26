@@ -115,7 +115,7 @@ export function SplitGroupListPage() {
   };
 
   return (
-    <MobileFrame>
+    <MobileFrame tone="white">
       <AppBar />
       {status === 'loading' && <LoadingState />}
 
@@ -150,6 +150,7 @@ export function SplitGroupListPage() {
                       members={data.room.members}
                       itemCount={itemsOf(group.id).length}
                       totalLabel={totalLabelOf(group.id)}
+                      empty={itemsOf(group.id).length === 0}
                       onOpen={() => navigate(splitGroupItemsPath(shareCode, group.id))}
                     />
                   );
@@ -187,7 +188,7 @@ export function SplitGroupListPage() {
               loadingLabel="N빵을 저장하고 있어요…"
               onClick={handleComplete}
             >
-              내 정산 완료하기
+              환율 적용하기
             </Button>
           </BottomActionBar>
         </>

@@ -16,10 +16,10 @@
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: var(--frame-max-width);
+  max-width: 390px;
   /* 백드롭이 키보드 위까지만 차지하므로 그 안에서의 비율로 잡는다. */
   max-height: 92%;
-  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   background: var(--color-bg);
 }
 
@@ -31,7 +31,7 @@
 }
 
 .title {
-  margin-bottom: var(--space-md);
+  margin-bottom: var(--space-sm);
   font-size: var(--font-size-title);
   font-weight: 700;
   color: var(--color-text);
@@ -40,7 +40,7 @@
 .fields {
   display: flex;
   flex-direction: column;
-  gap: var(--space-md);
+  gap: var(--space-sm);
 }
 
 .field {
@@ -49,24 +49,24 @@
 }
 
 .footnote {
-  font-size: var(--font-size-caption);
-  color: var(--color-text-muted);
+  font-size: 12px;
+  color: var(--color-text-soft);
 }
 
 /* 필드가 길어져도 등록 버튼은 항상 보이게 아래에 붙여둔다. */
 .actions {
   display: flex;
-  gap: var(--space-sm);
+  gap: var(--space-xs);
   flex-shrink: 0;
-  padding: var(--space-md) var(--space-screen-x)
-    calc(var(--space-lg) + env(safe-area-inset-bottom));
+  padding: var(--space-sm) var(--space-screen-x)
+    calc(var(--space-xl) + env(safe-area-inset-bottom));
   background: var(--color-bg);
 }
 
 .cancel {
   flex: 1;
-  min-height: var(--control-height);
-  border: 1px solid var(--color-border);
+  min-height: 52px;
+  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-md);
   font-size: var(--font-size-button);
   font-weight: 600;
@@ -74,6 +74,10 @@
 }
 
 .submit {
-  flex: 2;
+  flex: 1;
 }
 
+.submitButton {
+  min-height: 52px;
+  border-radius: var(--radius-md);
+}

@@ -129,7 +129,7 @@ export function TransferDetailPage() {
     .join(', ');
 
   return (
-    <MobileFrame>
+    <MobileFrame tone="white">
       <AppBar backTo={transferListPath(shareCode)} />
       {status === 'loading' && <LoadingState />}
 

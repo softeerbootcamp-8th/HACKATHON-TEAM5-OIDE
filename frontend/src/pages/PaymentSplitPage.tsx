@@ -147,7 +147,7 @@ export function PaymentSplitPage() {
   };
 
   return (
-    <MobileFrame>
+    <MobileFrame tone="white">
       <AppBar backTo={splitGroupMethodPath(shareCode, groupId)} />
       {status === 'loading' && <LoadingState />}
 

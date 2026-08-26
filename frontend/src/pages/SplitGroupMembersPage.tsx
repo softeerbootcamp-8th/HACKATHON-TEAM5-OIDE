@@ -114,7 +114,7 @@ export function SplitGroupMembersPage() {
   };
 
   return (
-    <MobileFrame>
+    <MobileFrame tone="white">
       <AppBar backTo={splitGroupsPath(shareCode)} />
       {status === 'loading' && <LoadingState />}
 

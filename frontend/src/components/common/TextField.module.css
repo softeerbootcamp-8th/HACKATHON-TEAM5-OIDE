@@ -19,6 +19,10 @@
   border-color: var(--color-text-accent);
 }
 
+.strongBorder {
+  border-color: var(--color-border-strong);
+}
+
 .invalid {
   border-color: var(--color-text-accent);
 }

@@ -10,6 +10,7 @@ interface GroupCardProps {
   itemCount: number;
   /** 담긴 항목의 합계. 이미 통화 기호까지 붙인 문자열이며 0건이면 비운다. */
   totalLabel?: string;
+  empty?: boolean;
   onOpen: () => void;
 }
 
@@ -22,6 +23,7 @@ export function GroupCard({
   members,
   itemCount,
   totalLabel,
+  empty = false,
   onOpen,
 }: GroupCardProps) {
   const nicknames = group.memberIds
@@ -29,7 +31,11 @@ export function GroupCard({
     .filter((nickname): nickname is string => Boolean(nickname));
 
   return (
-    <button type="button" className={styles.card} onClick={onOpen}>
+    <button
+      type="button"
+      className={`${styles.card} ${empty ? styles.empty : ''}`}
+      onClick={onOpen}
+    >
       <span className={styles.body}>
         <span className={styles.name}>{group.name}</span>
         <AvatarStack nicknames={nicknames} />

@@ -13,6 +13,14 @@
   background: var(--color-page-subtle);
 }
 
+.default {
+  background: var(--color-page);
+}
+
+.white {
+  background: var(--color-bg);
+}
+
 .content {
   display: flex;
   flex: 1;

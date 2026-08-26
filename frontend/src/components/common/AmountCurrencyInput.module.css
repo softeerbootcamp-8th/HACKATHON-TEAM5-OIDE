@@ -3,6 +3,20 @@
   gap: var(--space-xs);
 }
 
+.compact .currency,
+.compact .amountWrapper {
+  min-height: 50px;
+}
+
+.compact .currency {
+  border-radius: var(--radius-sm);
+  border-color: transparent;
+}
+
+.compact .amountWrapper {
+  border-color: var(--color-border-strong);
+}
+
 .currency {
   display: flex;
   align-items: center;
@@ -19,6 +33,11 @@
   appearance: auto;
 }
 
+.fullWidth {
+  width: 100%;
+  background: var(--color-bg);
+}
+
 .amountWrapper {
   display: flex;
   flex: 1;
@@ -28,6 +47,7 @@
   padding: 0 var(--space-md);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
+  background: var(--color-bg);
 }
 
 .amountWrapper:focus-within {

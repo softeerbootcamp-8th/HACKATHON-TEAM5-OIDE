@@ -21,18 +21,11 @@ import {
 import { useAsync } from '../hooks/useAsync';
 import { useLocalIdentity } from '../hooks/useLocalIdentity';
 import { getPayments, updatePaymentInclusion } from '../services/paymentService';
-import { getRoomByShareCode } from '../services/roomService';
 import { isApiError } from '../types/api';
 import type { Payment } from '../types/payment';
-import type { SettlementRoom } from '../types/room';
 import { formatDateSection, toDateKey } from '../utils/formatters';
 import { RoomExpiredPage } from './RoomExpiredPage';
 import styles from './MyExpenseListPage.module.css';
-
-interface ExpenseListData {
-  room: SettlementRoom;
-  payments: Payment[];
-}
 
 /**
  * B-02 결제 내역 리스트.
@@ -47,13 +40,10 @@ export function MyExpenseListPage() {
   const myMemberId = identity?.memberId;
 
   // CTA 가 `내 정산 인원 선택하기` 이므로 이 화면은 내가 등록한 내역만 다룬다.
-  const load = useCallback(async (): Promise<ExpenseListData> => {
-    const [room, payments] = await Promise.all([
-      getRoomByShareCode(shareCode),
-      getPayments(shareCode, myMemberId),
-    ]);
-    return { room, payments };
-  }, [shareCode, myMemberId]);
+  const load = useCallback(
+    () => getPayments(shareCode, myMemberId),
+    [shareCode, myMemberId],
+  );
 
   const { status, data, error, retry } = useAsync(load, [shareCode, myMemberId]);
 
@@ -63,7 +53,7 @@ export function MyExpenseListPage() {
 
   const payments = useMemo(() => {
     if (!data) return [];
-    return data.payments.map((payment) =>
+    return data.map((payment) =>
       payment.id in overrides
         ? { ...payment, includedInSettlement: overrides[payment.id] }
         : payment,
@@ -114,7 +104,7 @@ export function MyExpenseListPage() {
         <>
           <ScreenBody>
             <div className={styles.titleRow}>
-              <h1 className={styles.title}>{data.room.title}</h1>
+              <h1 className={styles.title}>정산할 항목을 선택해주세요</h1>
               <button
                 type="button"
                 className={styles.addButton}

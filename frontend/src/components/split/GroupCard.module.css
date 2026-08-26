@@ -10,6 +10,10 @@
   text-align: left;
 }
 
+.empty {
+  background: var(--color-disabled-bg);
+}
+
 .body {
   display: flex;
   flex: 1;

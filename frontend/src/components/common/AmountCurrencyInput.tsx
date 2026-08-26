@@ -10,6 +10,21 @@ interface AmountCurrencyInputProps {
   onCurrencyChange: (next: CurrencyCode) => void;
   invalid?: boolean;
   autoFocus?: boolean;
+  compact?: boolean;
+}
+
+interface AmountInputProps {
+  amount: string;
+  currency: CurrencyCode;
+  onAmountChange: (next: string) => void;
+  invalid?: boolean;
+  autoFocus?: boolean;
+}
+
+interface CurrencySelectProps {
+  currency: CurrencyCode;
+  onCurrencyChange: (next: CurrencyCode) => void;
+  fullLabel?: boolean;
 }
 
 /**
@@ -23,38 +38,66 @@ export function AmountCurrencyInput({
   onCurrencyChange,
   invalid = false,
   autoFocus = false,
+  compact = false,
 }: AmountCurrencyInputProps) {
+  return (
+    <div className={`${styles.group} ${compact ? styles.compact : ''}`}>
+      <CurrencySelect currency={currency} onCurrencyChange={onCurrencyChange} />
+      <AmountInput
+        amount={amount}
+        currency={currency}
+        invalid={invalid}
+        onAmountChange={onAmountChange}
+        autoFocus={autoFocus}
+      />
+    </div>
+  );
+}
+
+export function AmountInput({
+  amount,
+  currency,
+  onAmountChange,
+  invalid = false,
+  autoFocus = false,
+}: AmountInputProps) {
   const fractionDigits = findCurrency(currency).fractionDigits;
 
   return (
-    <div className={styles.group}>
-      <select
-        className={styles.currency}
-        value={currency}
-        aria-label="통화"
-        onChange={(event) => onCurrencyChange(event.target.value as CurrencyCode)}
-      >
-        {CURRENCY_OPTIONS.map((option) => (
-          <option key={option.code} value={option.code}>
-            {option.code}
-          </option>
-        ))}
-      </select>
-
-      <div className={`${styles.amountWrapper} ${invalid ? styles.invalid : ''}`}>
-        <input
-          className={styles.amount}
-          value={amount}
-          placeholder="0"
-          inputMode="decimal"
-          aria-label="결제 금액"
-          aria-invalid={invalid}
-          autoFocus={autoFocus}
-          onChange={(event) =>
-            onAmountChange(sanitizeAmountInput(event.target.value, fractionDigits))
-          }
-        />
-      </div>
+    <div className={`${styles.amountWrapper} ${invalid ? styles.invalid : ''}`}>
+      <input
+        className={styles.amount}
+        value={amount}
+        placeholder="0"
+        inputMode="decimal"
+        aria-label="결제 금액"
+        aria-invalid={invalid}
+        autoFocus={autoFocus}
+        onChange={(event) =>
+          onAmountChange(sanitizeAmountInput(event.target.value, fractionDigits))
+        }
+      />
     </div>
+  );
+}
+
+export function CurrencySelect({
+  currency,
+  onCurrencyChange,
+  fullLabel = false,
+}: CurrencySelectProps) {
+  return (
+    <select
+      className={`${styles.currency} ${fullLabel ? styles.fullWidth : ''}`}
+      value={currency}
+      aria-label="통화"
+      onChange={(event) => onCurrencyChange(event.target.value as CurrencyCode)}
+    >
+      {CURRENCY_OPTIONS.map((option) => (
+        <option key={option.code} value={option.code}>
+          {fullLabel ? option.label : option.code}
+        </option>
+      ))}
+    </select>
   );
 }
