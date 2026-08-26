@@ -3,5 +3,5 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding-bottom: var(--space-lg);
+  padding-bottom: var(--space-xl);
 }

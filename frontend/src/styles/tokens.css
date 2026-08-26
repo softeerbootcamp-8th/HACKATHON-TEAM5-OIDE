@@ -5,6 +5,7 @@
 
 :root {
   /* 색 */
+  --color-page: #f9f9f9; /* 화면 바탕. 카드(--color-bg)가 이 위에 떠 있는 구조다. */
   --color-bg: #ffffff;
   --color-surface: #f4f4f5;
   --color-border: #e4e4e7;
@@ -19,7 +20,7 @@
   --color-primary-tint: #ffefdf;
   --color-on-primary: #ffffff;
 
-  --color-disabled-bg: #f4f4f5;
+  --color-disabled-bg: #e5e5e5; /* 페이지 바탕(#f9f9f9) 위에서도 버튼 면이 보여야 한다. */
   --color-disabled-text: #a1a1aa;
 
   --color-avatar-bg: #e0e0e3;
@@ -32,13 +33,14 @@
   --font-family: 'Pretendard', -apple-system, BlinkMacSystemFont,
     'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
 
-  --font-size-title: 20px;
+  --font-size-title: 22px; /* Figma Mobile/Title2 */
   --font-size-subtitle: 18px; /* Figma Mobile/Title4 */
+  --font-size-lead: 16px; /* Figma Mobile/SubTitle2. 타이틀 아래 설명문 */
   --font-size-body: 15px;
   --font-size-input: 16px; /* iOS 포커스 시 자동 확대를 막으려면 16px 이상이어야 한다. */
   --font-size-label: 14px; /* Figma Mobile/Body2 */
   --font-size-caption: 13px;
-  --font-size-button: 15px;
+  --font-size-button: 16px; /* Figma Mobile/SubTitle2 */
 
   --line-height-title: 1.5;
   --line-height-body: 1.6;
@@ -53,6 +55,7 @@
 
   --radius-sm: 8px;
   --radius-md: 12px;
+  --radius-lg: 16px;
   --radius-full: 999px;
 
   /* 카드가 배경 위에 살짝 떠 보이도록 하는 아주 옅은 그림자 */

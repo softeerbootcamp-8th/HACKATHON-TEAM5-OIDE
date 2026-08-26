@@ -1,22 +1,27 @@
 .content {
-  padding: 0 var(--space-screen-x);
+  /* 헤더 아래 24px 에 8px 을 더해 디자인의 32px 간격을 맞춘다. */
+  padding: var(--space-xs) var(--space-screen-x) 0;
 }
 
 .section {
-  margin-bottom: var(--space-lg);
+  margin-bottom: 36px;
+}
+
+.section:last-child {
+  margin-bottom: 0;
 }
 
 .sectionHeader {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  margin-bottom: var(--space-sm);
+  margin-bottom: 10px;
 }
 
 .thumbButton {
   flex-shrink: 0;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: var(--radius-sm);
   background: var(--color-surface);
   overflow: hidden;
@@ -29,18 +34,20 @@
 }
 
 .sectionTitle {
-  font-size: var(--font-size-caption);
+  font-size: var(--font-size-label);
+  line-height: var(--line-height-title);
   color: var(--color-text-muted);
 }
 
 .rows {
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
+  gap: 10px;
 }
 
 .restLabel {
-  margin: var(--space-lg) 0 var(--space-sm);
-  font-size: var(--font-size-body);
+  margin: 36px 0 10px;
+  font-size: var(--font-size-label);
+  line-height: var(--line-height-title);
   color: var(--color-text-muted);
 }
