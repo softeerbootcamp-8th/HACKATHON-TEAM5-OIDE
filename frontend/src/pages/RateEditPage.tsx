@@ -89,7 +89,7 @@ export function RateEditPage() {
   }
 
   return (
-    <MobileFrame>
+    <MobileFrame tone="white">
       <AppBar backTo={settlementStartPath(shareCode)} />
       {status === 'loading' && <LoadingState />}
 

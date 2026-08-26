@@ -14,3 +14,14 @@
 .optional {
   color: var(--color-text-muted);
 }
+
+.large {
+  margin-bottom: 6px;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.large .optional {
+  font-size: 12px;
+  font-weight: 400;
+}

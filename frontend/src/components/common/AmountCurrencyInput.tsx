@@ -1,6 +1,7 @@
-import { CURRENCY_OPTIONS, findCurrency } from '../../constants/currencies';
+import { findCurrency } from '../../constants/currencies';
 import type { CurrencyCode } from '../../types/room';
 import { sanitizeAmountInput } from '../../utils/formatters';
+import { CurrencySelect } from './CurrencySelect';
 import styles from './AmountCurrencyInput.module.css';
 
 interface AmountCurrencyInputProps {
@@ -10,6 +11,7 @@ interface AmountCurrencyInputProps {
   onCurrencyChange: (next: CurrencyCode) => void;
   invalid?: boolean;
   autoFocus?: boolean;
+  compact?: boolean;
 }
 
 /**
@@ -23,23 +25,13 @@ export function AmountCurrencyInput({
   onCurrencyChange,
   invalid = false,
   autoFocus = false,
+  compact = false,
 }: AmountCurrencyInputProps) {
   const fractionDigits = findCurrency(currency).fractionDigits;
 
   return (
-    <div className={styles.group}>
-      <select
-        className={styles.currency}
-        value={currency}
-        aria-label="통화"
-        onChange={(event) => onCurrencyChange(event.target.value as CurrencyCode)}
-      >
-        {CURRENCY_OPTIONS.map((option) => (
-          <option key={option.code} value={option.code}>
-            {option.code}
-          </option>
-        ))}
-      </select>
+    <div className={`${styles.group} ${compact ? styles.compact : ''}`}>
+      <CurrencySelect value={currency} onChange={onCurrencyChange} variant="compact" />
 
       <div className={`${styles.amountWrapper} ${invalid ? styles.invalid : ''}`}>
         <input

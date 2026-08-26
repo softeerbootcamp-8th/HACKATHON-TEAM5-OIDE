@@ -5,6 +5,7 @@
  * 정산방 생성/참여, 결제 등록, 정산 계산 API
  * OpenAPI spec version: v1
  */
+import type { GroupPaymentResponseCurrency } from './groupPaymentResponseCurrency';
 import type { GroupPaymentResponseSelectionStatus } from './groupPaymentResponseSelectionStatus';
 import type { GroupPaymentResponseSplitMethod } from './groupPaymentResponseSplitMethod';
 
@@ -13,7 +14,8 @@ export interface GroupPaymentResponse {
   merchant?: string;
   paidAt?: string;
   amount?: number;
-  currency?: string;
+  currency?: GroupPaymentResponseCurrency;
   selectionStatus?: GroupPaymentResponseSelectionStatus;
+  /** 결제 분담 방식: EQUAL=균등 분담, CUSTOM=참여자별 직접 입력 */
   splitMethod?: GroupPaymentResponseSplitMethod;
 }

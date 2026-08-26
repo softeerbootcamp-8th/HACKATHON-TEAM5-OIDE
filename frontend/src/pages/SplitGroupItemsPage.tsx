@@ -31,7 +31,12 @@ import {
 import { isApiError } from '../types/api';
 import type { CreatePaymentInput, SplitGroup } from '../types/payment';
 import type { SettlementRoom } from '../types/room';
-import { formatAmount, formatDateSection, toDateKey } from '../utils/formatters';
+import {
+  formatAmount,
+  formatDateSection,
+  sumAmountsByCurrency,
+  toDateKey,
+} from '../utils/formatters';
 import { RoomExpiredPage } from './RoomExpiredPage';
 import styles from './SplitGroupItemsPage.module.css';
 
@@ -122,11 +127,16 @@ export function SplitGroupItemsPage() {
   };
 
   const selectedPayments = targetPayments.filter((payment) => selected.includes(payment.id));
-  // 통화가 섞이면 합산이 의미 없으므로 첫 항목의 통화를 기준으로 보여준다.
-  const currency = selectedPayments[0]?.currency ?? 'JPY';
-  const total = selectedPayments
-    .filter((payment) => payment.currency === currency)
-    .reduce((sum, payment) => sum + Number(payment.amount), 0);
+  const currencyTotals = sumAmountsByCurrency(selectedPayments);
+  const totalLabel =
+    currencyTotals.length < 2
+      ? formatAmount(
+          String(currencyTotals[0]?.amount ?? 0),
+          currencyTotals[0]?.currency ?? 'JPY',
+        )
+      : currencyTotals
+          .map(({ currency, amount }) => `${currency} ${formatAmount(String(amount), currency)}`)
+          .join(' · ');
 
   const handleAddMissing = async (input: CreatePaymentInput) => {
     setSubmitting(true);
@@ -192,7 +202,7 @@ export function SplitGroupItemsPage() {
                   className={styles.editLink}
                   onClick={() => navigate(splitGroupEditPath(shareCode, groupId))}
                 >
-                  수정
+                  수정하기
                 </button>
               )}
             </div>
@@ -247,7 +257,7 @@ export function SplitGroupItemsPage() {
 
           <SelectionBottomBar
             selectedCount={selected.length}
-            totalLabel={formatAmount(String(total), currency)}
+            totalLabel={totalLabel}
             actionLabel="다음"
             disabled={submitting}
             onAction={handleNext}

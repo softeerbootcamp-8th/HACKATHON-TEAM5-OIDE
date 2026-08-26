@@ -50,7 +50,9 @@ export function SettlementSummaryPage() {
   }
 
   // E-12 에서 `내역 보기` 로 들어온 경우 그 사람의 요약을 본다.
-  const viewMemberId = searchParams.get('member') ?? identity.memberId;
+  const selectedMemberId = searchParams.get('member');
+  const viewMemberId = selectedMemberId ?? identity.memberId;
+  const isReadOnly = selectedMemberId !== null;
   const alreadyDone = data?.completedMemberIds.includes(identity.memberId) ?? false;
   const primaryRate = data?.rates.find((rate) => rate.currency !== 'KRW');
 
@@ -106,23 +108,25 @@ export function SettlementSummaryPage() {
             </div>
           </ScreenBody>
 
-          <BottomActionBar>
-            {submitError && <Banner message={submitError} />}
-            {alreadyDone ? (
-              <Button className={styles.action} onClick={() => navigate(splitGroupsPath(shareCode))}>
-                수정하기
-              </Button>
-            ) : (
-              <Button
-                className={styles.action}
-                loading={submitting}
-                loadingLabel="완료하고 있어요…"
-                onClick={handleComplete}
-              >
-                내 정산 완료하기
-              </Button>
-            )}
-          </BottomActionBar>
+          {!isReadOnly && (
+            <BottomActionBar>
+              {submitError && <Banner message={submitError} />}
+              {alreadyDone ? (
+                <Button className={styles.action} onClick={() => navigate(splitGroupsPath(shareCode))}>
+                  수정하기
+                </Button>
+              ) : (
+                <Button
+                  className={styles.action}
+                  loading={submitting}
+                  loadingLabel="완료하고 있어요…"
+                  onClick={handleComplete}
+                >
+                  내 정산 완료하기
+                </Button>
+              )}
+            </BottomActionBar>
+          )}
         </>
       )}
     </MobileFrame>

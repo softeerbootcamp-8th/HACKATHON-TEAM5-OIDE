@@ -26,7 +26,7 @@ import { deleteSplitGroup, getSplitGroupOverview } from '../services/splitGroupS
 import { isApiError } from '../types/api';
 import type { SplitGroup } from '../types/payment';
 import type { SettlementRoom } from '../types/room';
-import { formatAmount } from '../utils/formatters';
+import { formatAmount, sumAmountsByCurrency } from '../utils/formatters';
 import { RoomExpiredPage } from './RoomExpiredPage';
 import styles from './SplitGroupListPage.module.css';
 
@@ -71,15 +71,12 @@ export function SplitGroupListPage() {
   const itemsOf = (groupId: string) =>
     targetPayments.filter((payment) => payment.splitGroupId === groupId);
 
-  /** 담긴 항목의 합계. 통화가 섞이면 합산이 의미 없어 첫 항목의 통화를 기준으로 한다. */
   const totalLabelOf = (groupId: string) => {
     const items = itemsOf(groupId);
     if (items.length === 0) return undefined;
-    const currency = items[0].currency;
-    const total = items
-      .filter((payment) => payment.currency === currency)
-      .reduce((sum, payment) => sum + Number(payment.amount), 0);
-    return `${currency} ${formatAmount(String(total), currency)}`;
+    return sumAmountsByCurrency(items)
+      .map(({ currency, amount }) => `${currency} ${formatAmount(String(amount), currency)}`)
+      .join(' · ');
   };
 
   const handleDelete = async (group: SplitGroup) => {
@@ -118,7 +115,7 @@ export function SplitGroupListPage() {
   };
 
   return (
-    <MobileFrame>
+    <MobileFrame tone="white">
       <AppBar />
       {status === 'loading' && <LoadingState />}
 
@@ -190,7 +187,7 @@ export function SplitGroupListPage() {
               loadingLabel="N빵을 저장하고 있어요…"
               onClick={handleComplete}
             >
-              내 정산 완료하기
+              환율 적용하기
             </Button>
           </BottomActionBar>
         </>

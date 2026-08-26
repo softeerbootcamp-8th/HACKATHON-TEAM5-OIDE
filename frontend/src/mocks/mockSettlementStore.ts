@@ -50,7 +50,4 @@ export const mockSettlementStore = {
     );
   },
 
-  resetCompletedMembers(roomId: string): void {
-    window.sessionStorage.removeItem(`${COMPLETED_MEMBERS_KEY}:${roomId}`);
-  },
 };

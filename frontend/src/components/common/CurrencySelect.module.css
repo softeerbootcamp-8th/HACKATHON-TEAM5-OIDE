@@ -1,0 +1,83 @@
+.root {
+  /* 목록 높이는 이 값 5칸으로 잘린다. */
+  --option-height: 48px;
+  position: relative;
+}
+
+.compact {
+  flex-shrink: 0;
+}
+
+.trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xs);
+  width: 100%;
+  min-height: var(--control-height);
+  padding: 0 var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  font-size: var(--font-size-input);
+  color: var(--color-text);
+  text-align: left;
+}
+
+.compact .trigger {
+  min-width: 84px;
+  padding: 0 var(--space-sm);
+  background: var(--color-surface);
+}
+
+.triggerText {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.panel {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 20;
+  min-width: 100%;
+  /* 다섯 개까지만 보이고 나머지는 스크롤한다. */
+  max-height: calc(5 * var(--option-height));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.dropUp {
+  top: auto;
+  bottom: calc(100% + 4px);
+}
+
+/* 좁은 칸 아래에서도 `싱가포르달러` 같은 이름이 잘리지 않게 한다. */
+.compact .panel {
+  min-width: 200px;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  height: var(--option-height);
+  padding: 0 var(--space-md);
+  font-size: var(--font-size-input);
+  color: var(--color-text);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.active {
+  background: var(--color-surface);
+}
+
+.selected {
+  color: var(--color-primary);
+  font-weight: 600;
+}

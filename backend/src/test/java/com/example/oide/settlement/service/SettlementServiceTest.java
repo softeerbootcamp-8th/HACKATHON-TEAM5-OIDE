@@ -68,14 +68,16 @@ class SettlementServiceTest {
 		SplitGroup group = splitGroupRepository.save(new SplitGroup(room, "전체", SplitGroupType.ALL));
 
 		Payment dinner = paymentRepository.save(new Payment(
-				room, memberA, "저녁", LocalDateTime.now(), new BigDecimal("15"), SupportedCurrency.USD, SplitMethod.EQUAL));
+				room, memberA, "저녁", LocalDateTime.now(), new BigDecimal("15"), SupportedCurrency.USD,
+				SplitMethod.EQUAL, true));
 		dinner.assignGroup(group);
 		paymentShareRepository.saveAll(List.of(
 				new PaymentShare(dinner, memberA, new BigDecimal("10")),
 				new PaymentShare(dinner, memberB, new BigDecimal("5"))));
 
 		Payment transport = paymentRepository.save(new Payment(
-				room, memberB, "교통", LocalDateTime.now(), new BigDecimal("1000"), SupportedCurrency.JPY, SplitMethod.EQUAL));
+				room, memberB, "교통", LocalDateTime.now(), new BigDecimal("1000"), SupportedCurrency.JPY,
+				SplitMethod.EQUAL, true));
 		transport.assignGroup(group);
 		paymentShareRepository.saveAll(List.of(
 				new PaymentShare(transport, memberA, new BigDecimal("333")),
@@ -116,6 +118,34 @@ class SettlementServiceTest {
 	}
 
 	@Test
+	void ignoresPaymentsExcludedFromSettlement() {
+		SettlementRoom room = roomRepository.save(
+				new SettlementRoom("inclusion-code", "여행", SupportedCurrency.KRW));
+		RoomMember memberA = roomMemberRepository.save(new RoomMember(room, "A", 1));
+		RoomMember memberB = roomMemberRepository.save(new RoomMember(room, "B", 2));
+		SplitGroup group = splitGroupRepository.save(new SplitGroup(room, "전체", SplitGroupType.ALL));
+
+		Payment included = paymentRepository.save(new Payment(
+				room, memberA, "식사", LocalDateTime.now(), new BigDecimal("10000"),
+				SupportedCurrency.KRW, SplitMethod.EQUAL, true));
+		included.assignGroup(group);
+		paymentShareRepository.saveAll(List.of(
+				new PaymentShare(included, memberA, new BigDecimal("5000")),
+				new PaymentShare(included, memberB, new BigDecimal("5000"))));
+		paymentRepository.save(new Payment(
+				room, memberB, "제외 항목", LocalDateTime.now(), new BigDecimal("30000"),
+				SupportedCurrency.KRW, null, false));
+
+		SettlementResponse response = settlementService.confirm(
+				room.getId(), new ManualRatesRequest(List.of()));
+
+		assertThat(response.result().settlementAvailable()).isTrue();
+		assertThat(response.result().memberResults())
+				.extracting(result -> result.nickname() + ":" + result.paidKrw() + ":" + result.owedKrw())
+				.containsExactly("A:10000:5000", "B:0:5000");
+	}
+
+	@Test
 	void rejectsMemberFromAnotherRoom() {
 		ConfirmedSettlement confirmed = createConfirmedSettlement("member-room-code");
 		SettlementRoom anotherRoom = roomRepository.save(
@@ -130,15 +160,16 @@ class SettlementServiceTest {
 	}
 
 	@Test
-	void resetsMemberCompletionWhenSettlementIsRecalculated() {
+	void preservesMemberCompletionWhenSettlementIsRecalculated() {
 		ConfirmedSettlement confirmed = createConfirmedSettlement("recalculation-code");
 		settlementService.completeMemberSettlement(confirmed.room().getId(), confirmed.memberA().getId());
 
 		SettlementResponse recalculated = settlementService.confirm(
 				confirmed.room().getId(), new ManualRatesRequest(List.of()));
 
-		assertThat(recalculated.completedMemberIds()).isEmpty();
-		assertThat(settlementService.getSettlement(confirmed.room().getId()).completedMemberIds()).isEmpty();
+		assertThat(recalculated.completedMemberIds()).containsExactly(confirmed.memberA().getId());
+		assertThat(settlementService.getSettlement(confirmed.room().getId()).completedMemberIds())
+				.containsExactly(confirmed.memberA().getId());
 	}
 
 	private ConfirmedSettlement createConfirmedSettlement(String shareCode) {
@@ -149,7 +180,7 @@ class SettlementServiceTest {
 		SplitGroup group = splitGroupRepository.save(new SplitGroup(room, "전체", SplitGroupType.ALL));
 		Payment payment = paymentRepository.save(new Payment(
 				room, memberA, "식사", LocalDateTime.now(), new BigDecimal("10000"),
-				SupportedCurrency.KRW, SplitMethod.EQUAL));
+				SupportedCurrency.KRW, SplitMethod.EQUAL, true));
 		payment.assignGroup(group);
 		paymentShareRepository.saveAll(List.of(
 				new PaymentShare(payment, memberA, new BigDecimal("5000")),

@@ -12,6 +12,9 @@ import com.example.oide.global.exception.ErrorCode;
 /**
  * 서비스가 지원하는 통화 목록.
  * 선언 순서가 통화 선택 화면의 노출 순서이며, 기준 통화인 KRW가 가장 위에 온다.
+ *
+ * 프론트가 같은 목록을 frontend/src/constants/currencies.ts 에 그대로 들고 있다.
+ * 이 목록을 고치면 그 파일과 types/room.ts 의 CurrencyCode 도 함께 고쳐야 한다.
  */
 public enum SupportedCurrency {
 

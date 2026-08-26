@@ -11,6 +11,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.springframework.stereotype.Service;
@@ -67,7 +68,8 @@ public class SettlementService {
 	@Transactional
 	public SettlementPreviewResponse getPreview(Long roomId) {
 		SettlementRoom room = findRoom(roomId);
-		List<Payment> payments = paymentRepository.findAllByRoomIdOrderByPaidAtDescIdDesc(roomId);
+		List<Payment> payments = paymentRepository
+				.findAllByRoomIdAndIncludedInSettlementTrueOrderByPaidAtDescIdDesc(roomId);
 		Map<String, ResolvedRate> rates = loadAutomaticRates(room, getCurrencies(payments), true);
 		return createPreview(room, payments, Map.of(), rates);
 	}
@@ -75,7 +77,8 @@ public class SettlementService {
 	@Transactional(readOnly = true)
 	public SettlementPreviewResponse previewWithManualRates(Long roomId, ManualRatesRequest request) {
 		SettlementRoom room = findRoom(roomId);
-		List<Payment> payments = paymentRepository.findAllByRoomIdOrderByPaidAtDescIdDesc(roomId);
+		List<Payment> payments = paymentRepository
+				.findAllByRoomIdAndIncludedInSettlementTrueOrderByPaidAtDescIdDesc(roomId);
 		Map<String, ResolvedRate> automaticRates = loadAutomaticRates(room, getCurrencies(payments), false);
 		return createPreview(room, payments, getManualRates(room, request, getCurrencies(payments)), automaticRates);
 	}
@@ -84,7 +87,8 @@ public class SettlementService {
 	public SettlementResponse confirm(Long roomId, ManualRatesRequest request) {
 		SettlementRoom room = roomRepository.findByIdForUpdate(roomId)
 				.orElseThrow(() -> new BusinessException(ErrorCode.ROOM_NOT_FOUND));
-		List<Payment> payments = paymentRepository.findAllByRoomIdOrderByPaidAtDescIdDesc(roomId);
+		List<Payment> payments = paymentRepository
+				.findAllByRoomIdAndIncludedInSettlementTrueOrderByPaidAtDescIdDesc(roomId);
 		Map<String, ResolvedRate> automaticRates = loadAutomaticRates(room, getCurrencies(payments), false);
 		Map<String, ResolvedRate> manualRates = getManualRates(room, request, getCurrencies(payments));
 		SettlementPreviewResponse preview = createPreview(room, payments, manualRates, automaticRates);
@@ -93,7 +97,15 @@ public class SettlementService {
 		}
 
 		LocalDateTime calculatedAt = LocalDateTime.now();
-		Settlement settlement = settlementRepository.findByRoomId(roomId)
+		Optional<Settlement> existingSettlement = settlementRepository.findByRoomId(roomId);
+		Set<Long> completedMemberIds = existingSettlement
+				.map(existing -> settlementMemberResultRepository
+						.findAllBySettlementIdOrderByMemberOrder(existing.getId()).stream()
+						.filter(result -> result.getCompletedAt() != null)
+						.map(result -> result.getMember().getId())
+						.collect(java.util.stream.Collectors.toSet()))
+				.orElseGet(Set::of);
+		Settlement settlement = existingSettlement
 				.map(existing -> {
 					existing.recalculate(calculatedAt);
 					clearSettlementDetails(existing.getId());
@@ -109,14 +121,20 @@ public class SettlementService {
 						rate.rateToKrw(),
 						rate.source(),
 						rate.effectiveDate(),
-						rate.quotedAt()))
+							rate.quotedAt()))
 				.toList());
 		settlementMemberResultRepository.saveAll(preview.memberResults().stream()
-				.map(result -> new SettlementMemberResult(
-						settlement,
-						findMember(roomId, result.memberId()),
-						result.paidKrw(),
-						result.owedKrw()))
+				.map(result -> {
+					SettlementMemberResult memberResult = new SettlementMemberResult(
+							settlement,
+							findMember(roomId, result.memberId()),
+							result.paidKrw(),
+							result.owedKrw());
+					if (completedMemberIds.contains(result.memberId())) {
+						memberResult.complete(calculatedAt);
+					}
+					return memberResult;
+				})
 				.toList());
 		settlementTransferRepository.saveAll(preview.transfers().stream()
 				.map(transfer -> new SettlementTransfer(
@@ -126,7 +144,12 @@ public class SettlementService {
 						transfer.amountKrw()))
 				.toList());
 
-		return new SettlementResponse(settlement.getId(), settlement.getCalculatedAt(), List.of(), preview);
+		List<Long> preservedCompletedMemberIds = preview.memberResults().stream()
+				.map(SettlementPreviewResponse.MemberResultResponse::memberId)
+				.filter(completedMemberIds::contains)
+				.toList();
+		return new SettlementResponse(
+				settlement.getId(), settlement.getCalculatedAt(), preservedCompletedMemberIds, preview);
 	}
 
 	@Transactional

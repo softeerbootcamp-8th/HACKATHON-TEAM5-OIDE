@@ -11,10 +11,14 @@ import {
 
 import type {
   CreateSplitGroupRequest,
+  CurrencyResponse,
   CustomShareRequest,
   ErrorResponse,
+  ExtractionJobResponse,
+  ExtractionStartResponse,
   ManualRatesRequest,
   PaymentBulkRegisterRequest,
+  PaymentInclusionRequest,
   PaymentRegisterRequest,
   PaymentResponse,
   PaymentShareResponse,
@@ -24,6 +28,7 @@ import type {
   SettlementResponse,
   SplitGroupDetailResponse,
   SplitGroupResponse,
+  StartBody,
   UpdateGroupPaymentsRequest,
   UpdateSplitGroupRequest
 } from './models';
@@ -96,7 +101,7 @@ export const getUpdateUrl = (roomId: number,
 }
 
 /**
- * 사용자 그룹의 이름과 구성원을 변경한다. 전체 그룹은 수정할 수 없다.
+ * 사용자 그룹의 이름과 구성원을 변경한다. 전체 그룹 및 다른 그룹과 동일한 구성은 허용하지 않는다.
  * @summary 정산 그룹 수정
  */
 export const update = async (roomId: number,
@@ -806,12 +811,24 @@ export type findAll1Response200 = {
   status: 200
 }
 
+export type findAll1Response404 = {
+  data: ErrorResponse
+  status: 404
+}
+
+export type findAll1Response410 = {
+  data: ErrorResponse
+  status: 410
+}
+
 export type findAll1ResponseSuccess = (findAll1Response200) & {
   headers: Headers;
 };
-;
+export type findAll1ResponseError = (findAll1Response404 | findAll1Response410) & {
+  headers: Headers;
+};
 
-export type findAll1Response = (findAll1ResponseSuccess)
+export type findAll1Response = (findAll1ResponseSuccess | findAll1ResponseError)
 
 export const getFindAll1Url = (roomId: number,) => {
 
@@ -821,6 +838,10 @@ export const getFindAll1Url = (roomId: number,) => {
   return `${API_ORIGIN}/api/rooms/${roomId}/payments`
 }
 
+/**
+ * 정산방의 모든 참여자가 등록한 결제 내역을 결제 시각 내림차순으로 조회한다. 결제 시각이 없는 항목은 뒤에 온다.
+ * @summary 정산방 결제 내역 조회
+ */
 export const findAll1 = async (roomId: number, options?: RequestInit): Promise<findAll1Response> => {
 
   const res = await fetch(getFindAll1Url(roomId),
@@ -841,17 +862,34 @@ export const findAll1 = async (roomId: number, options?: RequestInit): Promise<f
 
 
 
-export type registerResponse200 = {
+export type registerResponse201 = {
   data: PaymentResponse
-  status: 200
+  status: 201
 }
 
-export type registerResponseSuccess = (registerResponse200) & {
+export type registerResponse400 = {
+  data: ErrorResponse
+  status: 400
+}
+
+export type registerResponse404 = {
+  data: ErrorResponse
+  status: 404
+}
+
+export type registerResponse410 = {
+  data: ErrorResponse
+  status: 410
+}
+
+export type registerResponseSuccess = (registerResponse201) & {
   headers: Headers;
 };
-;
+export type registerResponseError = (registerResponse400 | registerResponse404 | registerResponse410) & {
+  headers: Headers;
+};
 
-export type registerResponse = (registerResponseSuccess)
+export type registerResponse = (registerResponseSuccess | registerResponseError)
 
 export const getRegisterUrl = (roomId: number,) => {
 
@@ -861,6 +899,10 @@ export const getRegisterUrl = (roomId: number,) => {
   return `${API_ORIGIN}/api/rooms/${roomId}/payments`
 }
 
+/**
+ * 스크린샷 없이 결제 내역 한 건을 직접 등록한다. 금액과 통화만 필수이며 결제처와 결제 시각은 생략할 수 있다.
+ * @summary 결제 내역 직접 등록
+ */
 export const register = async (roomId: number,
     paymentRegisterRequest: PaymentRegisterRequest, options?: RequestInit): Promise<registerResponse> => {
 
@@ -888,17 +930,100 @@ const res = await fetch(getRegisterUrl(roomId),
 
 
 
-export type registerBulkResponse200 = {
-  data: PaymentResponse[]
-  status: 200
+export type startResponse202 = {
+  data: ExtractionStartResponse
+  status: 202
 }
 
-export type registerBulkResponseSuccess = (registerBulkResponse200) & {
+export type startResponse400 = {
+  data: ErrorResponse
+  status: 400
+}
+
+export type startResponse404 = {
+  data: ErrorResponse
+  status: 404
+}
+
+export type startResponse410 = {
+  data: ErrorResponse
+  status: 410
+}
+
+export type startResponseSuccess = (startResponse202) & {
   headers: Headers;
 };
-;
+export type startResponseError = (startResponse400 | startResponse404 | startResponse410) & {
+  headers: Headers;
+};
 
-export type registerBulkResponse = (registerBulkResponseSuccess)
+export type startResponse = (startResponseSuccess | startResponseError)
+
+export const getStartUrl = (roomId: number,) => {
+
+
+
+
+  return `${API_ORIGIN}/api/rooms/${roomId}/payments/extractions`
+}
+
+/**
+ * 스크린샷 1~20장을 업로드하고 비동기 추출 작업을 시작한다. 202 응답의 jobId로 진행 상태를 폴링한다.
+ * @summary 결제 스크린샷 추출 시작
+ */
+export const start = async (roomId: number,
+    startBody?: StartBody, options?: RequestInit): Promise<startResponse> => {
+    const formData = new FormData();
+if(startBody?.files !== undefined) {
+ startBody?.files.forEach(value => formData.append(`files`, value));
+ }
+
+  const res = await fetch(getStartUrl(roomId),
+  {
+    ...options,
+    method: 'POST'
+    ,
+    body: formData
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: startResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as startResponse
+}
+
+
+
+export type registerBulkResponse201 = {
+  data: PaymentResponse[]
+  status: 201
+}
+
+export type registerBulkResponse400 = {
+  data: ErrorResponse
+  status: 400
+}
+
+export type registerBulkResponse404 = {
+  data: ErrorResponse
+  status: 404
+}
+
+export type registerBulkResponse410 = {
+  data: ErrorResponse
+  status: 410
+}
+
+export type registerBulkResponseSuccess = (registerBulkResponse201) & {
+  headers: Headers;
+};
+export type registerBulkResponseError = (registerBulkResponse400 | registerBulkResponse404 | registerBulkResponse410) & {
+  headers: Headers;
+};
+
+export type registerBulkResponse = (registerBulkResponseSuccess | registerBulkResponseError)
 
 export const getRegisterBulkUrl = (roomId: number,) => {
 
@@ -908,6 +1033,10 @@ export const getRegisterBulkUrl = (roomId: number,) => {
   return `${API_ORIGIN}/api/rooms/${roomId}/payments/bulk`
 }
 
+/**
+ * 스크린샷 추출 결과를 사용자가 확인·수정한 뒤 여러 건을 한 번에 확정 등록한다. 결제처와 결제 시각은 생략할 수 있다.
+ * @summary 결제 내역 일괄 등록
+ */
 export const registerBulk = async (roomId: number,
     paymentBulkRegisterRequest: PaymentBulkRegisterRequest, options?: RequestInit): Promise<registerBulkResponse> => {
 
@@ -931,6 +1060,70 @@ const res = await fetch(getRegisterBulkUrl(roomId),
 
   const data: registerBulkResponse['data'] = body ? JSON.parse(body) : {}
   return { data, status: res.status, headers: res.headers } as registerBulkResponse
+}
+
+
+
+export type updateInclusionResponse204 = {
+  data: void
+  status: 204
+}
+
+export type updateInclusionResponse404 = {
+  data: ErrorResponse
+  status: 404
+}
+
+export type updateInclusionResponse410 = {
+  data: ErrorResponse
+  status: 410
+}
+
+export type updateInclusionResponseSuccess = (updateInclusionResponse204) & {
+  headers: Headers;
+};
+export type updateInclusionResponseError = (updateInclusionResponse404 | updateInclusionResponse410) & {
+  headers: Headers;
+};
+
+export type updateInclusionResponse = (updateInclusionResponseSuccess | updateInclusionResponseError)
+
+export const getUpdateInclusionUrl = (roomId: number,
+    paymentId: number,) => {
+
+
+
+
+  return `${API_ORIGIN}/api/rooms/${roomId}/payments/${paymentId}/inclusion`
+}
+
+/**
+ * @summary 정산 대상 포함 여부 변경
+ */
+export const updateInclusion = async (roomId: number,
+    paymentId: number,
+    paymentInclusionRequest: PaymentInclusionRequest, options?: RequestInit): Promise<updateInclusionResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+const res = await fetch(getUpdateInclusionUrl(roomId,paymentId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(paymentInclusionRequest)
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: updateInclusionResponse['data'] = body ? JSON.parse(body) : undefined
+  return { data, status: res.status, headers: res.headers } as updateInclusionResponse
 }
 
 
@@ -1040,4 +1233,99 @@ export const getShares = async (roomId: number,
 
   const data: getSharesResponse['data'] = body ? JSON.parse(body) : {}
   return { data, status: res.status, headers: res.headers } as getSharesResponse
+}
+
+
+
+export type getResponse200 = {
+  data: ExtractionJobResponse
+  status: 200
+}
+
+export type getResponse404 = {
+  data: ErrorResponse
+  status: 404
+}
+
+export type getResponseSuccess = (getResponse200) & {
+  headers: Headers;
+};
+export type getResponseError = (getResponse404) & {
+  headers: Headers;
+};
+
+export type getResponse = (getResponseSuccess | getResponseError)
+
+export const getGetUrl = (jobId: string,) => {
+
+
+
+
+  return `${API_ORIGIN}/api/extractions/${jobId}`
+}
+
+/**
+ * 작업이 COMPLETED가 될 때까지 폴링한다. 일부 이미지가 실패해도 성공한 항목은 items에 유지된다.
+ * @summary 결제 스크린샷 추출 상태 조회
+ */
+export const get = async (jobId: string, options?: RequestInit): Promise<getResponse> => {
+
+  const res = await fetch(getGetUrl(jobId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: getResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as getResponse
+}
+
+
+
+export type getCurrenciesResponse200 = {
+  data: CurrencyResponse[]
+  status: 200
+}
+
+export type getCurrenciesResponseSuccess = (getCurrenciesResponse200) & {
+  headers: Headers;
+};
+;
+
+export type getCurrenciesResponse = (getCurrenciesResponseSuccess)
+
+export const getGetCurrenciesUrl = () => {
+
+
+
+
+  return `${API_ORIGIN}/api/currencies`
+}
+
+/**
+ * 결제 등록에 사용할 수 있는 통화를 노출 순서대로 반환한다.
+ * @summary 지원 통화 목록 조회
+ */
+export const getCurrencies = async ( options?: RequestInit): Promise<getCurrenciesResponse> => {
+
+  const res = await fetch(getGetCurrenciesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: getCurrenciesResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as getCurrenciesResponse
 }

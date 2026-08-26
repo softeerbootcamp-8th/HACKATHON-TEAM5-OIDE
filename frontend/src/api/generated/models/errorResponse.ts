@@ -6,7 +6,12 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * 공통 오류 응답
+ */
 export interface ErrorResponse {
+  /** 클라이언트가 분기할 수 있는 도메인 오류 코드 */
   code?: string;
+  /** 사용자에게 표시할 수 있는 오류 메시지 */
   message?: string;
 }

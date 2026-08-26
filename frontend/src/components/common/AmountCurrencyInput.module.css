@@ -3,20 +3,9 @@
   gap: var(--space-xs);
 }
 
-.currency {
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-  min-width: 84px;
-  min-height: var(--control-height);
-  padding: 0 var(--space-sm);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
-  font-size: var(--font-size-input);
-  color: var(--color-text);
-  /* 네이티브 select 화살표를 그대로 쓰되 폰트만 맞춘다. */
-  appearance: auto;
+.compact .amountWrapper {
+  min-height: 50px;
+  border-color: var(--color-border-strong);
 }
 
 .amountWrapper {
@@ -28,6 +17,7 @@
   padding: 0 var(--space-md);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
+  background: var(--color-bg);
 }
 
 .amountWrapper:focus-within {

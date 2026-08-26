@@ -6,12 +6,14 @@
  * OpenAPI spec version: v1
  */
 import type { MemberShareResponse } from './memberShareResponse';
+import type { PaymentShareResponseCurrency } from './paymentShareResponseCurrency';
 import type { PaymentShareResponseSplitMethod } from './paymentShareResponseSplitMethod';
 
 export interface PaymentShareResponse {
   paymentId?: number;
   paymentAmount?: number;
-  currency?: string;
+  currency?: PaymentShareResponseCurrency;
+  /** 결제 분담 방식: EQUAL=균등 분담, CUSTOM=참여자별 직접 입력 */
   splitMethod?: PaymentShareResponseSplitMethod;
   allocatedAmount?: number;
   remainingAmount?: number;

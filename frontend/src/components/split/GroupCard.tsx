@@ -29,7 +29,11 @@ export function GroupCard({
     .filter((nickname): nickname is string => Boolean(nickname));
 
   return (
-    <button type="button" className={styles.card} onClick={onOpen}>
+    <button
+      type="button"
+      className={styles.card}
+      onClick={onOpen}
+    >
       <span className={styles.body}>
         <span className={styles.name}>{group.name}</span>
         <AvatarStack nicknames={nicknames} />

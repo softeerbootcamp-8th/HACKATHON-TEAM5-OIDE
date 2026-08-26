@@ -10,13 +10,19 @@ import { MobileFrame } from '../components/layout/MobileFrame';
 import { ScreenBody } from '../components/layout/ScreenBody';
 import { MemberEntryCard } from '../components/room/MemberEntryCard';
 import { RoomSummaryHeader } from '../components/room/RoomSummaryHeader';
-import { expenseMethodPath, joinRoomPath, myExpensesPath } from '../constants/routes';
+import {
+  expenseMethodPath,
+  joinRoomPath,
+  myExpensesPath,
+  settlementDonePath,
+} from '../constants/routes';
 import { useAsync } from '../hooks/useAsync';
 import { useLocalIdentity } from '../hooks/useLocalIdentity';
 import {
   getMemberPaymentSummaries,
 } from '../services/memberService';
 import { getRoomByShareCode } from '../services/roomService';
+import { getConfirmedSettlement } from '../services/settlementService';
 import type { MemberPaymentSummary } from '../types/payment';
 import type { SettlementRoom } from '../types/room';
 import { RoomExpiredPage } from './RoomExpiredPage';
@@ -25,6 +31,8 @@ import styles from './RoomHomePage.module.css';
 interface RoomHomeData {
   room: SettlementRoom;
   summaries: MemberPaymentSummary[];
+  /** 정산이 아직 확정되지 않았으면 null. */
+  completedMemberIds: string[] | null;
 }
 
 /**
@@ -38,11 +46,15 @@ export function RoomHomePage() {
   const { identity } = useLocalIdentity(shareCode);
 
   const load = useCallback(async (): Promise<RoomHomeData> => {
-    const [room, summaries] = await Promise.all([
+    const [room, summaries, completedMemberIds] = await Promise.all([
       getRoomByShareCode(shareCode),
       getMemberPaymentSummaries(shareCode),
+      // 정산이 아직 확정되지 않은 방이 더 흔한 경우라, 그 실패는 무시하고 진행한다.
+      getConfirmedSettlement(shareCode)
+        .then((settlement) => settlement.completedMemberIds)
+        .catch(() => null),
     ]);
-    return { room, summaries };
+    return { room, summaries, completedMemberIds };
   }, [shareCode]);
 
   const { status, data, error, retry } = useAsync(load, [shareCode]);
@@ -52,6 +64,9 @@ export function RoomHomePage() {
   }
   if (!identity) {
     return <Navigate to={joinRoomPath(shareCode)} replace />;
+  }
+  if (status === 'success' && data?.completedMemberIds?.includes(identity.memberId)) {
+    return <Navigate to={settlementDonePath(shareCode)} replace />;
   }
 
   const hasEntries = (data?.summaries.length ?? 0) > 0;

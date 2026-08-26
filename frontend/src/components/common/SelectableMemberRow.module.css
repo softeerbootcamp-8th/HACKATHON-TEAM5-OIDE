@@ -5,8 +5,8 @@
   width: 100%;
   min-height: 64px;
   padding: 0 var(--space-md);
-  border: 1px solid var(--color-border-strong);
-  border-radius: 10px; /* Figma rounded-10, 토큰과 정확히 안 맞음 */
+  border: 1px solid #dfdfdf;
+  border-radius: 10px;
   text-align: left;
   transition:
     border-color 0.12s ease,
@@ -20,7 +20,7 @@
 
 .nickname {
   flex: 1;
-  font-size: var(--font-size-body);
+  font-size: 16px;
   color: var(--color-text);
   overflow-wrap: anywhere;
 }
