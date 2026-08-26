@@ -11,11 +11,6 @@ interface TimeInputProps {
   errorMessage?: string;
 }
 
-/** 두 자리를 넘겨받아 `09` 처럼 채운다. 비어 있으면 그대로 둔다. */
-function padPart(value: string): string {
-  return value === '' ? '' : value.padStart(2, '0');
-}
-
 /**
  * 새로 누른 숫자를 살리기 위해 뒤에서 두 자리를 남긴다.
  *
@@ -29,6 +24,17 @@ function takeLastTwoDigits(raw: string): string {
 /** 범위를 넘는 값을 최대치로 맞추고 `09` 처럼 두 자리로 만든다. */
 function clampPart(digits: string, max: number): string {
   return String(Math.min(Number(digits), max)).padStart(2, '0');
+}
+
+/**
+ * 칸을 벗어날 때의 값. `7` → `07`, `25` → `23` 으로 맞춘다.
+ *
+ * state 가 아니라 input 이 들고 있는 값을 받는다. 두 자리를 채워 분으로 넘어가는 순간의
+ * blur 는 아직 리렌더 전이라, state 를 읽으면 방금 누른 숫자가 빠진 직전 값을 덮어쓴다.
+ */
+function normalizePart(raw: string, max: number): string {
+  const digits = takeLastTwoDigits(raw);
+  return digits === '' ? '' : clampPart(digits, max);
 }
 
 /**
@@ -78,7 +84,7 @@ export function TimeInput({
           aria-invalid={hasError}
           onFocus={(event) => event.target.select()}
           onChange={(event) => handleHourChange(event.target.value)}
-          onBlur={() => onHourChange(padPart(hour))}
+          onBlur={(event) => onHourChange(normalizePart(event.target.value, 23))}
         />
         <span className={styles.separator} aria-hidden="true">
           :
@@ -93,7 +99,7 @@ export function TimeInput({
           aria-invalid={hasError}
           onFocus={(event) => event.target.select()}
           onChange={(event) => handleMinuteChange(event.target.value)}
-          onBlur={() => onMinuteChange(padPart(minute))}
+          onBlur={(event) => onMinuteChange(normalizePart(event.target.value, 59))}
           onKeyDown={(event) => {
             // 빈 분에서 지우면 시로 되돌아간다.
             if (event.key === 'Backspace' && minute === '') hourRef.current?.focus();
