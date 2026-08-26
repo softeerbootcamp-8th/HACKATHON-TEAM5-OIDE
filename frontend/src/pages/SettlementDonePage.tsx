@@ -34,10 +34,6 @@ export function SettlementDonePage() {
 
   const everyoneDone =
     data !== null && data.completedMemberIds.length === data.members.length;
-  const completedMembers =
-    data?.members.filter((member) =>
-      data.completedMemberIds.includes(member.memberId),
-    ) ?? [];
 
   useEffect(() => {
     if (status !== 'success' || everyoneDone) return;
@@ -79,19 +75,28 @@ export function SettlementDonePage() {
             />
             <div className={styles.content}>
               <ul className={styles.cards}>
-                {completedMembers.map((member) => (
-                  <li key={member.memberId}>
-                    <button
-                      type="button"
-                      className={styles.card}
-                      onClick={() => navigate(memberSummaryPath(shareCode, member.memberId))}
-                    >
-                      <Avatar nickname={member.nickname} />
-                      <span className={styles.nickname}>{member.nickname}</span>
-                      <span className={styles.trailing}>내역 보기</span>
-                    </button>
-                  </li>
-                ))}
+                {data.members.map((member) => {
+                  const isCompleted = data.completedMemberIds.includes(member.memberId);
+
+                  return (
+                    <li key={member.memberId}>
+                      <button
+                        type="button"
+                        className={styles.card}
+                        disabled={!isCompleted}
+                        onClick={() =>
+                          navigate(memberSummaryPath(shareCode, member.memberId))
+                        }
+                      >
+                        <Avatar nickname={member.nickname} />
+                        <span className={styles.nickname}>{member.nickname}</span>
+                        <span className={styles.trailing}>
+                          {isCompleted ? '내역 보기' : '정산 중'}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           </ScreenBody>
