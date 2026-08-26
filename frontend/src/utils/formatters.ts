@@ -33,15 +33,6 @@ export function formatDayTime(iso: string): string {
   return `${new Date(iso).getDate()}일 ${formatTime(iso)}`;
 }
 
-/** `2026-08-21 20:14` 형태를 ISO 로 되돌린다. 형식이 틀리면 null. */
-export function parseDateTimeInput(value: string): string | null {
-  const match = value.trim().match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})$/);
-  if (!match) return null;
-  const [, y, mo, d, h, mi] = match;
-  const date = new Date(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi));
-  return Number.isNaN(date.getTime()) ? null : date.toISOString();
-}
-
 /** 날짜 선택 필드의 표기. 예: `2026-08-21` */
 export function formatDateInput(date: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0');

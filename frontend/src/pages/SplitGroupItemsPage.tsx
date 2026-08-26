@@ -265,6 +265,7 @@ export function SplitGroupItemsPage() {
 
           {modalOpen && (
             <ManualExpenseModal
+              defaultCurrency={data.room.defaultCurrency}
               submitting={submitting}
               errorMessage={actionError}
               onSubmit={handleAddMissing}
