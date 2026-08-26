@@ -10,6 +10,8 @@
   --color-surface: #f4f4f5;
   --color-border: #e4e4e7;
   --color-border-strong: #d4d4d8;
+  /* 입력이 더 필요한 항목의 테두리. 면색 없이 테두리만 주황으로 표시한다. */
+  --color-border-attention: rgba(255, 140, 34, 0.6);
 
   --color-text: #3f3f46;
   --color-text-muted: #a1a1aa;

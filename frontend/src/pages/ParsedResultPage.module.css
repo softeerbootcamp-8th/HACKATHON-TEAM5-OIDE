@@ -46,8 +46,9 @@
 }
 
 .restLabel {
-  margin: 36px 0 10px;
-  font-size: var(--font-size-label);
+  margin: 40px 0 var(--space-md);
+  font-size: var(--font-size-lead);
+  font-weight: 500;
   line-height: var(--line-height-title);
   color: var(--color-text-muted);
 }

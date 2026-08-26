@@ -46,9 +46,7 @@ export function ParsedItemRow({ draft, onClick }: ParsedItemRowProps) {
         </span>
       </span>
 
-      <span className={`${styles.action} ${needsInput ? styles.actionStrong : ''}`}>
-        {needsInput ? '입력' : '수정'}
-      </span>
+      <span className={styles.action}>{needsInput ? '입력' : '수정'}</span>
     </button>
   );
 }
