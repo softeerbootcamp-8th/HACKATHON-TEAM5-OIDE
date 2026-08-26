@@ -4,7 +4,6 @@ import { AmountCurrencyInput } from '../components/common/AmountCurrencyInput';
 import { Banner } from '../components/common/Banner';
 import { Button } from '../components/common/Button';
 import { FieldLabel } from '../components/common/FieldLabel';
-import { OptionalDateTimeFields } from '../components/common/OptionalDateTimeFields';
 import { TextField } from '../components/common/TextField';
 import { AppBar } from '../components/layout/AppBar';
 import { BottomActionBar } from '../components/layout/BottomActionBar';
@@ -17,11 +16,7 @@ import { useLocalIdentity } from '../hooks/useLocalIdentity';
 import { createPayment } from '../services/paymentService';
 import { isApiError } from '../types/api';
 import type { CurrencyCode } from '../types/room';
-import {
-  formatDateTimeInputParts,
-  hasDateTimeInput,
-  parseDateTimeInputParts,
-} from '../utils/formatters';
+import { parseDateTimeInput } from '../utils/formatters';
 import styles from './ManualExpensePage.module.css';
 
 /**
@@ -36,13 +31,12 @@ export function ManualExpensePage() {
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState<CurrencyCode>(DEFAULT_CURRENCY);
   const [merchant, setMerchant] = useState('');
-  const [paidAt, setPaidAt] = useState(formatDateTimeInputParts());
+  const [paidAtText, setPaidAtText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const amountValid = amount.trim().length > 0 && Number(amount) > 0;
-  const parsedPaidAt = parseDateTimeInputParts(paidAt);
-  const paidAtValid = !hasDateTimeInput(paidAt) || parsedPaidAt !== null;
+  const paidAtValid = paidAtText.trim().length === 0 || parseDateTimeInput(paidAtText) !== null;
   const canSubmit = amountValid && paidAtValid;
 
   const handleSubmit = async () => {
@@ -56,7 +50,7 @@ export function ManualExpensePage() {
     try {
       await createPayment(shareCode, identity.memberId, {
         merchant: merchant.trim() === '' ? null : merchant.trim(),
-        paidAt: parsedPaidAt,
+        paidAt: paidAtText.trim() === '' ? null : parseDateTimeInput(paidAtText),
         amount,
         currency,
         receiptImageId: null,
@@ -98,15 +92,18 @@ export function ManualExpensePage() {
             />
           </div>
 
-          <OptionalDateTimeFields
-            value={paidAt}
-            errorMessage={paidAtValid ? undefined : '날짜와 시간을 모두 올바르게 입력해주세요'}
-            onChange={setPaidAt}
-          />
+          <div className={styles.field}>
+            <FieldLabel text="결제 시각" />
+            <TextField
+              value={paidAtText}
+              placeholder="예: 2026-08-21 20:14"
+              aria-label="결제 시각"
+              errorMessage={paidAtValid ? undefined : '2026-08-21 20:14 형식으로 적어주세요'}
+              onChange={(event) => setPaidAtText(event.target.value)}
+            />
+          </div>
 
-          <p className={styles.footnote}>
-            결제처와 결제 날짜 · 시간은 없어도 등록할 수 있어요
-          </p>
+          <p className={styles.footnote}>결제처와 결제 시각은 없어도 등록할 수 있어요</p>
         </div>
       </ScreenBody>
 

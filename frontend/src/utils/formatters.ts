@@ -33,6 +33,13 @@ export function formatDayTime(iso: string): string {
   return `${new Date(iso).getDate()}일 ${formatTime(iso)}`;
 }
 
+/** 항목 수정 화면의 입력값. 예: `2026-08-21 20:14` */
+export function formatDateTimeInput(iso: string): string {
+  const date = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 /** `2026-08-21 20:14` 형태를 ISO 로 되돌린다. 형식이 틀리면 null. */
 export function parseDateTimeInput(value: string): string | null {
   const match = value.trim().match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})$/);
@@ -40,59 +47,6 @@ export function parseDateTimeInput(value: string): string | null {
   const [, y, mo, d, h, mi] = match;
   const date = new Date(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi));
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
-}
-
-export interface DateTimeInputParts {
-  date: string;
-  hour: string;
-  minute: string;
-}
-
-export function formatDateTimeInputParts(iso?: string | null): DateTimeInputParts {
-  if (!iso) return { date: '', hour: '', minute: '' };
-
-  const value = new Date(iso);
-  const pad = (number: number) => String(number).padStart(2, '0');
-  return {
-    date: `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}`,
-    hour: pad(value.getHours()),
-    minute: pad(value.getMinutes()),
-  };
-}
-
-export function hasDateTimeInput({ date, hour, minute }: DateTimeInputParts): boolean {
-  return date !== '' || hour !== '' || minute !== '';
-}
-
-export function parseDateTimeInputParts({
-  date,
-  hour,
-  minute,
-}: DateTimeInputParts): string | null {
-  if (!date && !hour && !minute) return null;
-
-  const dateMatch = date.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (!dateMatch || !/^\d{1,2}$/.test(hour) || !/^\d{1,2}$/.test(minute)) return null;
-
-  const [, yearText, monthText, dayText] = dateMatch;
-  const year = Number(yearText);
-  const month = Number(monthText);
-  const day = Number(dayText);
-  const hours = Number(hour);
-  const minutes = Number(minute);
-  if (hours > 23 || minutes > 59) return null;
-
-  const value = new Date(year, month - 1, day, hours, minutes);
-  if (
-    value.getFullYear() !== year ||
-    value.getMonth() !== month - 1 ||
-    value.getDate() !== day ||
-    value.getHours() !== hours ||
-    value.getMinutes() !== minutes
-  ) {
-    return null;
-  }
-  return value.toISOString();
 }
 
 /** 천 단위 구분. 통화의 소수 자릿수를 따른다. 예: `3,200` */

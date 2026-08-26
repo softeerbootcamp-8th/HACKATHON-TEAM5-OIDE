@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
-import { AmountInput, CurrencySelect } from '../components/common/AmountCurrencyInput';
+import { AmountCurrencyInput } from '../components/common/AmountCurrencyInput';
 import { Button } from '../components/common/Button';
 import { FieldLabel } from '../components/common/FieldLabel';
 import { ImagePreviewModal } from '../components/common/ImagePreviewModal';
-import { OptionalDateTimeFields } from '../components/common/OptionalDateTimeFields';
 import { TextField } from '../components/common/TextField';
 import { AppBar } from '../components/layout/AppBar';
 import { BottomActionBar } from '../components/layout/BottomActionBar';
@@ -15,11 +14,7 @@ import { joinRoomPath, parsedResultPath } from '../constants/routes';
 import { useExpenseDraft } from '../hooks/useExpenseDraft';
 import { useLocalIdentity } from '../hooks/useLocalIdentity';
 import type { CurrencyCode } from '../types/room';
-import {
-  formatDateTimeInputParts,
-  hasDateTimeInput,
-  parseDateTimeInputParts,
-} from '../utils/formatters';
+import { formatDateTimeInput, parseDateTimeInput } from '../utils/formatters';
 import styles from './ParsedItemEditPage.module.css';
 
 /**
@@ -38,7 +33,9 @@ export function ParsedItemEditPage() {
   const image = images.find((item) => item.id === draft?.receiptImageId);
 
   const [merchant, setMerchant] = useState(draft?.merchant ?? '');
-  const [paidAt, setPaidAt] = useState(formatDateTimeInputParts(draft?.paidAt));
+  const [paidAtText, setPaidAtText] = useState(
+    draft?.paidAt ? formatDateTimeInput(draft.paidAt) : '',
+  );
   const [amount, setAmount] = useState(draft?.amount ?? '');
   const [currency, setCurrency] = useState<CurrencyCode>(
     draft?.currency ?? draft?.suggestedCurrency ?? DEFAULT_CURRENCY,
@@ -55,14 +52,13 @@ export function ParsedItemEditPage() {
   }
 
   const amountValid = amount.trim().length > 0 && Number(amount) > 0;
-  const parsedPaidAt = parseDateTimeInputParts(paidAt);
-  const paidAtValid = !hasDateTimeInput(paidAt) || parsedPaidAt !== null;
+  const paidAtValid = paidAtText.trim().length === 0 || parseDateTimeInput(paidAtText) !== null;
   const canSave = amountValid && paidAtValid;
 
   const handleSave = () => {
     updateDraft(draft.id, {
       merchant: merchant.trim() === '' ? null : merchant.trim(),
-      paidAt: parsedPaidAt,
+      paidAt: paidAtText.trim() === '' ? null : parseDateTimeInput(paidAtText),
       amount,
       currency,
     });
@@ -102,28 +98,25 @@ export function ParsedItemEditPage() {
             />
           </div>
 
-          <OptionalDateTimeFields
-            value={paidAt}
-            errorMessage={paidAtValid ? undefined : '날짜와 시간을 모두 올바르게 입력해주세요'}
-            onChange={setPaidAt}
-          />
-
           <div className={styles.field}>
-            <FieldLabel text="결제 금액" required />
-            <AmountInput
-              amount={amount}
-              currency={currency}
-              invalid={amount.length > 0 && !amountValid}
-              onAmountChange={setAmount}
+            <FieldLabel text="결제 시각" />
+            <TextField
+              value={paidAtText}
+              placeholder="2026-08-21 20:14"
+              aria-label="결제 시각"
+              errorMessage={paidAtValid ? undefined : '2026-08-21 20:14 형식으로 적어주세요'}
+              onChange={(event) => setPaidAtText(event.target.value)}
             />
           </div>
 
           <div className={styles.field}>
-            <FieldLabel text="통화" required />
-            <CurrencySelect
+            <FieldLabel text="결제 금액과 통화" required />
+            <AmountCurrencyInput
+              amount={amount}
               currency={currency}
+              invalid={amount.length > 0 && !amountValid}
+              onAmountChange={setAmount}
               onCurrencyChange={setCurrency}
-              fullLabel
             />
           </div>
         </div>

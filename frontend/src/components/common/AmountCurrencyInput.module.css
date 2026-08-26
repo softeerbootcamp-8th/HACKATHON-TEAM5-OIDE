@@ -33,11 +33,6 @@
   appearance: auto;
 }
 
-.fullWidth {
-  width: 100%;
-  background: var(--color-bg);
-}
-
 .amountWrapper {
   display: flex;
   flex: 1;
