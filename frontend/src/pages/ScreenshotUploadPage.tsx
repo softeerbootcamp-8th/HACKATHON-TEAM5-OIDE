@@ -68,7 +68,7 @@ export function ScreenshotUploadPage() {
   if (screenshots.length === 0) return null;
 
   return (
-    <MobileFrame>
+    <MobileFrame tone="white">
       <AppBar backTo={expenseMethodPath(shareCode)} />
       <ScreenBody>
         <ScreenHeader title="선택한 스크린샷을 확인해주세요" />
