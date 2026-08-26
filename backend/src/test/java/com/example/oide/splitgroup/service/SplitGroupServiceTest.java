@@ -1,7 +1,6 @@
 package com.example.oide.splitgroup.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -29,7 +28,6 @@ import com.example.oide.payment.domain.PaymentShare;
 import com.example.oide.payment.domain.SplitMethod;
 import com.example.oide.payment.repository.PaymentRepository;
 import com.example.oide.payment.repository.PaymentShareRepository;
-import com.example.oide.payment.service.PaymentShareService;
 import com.example.oide.room.domain.RoomMember;
 import com.example.oide.room.domain.SettlementRoom;
 import com.example.oide.room.repository.RoomMemberRepository;
@@ -62,9 +60,6 @@ class SplitGroupServiceTest {
 
 	@Autowired
 	private PaymentShareRepository paymentShareRepository;
-
-	@Autowired
-	private PaymentShareService paymentShareService;
 
 	private SettlementRoom room;
 	private RoomMember firstMember;
@@ -154,11 +149,6 @@ class SplitGroupServiceTest {
 				room.getId(),
 				group.id(),
 				new UpdateSplitGroupRequest("식사", List.of(firstMember.getId(), thirdMember.getId())));
-
-		assertNull(payment.getSplitMethod());
-		assertTrue(paymentShareRepository.findAllByPaymentId(payment.getId()).isEmpty());
-
-		paymentShareService.saveEqual(room.getId(), payment.getId());
 
 		assertEquals(SplitMethod.EQUAL, payment.getSplitMethod());
 		assertEquals(0, paymentShareRepository.findAllByPaymentId(payment.getId()).stream()

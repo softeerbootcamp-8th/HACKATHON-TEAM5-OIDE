@@ -21,6 +21,7 @@ import com.example.oide.payment.repository.PaymentRepository;
 import com.example.oide.payment.repository.PaymentShareRepository;
 import com.example.oide.room.domain.RoomMember;
 import com.example.oide.room.repository.RoomMemberRepository;
+import com.example.oide.room.repository.SettlementRoomRepository;
 import com.example.oide.splitgroup.domain.SplitGroup;
 import com.example.oide.splitgroup.domain.SplitGroupMember;
 import com.example.oide.splitgroup.repository.SplitGroupMemberRepository;
@@ -34,12 +35,14 @@ public class PaymentShareService {
 	private final PaymentRepository paymentRepository;
 	private final PaymentShareRepository paymentShareRepository;
 	private final RoomMemberRepository roomMemberRepository;
+	private final SettlementRoomRepository roomRepository;
 	private final SplitGroupMemberRepository groupMemberRepository;
 	private final EqualShareCalculator equalShareCalculator;
 
 	@Transactional
 	public PaymentShareResponse saveEqual(Long roomId, Long paymentId) {
-		Payment payment = findPayment(roomId, paymentId);
+		lockRoom(roomId);
+		Payment payment = findPaymentForUpdate(roomId, paymentId);
 		List<RoomMember> members = findGroupMembers(requireGroup(payment));
 		Map<Long, BigDecimal> shares = equalShareCalculator.calculate(payment.getAmount(), members, payment.getPayer().getId());
 		replaceShares(payment, members, shares);
@@ -49,7 +52,8 @@ public class PaymentShareService {
 
 	@Transactional
 	public PaymentShareResponse saveCustom(Long roomId, Long paymentId, CustomShareRequest request) {
-		Payment payment = findPayment(roomId, paymentId);
+		lockRoom(roomId);
+		Payment payment = findPaymentForUpdate(roomId, paymentId);
 		List<RoomMember> members = findGroupMembers(requireGroup(payment));
 		Map<Long, BigDecimal> shares = validateCustomShares(payment, members, request);
 		replaceShares(payment, members, shares);
@@ -68,13 +72,26 @@ public class PaymentShareService {
 
 	@Transactional
 	public void adjustGroupPayments(SplitGroup group) {
+		lockRoom(group.getRoom().getId());
 		List<RoomMember> members = findGroupMembers(group);
-		for (Payment payment : paymentRepository.findAllByRoomIdAndSplitGroupId(group.getRoom().getId(), group.getId())) {
+		List<Payment> payments = paymentRepository.findAllByRoomIdAndSplitGroupIdForUpdate(
+				group.getRoom().getId(), group.getId());
+		for (Payment payment : payments) {
 			if (payment.getSplitMethod() == SplitMethod.EQUAL) {
 				replaceShares(payment, members, equalShareCalculator.calculate(payment.getAmount(), members, payment.getPayer().getId()));
 			} else if (payment.getSplitMethod() == SplitMethod.CUSTOM) {
-				paymentShareRepository.deleteAllByPaymentId(payment.getId());
-				payment.clearSplitMethod();
+				Map<Long, BigDecimal> previous = paymentShareRepository.findAllByPaymentId(payment.getId()).stream()
+						.collect(Collectors.toMap(share -> share.getMember().getId(), PaymentShare::getShareAmount));
+				Map<Long, BigDecimal> retained = new HashMap<>();
+				for (RoomMember member : members) retained.put(member.getId(), previous.getOrDefault(member.getId(), BigDecimal.ZERO));
+				BigDecimal retainedTotal = retained.values().stream().reduce(BigDecimal.ZERO, BigDecimal::add);
+				if (retainedTotal.compareTo(payment.getAmount()) == 0) {
+					replaceShares(payment, members, retained);
+				} else {
+					replaceShares(payment, members, equalShareCalculator.calculate(
+							payment.getAmount(), members, payment.getPayer().getId()));
+					payment.changeSplitMethod(SplitMethod.EQUAL);
+				}
 			}
 		}
 	}
@@ -101,6 +118,16 @@ public class PaymentShareService {
 		Payment payment = paymentRepository.findById(paymentId).orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND));
 		if (!payment.getRoom().getId().equals(roomId)) throw new BusinessException(ErrorCode.PAYMENT_NOT_FOUND);
 		return payment;
+	}
+
+	private Payment findPaymentForUpdate(Long roomId, Long paymentId) {
+		return paymentRepository.findByRoomIdAndIdForUpdate(roomId, paymentId)
+				.orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND));
+	}
+
+	private void lockRoom(Long roomId) {
+		roomRepository.findByIdForUpdate(roomId)
+				.orElseThrow(() -> new BusinessException(ErrorCode.ROOM_NOT_FOUND));
 	}
 
 	private SplitGroup requireGroup(Payment payment) {

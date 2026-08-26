@@ -8,6 +8,7 @@ import com.example.oide.payment.domain.SplitMethod;
 
 public record GroupPaymentResponse(
 		Long id,
+		Long payerMemberId,
 		String merchant,
 		LocalDateTime paidAt,
 		BigDecimal amount,

@@ -11,6 +11,7 @@ import type { GroupPaymentResponseSplitMethod } from './groupPaymentResponseSpli
 
 export interface GroupPaymentResponse {
   id?: number;
+  payerMemberId?: number;
   merchant?: string;
   paidAt?: string;
   amount?: number;
