@@ -227,7 +227,7 @@ export function PaymentSplitPage() {
                     aria-live="polite"
                   >
                     <span className={styles.totalLabel}>합계</span>
-                    <span>
+                    <span className={styles.totalValue}>
                       {formatAmount(String(customTotal), currency)} /{' '}
                       {formatAmount(payment.amount, currency)}
                     </span>

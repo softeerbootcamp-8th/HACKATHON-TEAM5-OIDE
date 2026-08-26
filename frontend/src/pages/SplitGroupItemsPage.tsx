@@ -202,7 +202,7 @@ export function SplitGroupItemsPage() {
                   className={styles.editLink}
                   onClick={() => navigate(splitGroupEditPath(shareCode, groupId))}
                 >
-                  수정
+                  수정하기
                 </button>
               )}
             </div>

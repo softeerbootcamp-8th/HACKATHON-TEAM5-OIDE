@@ -126,7 +126,11 @@
 }
 
 .totalLabel {
-  font-weight: 600;
+  font-weight: 500;
+}
+
+.totalValue {
+  font-weight: 700;
 }
 
 .caption {

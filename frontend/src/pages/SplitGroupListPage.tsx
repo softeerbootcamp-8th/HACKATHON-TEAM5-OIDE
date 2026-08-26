@@ -150,7 +150,6 @@ export function SplitGroupListPage() {
                       members={data.room.members}
                       itemCount={itemsOf(group.id).length}
                       totalLabel={totalLabelOf(group.id)}
-                      empty={itemsOf(group.id).length === 0}
                       onOpen={() => navigate(splitGroupItemsPath(shareCode, group.id))}
                     />
                   );

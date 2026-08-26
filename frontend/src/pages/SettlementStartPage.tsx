@@ -168,7 +168,7 @@ export function SettlementStartPage() {
               loadingLabel="정산하고 있어요…"
               onClick={handleConfirm}
             >
-              다음
+              환율 적용하기
             </Button>
             <Button variant="text" onClick={() => navigate(rateEditPath(shareCode))}>
               환율 직접 입력하기
