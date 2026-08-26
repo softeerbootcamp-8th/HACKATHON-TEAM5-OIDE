@@ -10,5 +10,7 @@ public interface SplitGroupMemberRepository extends JpaRepository<SplitGroupMemb
 
 	List<SplitGroupMember> findAllByGroupIdOrderByDisplayOrderAsc(Long groupId);
 
+	List<SplitGroupMember> findAllByGroupRoomId(Long roomId);
+
 	void deleteAllByGroupId(Long groupId);
 }
