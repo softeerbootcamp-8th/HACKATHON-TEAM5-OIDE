@@ -462,7 +462,7 @@ SETTLEMENT_MEMBER_RESULT + completed_at  datetime "nullable"
 서버는 누가 어떤 닉네임을 가져갔는지 알지 않는다.
 
 - A-06은 **모든 닉네임을 동등하게 선택 가능**하게 그린다 (`사용 중` 라벨 없음)
-- 신원은 브라우저 `localStorage`에만 저장된다 (`oide:identity:{shareCode}`)
+- 신원은 브라우저 `sessionStorage`에만 저장된다 (`oide:identity:{shareCode}`). 탭을 닫으면 사라져 다음 방문 때 다시 고른다
 - B-01의 `n명 참여 중`은 **방에 등록된 인원 수**이지 접속자 수가 아니다
 
 이 결정이 바뀌면 `ROOM_MEMBER.status`(`UNCLAIMED`/`CLAIMED`) 추가와
