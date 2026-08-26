@@ -6,20 +6,20 @@
   border-radius: var(--radius-full);
   background: var(--color-avatar-bg);
   color: var(--color-avatar-text);
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1;
 }
 
 .md {
   width: 32px;
   height: 32px;
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .sm {
-  width: 24px;
-  height: 24px;
-  font-size: 12px;
+  width: 26px;
+  height: 26px;
+  font-size: 16px;
 }
 
 .selected {

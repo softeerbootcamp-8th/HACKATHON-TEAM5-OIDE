@@ -9,6 +9,10 @@
   background: var(--color-bg);
 }
 
+.subtle {
+  background: var(--color-page-subtle);
+}
+
 .content {
   display: flex;
   flex: 1;

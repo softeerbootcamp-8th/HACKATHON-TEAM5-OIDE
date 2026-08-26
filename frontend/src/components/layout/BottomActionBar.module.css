@@ -5,5 +5,5 @@
   flex-shrink: 0;
   padding: var(--space-sm) var(--space-screen-x)
     calc(var(--space-lg) + env(safe-area-inset-bottom));
-  background: var(--color-bg);
+  background: transparent;
 }

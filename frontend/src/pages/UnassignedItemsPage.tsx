@@ -76,7 +76,7 @@ export function UnassignedItemsPage() {
   }
 
   return (
-    <MobileFrame>
+    <MobileFrame tone="subtle">
       <AppBar backTo={splitGroupsPath(shareCode)} />
       {status === 'loading' && <LoadingState />}
 
@@ -87,7 +87,10 @@ export function UnassignedItemsPage() {
       {status === 'success' && (
         <>
           <ScreenBody>
-            <ScreenHeader title={`선택하지 않은 항목 ${unassigned.length}건이 있어요`} />
+            <ScreenHeader
+              className={styles.screenHeader}
+              title={`선택하지 않은 항목 ${unassigned.length}건이 있어요`}
+            />
             <div className={styles.content}>
               <ul className={styles.rows}>
                 {unassigned.map((payment) => (
@@ -109,6 +112,7 @@ export function UnassignedItemsPage() {
           <BottomActionBar>
             {submitError && <Banner message={submitError} />}
             <Button
+              className={styles.primaryButton}
               disabled={!allGroup}
               loading={submitting}
               loadingLabel="그룹에 담고 있어요…"
@@ -116,7 +120,11 @@ export function UnassignedItemsPage() {
             >
               이대로 환율 적용하기
             </Button>
-            <Button variant="text" onClick={() => navigate(splitGroupsPath(shareCode))}>
+            <Button
+              className={styles.textButton}
+              variant="text"
+              onClick={() => navigate(splitGroupsPath(shareCode))}
+            >
               돌아가기
             </Button>
           </BottomActionBar>
