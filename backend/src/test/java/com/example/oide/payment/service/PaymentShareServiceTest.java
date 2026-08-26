@@ -21,6 +21,7 @@ import com.example.oide.room.domain.SettlementRoom;
 import com.example.oide.room.repository.RoomMemberRepository;
 import com.example.oide.room.repository.SettlementRoomRepository;
 import com.example.oide.splitgroup.repository.SplitGroupMemberRepository;
+import com.example.oide.settlement.service.SettlementProgressService;
 
 class PaymentShareServiceTest {
 
@@ -38,7 +39,8 @@ class PaymentShareServiceTest {
 				roomMemberRepository,
 				roomRepository,
 				groupMemberRepository,
-				equalShareCalculator);
+				equalShareCalculator,
+				mock(SettlementProgressService.class));
 
 		Long roomId = 1L;
 		Long paymentId = 2L;
@@ -66,7 +68,8 @@ class PaymentShareServiceTest {
 				roomMemberRepository,
 				roomRepository,
 				groupMemberRepository,
-				equalShareCalculator);
+				equalShareCalculator,
+				mock(SettlementProgressService.class));
 		Payment payment = mock(Payment.class);
 		RoomMember payer = mock(RoomMember.class);
 

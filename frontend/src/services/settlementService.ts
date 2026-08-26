@@ -17,6 +17,7 @@ import type {
   SettlementPreviewResponse,
   SettlementResponse,
 } from '../api/generated/models';
+import { httpClient } from '../api/httpClient';
 import { callOrval, parseApiId } from '../api/orvalResponse';
 import { resolveRoomId } from '../api/roomIdResolver';
 import { mockDelay, mockDelayReject } from '../mocks/mockDelay';
@@ -73,6 +74,96 @@ export interface ConfirmedSettlement {
   rates: SettlementPreviewRate[];
   members: ConfirmedMemberResult[];
   transfers: ConfirmedTransfer[];
+}
+
+export interface SettlementProgressMember {
+  memberId: string;
+  nickname: string;
+  completed: boolean;
+  hasPayments: boolean;
+}
+
+export interface SettlementProgress {
+  members: SettlementProgressMember[];
+  allCompleted: boolean;
+  hasAnyPayments: boolean;
+}
+
+interface SettlementProgressResponse {
+  members: {
+    memberId: number;
+    nickname: string;
+    completed: boolean;
+    hasPayments: boolean;
+  }[];
+  allCompleted: boolean;
+  hasAnyPayments: boolean;
+}
+
+export async function getSettlementProgress(shareCode: string): Promise<SettlementProgress> {
+  if (USE_MOCK) {
+    const room = mockRoomStore.findByShareCode(shareCode);
+    if (!room) {
+      return mockDelayReject(new ApiError('ROOM_NOT_FOUND', '정산방을 찾을 수 없어요.', 404));
+    }
+    const completedMemberIds = mockSettlementStore.findCompletedMemberIds(room.id);
+    const payerIds = new Set(
+      mockPaymentStore.findByRoom(room.id).map((payment) => payment.payerMemberId),
+    );
+    const members = room.members.map((member) => ({
+      memberId: member.id,
+      nickname: member.nickname,
+      completed: completedMemberIds.includes(member.id),
+      hasPayments: payerIds.has(member.id),
+    }));
+    return mockDelay({
+      members,
+      allCompleted: members.every((member) => member.completed),
+      hasAnyPayments: payerIds.size > 0,
+    });
+  }
+
+  const roomId = await resolveRoomId(shareCode);
+  const response = await httpClient.get<SettlementProgressResponse>(
+    `/rooms/${roomId}/settlement-progress`,
+  );
+  return {
+    members: response.members.map((member) => ({
+      ...member,
+      memberId: String(member.memberId),
+    })),
+    allCompleted: response.allCompleted,
+    hasAnyPayments: response.hasAnyPayments,
+  };
+}
+
+export async function completeWithoutPayments(
+  shareCode: string,
+  memberId: string,
+): Promise<void> {
+  if (USE_MOCK) {
+    const room = mockRoomStore.findByShareCode(shareCode);
+    if (!room) {
+      return mockDelayReject(new ApiError('ROOM_NOT_FOUND', '정산방을 찾을 수 없어요.', 404));
+    }
+    const hasPayments = mockPaymentStore
+      .findByRoom(room.id)
+      .some((payment) => payment.payerMemberId === memberId);
+    if (hasPayments) {
+      return mockDelayReject(
+        new ApiError('SETTLEMENT_SKIP_NOT_ALLOWED', '등록한 결제 내역이 있어요.', 400),
+      );
+    }
+    mockSettlementStore.completeMember(room.id, memberId);
+    return mockDelay(undefined);
+  }
+
+  const roomId = await resolveRoomId(shareCode);
+  await httpClient.put<void>(
+    `/rooms/${roomId}/settlement-progress/members/${parseApiId(memberId)}/completion-without-payments`,
+    {},
+    { headers: { 'X-Room-Member-Id': memberId } },
+  );
 }
 
 function mapSettlementPreview(response: SettlementPreviewResponse): SettlementPreview {
@@ -334,7 +425,11 @@ export async function completeMySettlement(
   }
 
   const roomId = await resolveRoomId(shareCode);
-  await callOrval<void>(() => requestMemberSettlementCompletion(roomId, parseApiId(memberId)));
+  await callOrval<void>(() =>
+    requestMemberSettlementCompletion(roomId, parseApiId(memberId), {
+      headers: { 'X-Room-Member-Id': memberId },
+    }),
+  );
 }
 
 export async function uncompleteMySettlement(
@@ -351,7 +446,11 @@ export async function uncompleteMySettlement(
   }
 
   const roomId = await resolveRoomId(shareCode);
-  await callOrval<void>(() => requestMemberSettlementUncompletion(roomId, parseApiId(memberId)));
+  await callOrval<void>(() =>
+    requestMemberSettlementUncompletion(roomId, parseApiId(memberId), {
+      headers: { 'X-Room-Member-Id': memberId },
+    }),
+  );
 }
 
 async function getMockRoomRates(shareCode: string): Promise<RoomRates> {

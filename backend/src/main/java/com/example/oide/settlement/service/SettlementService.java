@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -66,6 +67,7 @@ public class SettlementService {
 	private final SettlementMemberResultRepository settlementMemberResultRepository;
 	private final SettlementTransferRepository settlementTransferRepository;
 	private final EximExchangeRateClient eximExchangeRateClient;
+	private final SettlementProgressService settlementProgressService;
 
 	@Transactional
 	public SettlementPreviewResponse getPreview(Long roomId) {
@@ -103,13 +105,17 @@ public class SettlementService {
 
 		LocalDateTime calculatedAt = LocalDateTime.now();
 		Optional<Settlement> existingSettlement = settlementRepository.findByRoomId(roomId);
-		Set<Long> completedMemberIds = existingSettlement
-				.map(existing -> settlementMemberResultRepository
-						.findAllBySettlementIdOrderByMemberOrder(existing.getId()).stream()
-						.filter(result -> result.getCompletedAt() != null)
-						.map(result -> result.getMember().getId())
-						.collect(java.util.stream.Collectors.toSet()))
-				.orElseGet(Set::of);
+		Map<String, ResolvedRate> usedRates = mergeRates(automaticRates, manualRates);
+		Set<String> changedCurrencies = findChangedCurrencies(existingSettlement, usedRates);
+		payments.stream()
+				.filter(payment -> changedCurrencies.contains(payment.getCurrency().name()))
+				.map(payment -> payment.getPayer().getId())
+				.distinct()
+				.forEach(memberId -> settlementProgressService.uncomplete(roomId, memberId));
+		Set<Long> completedMemberIds = roomMemberRepository.findAllByRoomIdOrderByDisplayOrder(roomId).stream()
+				.filter(RoomMember::isSettlementCompleted)
+				.map(RoomMember::getId)
+				.collect(Collectors.toSet());
 		Settlement settlement = existingSettlement
 				.map(existing -> {
 					existing.recalculate(calculatedAt);
@@ -118,7 +124,6 @@ public class SettlementService {
 				})
 				.orElseGet(() -> settlementRepository.save(new Settlement(room, "COMPLETED", calculatedAt)));
 
-		Map<String, ResolvedRate> usedRates = mergeRates(automaticRates, manualRates);
 		settlementRateRepository.saveAll(usedRates.values().stream()
 				.map(rate -> new SettlementRate(
 						settlement,
@@ -157,6 +162,28 @@ public class SettlementService {
 				settlement.getId(), settlement.getCalculatedAt(), preservedCompletedMemberIds, preview);
 	}
 
+	private Set<String> findChangedCurrencies(
+			Optional<Settlement> existingSettlement, Map<String, ResolvedRate> usedRates) {
+		if (existingSettlement.isEmpty()) {
+			return Set.of();
+		}
+		Map<String, BigDecimal> previousRates = settlementRateRepository
+				.findAllBySettlementIdOrderByCurrencyAsc(existingSettlement.get().getId()).stream()
+				.collect(Collectors.toMap(
+						rate -> rate.getCurrency().name(), SettlementRate::getRateToKrw));
+		Set<String> currencies = new HashSet<>(previousRates.keySet());
+		currencies.addAll(usedRates.keySet());
+		return currencies.stream()
+				.filter(currency -> {
+					BigDecimal previousRate = previousRates.get(currency);
+					ResolvedRate currentRate = usedRates.get(currency);
+					return previousRate == null
+							|| currentRate == null
+							|| previousRate.compareTo(currentRate.rateToKrw()) != 0;
+				})
+				.collect(Collectors.toSet());
+	}
+
 	@Transactional
 	public void completeMemberSettlement(Long roomId, Long memberId) {
 		Settlement settlement = settlementRepository.findByRoomId(roomId)
@@ -164,19 +191,18 @@ public class SettlementService {
 		SettlementMemberResult memberResult = settlementMemberResultRepository
 				.findBySettlementIdAndMemberId(settlement.getId(), memberId)
 				.orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
-		memberResult.complete(LocalDateTime.now());
+		LocalDateTime completedAt = LocalDateTime.now();
+		memberResult.complete(completedAt);
+		settlementProgressService.complete(roomId, memberId, completedAt);
 	}
 
-	// 완료한 참여자가 자신의 분담을 다시 수정하려 할 때, 재확정 후에도 완료 상태가
-	// 그대로 보존되어 "완료하기" 화면으로 돌아오지 못하는 것을 막기 위해 완료를 취소한다.
 	@Transactional
 	public void uncompleteMemberSettlement(Long roomId, Long memberId) {
-		Settlement settlement = settlementRepository.findByRoomId(roomId)
-				.orElseThrow(() -> new BusinessException(ErrorCode.SETTLEMENT_NOT_FOUND));
-		SettlementMemberResult memberResult = settlementMemberResultRepository
-				.findBySettlementIdAndMemberId(settlement.getId(), memberId)
-				.orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
-		memberResult.uncomplete();
+		settlementProgressService.uncomplete(roomId, memberId);
+		settlementRepository.findByRoomId(roomId)
+				.flatMap(settlement -> settlementMemberResultRepository
+						.findBySettlementIdAndMemberId(settlement.getId(), memberId))
+				.ifPresent(SettlementMemberResult::uncomplete);
 	}
 
 	@Transactional(readOnly = true)
@@ -197,7 +223,7 @@ public class SettlementService {
 						result.getOwedKrw(), result.getPaidKrw() - result.getOwedKrw()))
 				.toList();
 		List<Long> completedMemberIds = storedMemberResults.stream()
-				.filter(result -> result.getCompletedAt() != null)
+				.filter(result -> result.getMember().isSettlementCompleted())
 				.map(result -> result.getMember().getId())
 				.toList();
 		List<SettlementPreviewResponse.TransferResponse> transfers = settlementTransferRepository
@@ -393,7 +419,7 @@ public class SettlementService {
 
 	private Set<String> getCurrencies(List<Payment> payments) {
 		return payments.stream().map(payment -> payment.getCurrency().name())
-				.collect(java.util.stream.Collectors.toSet());
+				.collect(Collectors.toSet());
 	}
 
 	private SettlementPreviewResponse.RateResponse toRateResponse(String currency, ResolvedRate rate) {

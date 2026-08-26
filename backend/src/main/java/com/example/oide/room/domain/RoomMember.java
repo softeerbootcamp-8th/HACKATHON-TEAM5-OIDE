@@ -41,9 +41,26 @@ public class RoomMember {
 	@Column(name = "created_at", nullable = false, updatable = false)
 	private LocalDateTime createdAt;
 
+	@Column(name = "settlement_completed_at")
+	private LocalDateTime settlementCompletedAt;
+
 	public RoomMember(SettlementRoom room, String nickname, int displayOrder) {
 		this.room = room;
 		this.nickname = nickname;
 		this.displayOrder = displayOrder;
+	}
+
+	public void completeSettlement(LocalDateTime completedAt) {
+		if (settlementCompletedAt == null) {
+			settlementCompletedAt = completedAt;
+		}
+	}
+
+	public void uncompleteSettlement() {
+		settlementCompletedAt = null;
+	}
+
+	public boolean isSettlementCompleted() {
+		return settlementCompletedAt != null;
 	}
 }

@@ -22,6 +22,9 @@ const SERVER_ERROR_CODES: Record<string, ApiErrorCode> = {
   PAYMENT_013: 'UNSUPPORTED_IMAGE_TYPE',
   PAYMENT_014: 'SCREENSHOT_TOO_LARGE',
   PAYMENT_015: 'EXTRACTION_JOB_NOT_FOUND',
+  SETTLEMENT_002: 'SETTLEMENT_NOT_FOUND',
+  SETTLEMENT_003: 'SETTLEMENT_SKIP_NOT_ALLOWED',
+  SETTLEMENT_004: 'SETTLEMENT_MEMBER_MISMATCH',
 };
 
 /** HTTP 상태코드 → 에러 코드 폴백. 서버가 code 를 안 줄 때만 쓴다. */
@@ -104,8 +107,8 @@ export const httpClient = {
     return request<T>(path, { method: 'PATCH', body: JSON.stringify(body) });
   },
 
-  put<T>(path: string, body: unknown): Promise<T> {
-    return request<T>(path, { method: 'PUT', body: JSON.stringify(body) });
+  put<T>(path: string, body: unknown, options?: RequestInit): Promise<T> {
+    return request<T>(path, { ...options, method: 'PUT', body: JSON.stringify(body) });
   },
 
   delete<T>(path: string): Promise<T> {
