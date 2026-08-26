@@ -26,7 +26,7 @@ import { deleteSplitGroup, getSplitGroupOverview } from '../services/splitGroupS
 import { isApiError } from '../types/api';
 import type { SplitGroup } from '../types/payment';
 import type { SettlementRoom } from '../types/room';
-import { formatAmount, sumAmountsByCurrency } from '../utils/formatters';
+import { formatCurrencyTotals, sumAmountsByCurrency } from '../utils/formatters';
 import { RoomExpiredPage } from './RoomExpiredPage';
 import styles from './SplitGroupListPage.module.css';
 
@@ -76,12 +76,7 @@ export function SplitGroupListPage() {
   const totalLabelOf = (groupId: string) => {
     const items = itemsOf(groupId);
     if (items.length === 0) return undefined;
-    const [firstTotal, ...otherTotals] = sumAmountsByCurrency(items);
-    const firstLabel = `${firstTotal.currency} ${formatAmount(
-      String(firstTotal.amount),
-      firstTotal.currency,
-    )}`;
-    return otherTotals.length > 0 ? `${firstLabel} · …` : firstLabel;
+    return formatCurrencyTotals(sumAmountsByCurrency(items));
   };
 
   const handleDelete = async (group: SplitGroup) => {

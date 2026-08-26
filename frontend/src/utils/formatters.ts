@@ -102,6 +102,34 @@ export function sumAmountsByCurrency(
   return [...totals].map(([currency, amount]) => ({ currency, amount }));
 }
 
+/** 합계 줄에 통화를 몇 개까지 늘어놓을지. 넘으면 뒤를 `· ..` 로 줄인다. */
+const MAX_SHOWN_CURRENCIES = 2;
+
+/**
+ * 통화별 합계를 한 줄로 만든다. 예: `KRW 255 · JPY 2,320 · ..`
+ *
+ * 통화가 세 개를 넘으면 카드나 하단 바가 두 줄로 늘어나므로 두 개까지만 보여준다.
+ * 통화가 하나뿐이면 통화 코드 없이 금액만 두는 곳이 있어 `withSingleCurrencyCode` 로 가른다.
+ * 합계가 없으면 빈 문자열이며, 무엇을 대신 보여줄지는 호출하는 쪽이 정한다.
+ */
+export function formatCurrencyTotals(
+  totals: { currency: CurrencyCode; amount: number }[],
+  { withSingleCurrencyCode = true }: { withSingleCurrencyCode?: boolean } = {},
+): string {
+  if (totals.length === 0) return '';
+
+  const label = ({ currency, amount }: { currency: CurrencyCode; amount: number }) =>
+    `${currency} ${formatAmount(String(amount), currency)}`;
+
+  if (totals.length === 1) {
+    const [only] = totals;
+    return withSingleCurrencyCode ? label(only) : formatAmount(String(only.amount), only.currency);
+  }
+
+  const shown = totals.slice(0, MAX_SHOWN_CURRENCIES).map(label).join(' · ');
+  return totals.length > MAX_SHOWN_CURRENCIES ? `${shown} · ..` : shown;
+}
+
 /** 입력 중인 금액 문자열에서 숫자와 소수점만 남긴다. */
 export function sanitizeAmountInput(value: string, fractionDigits: number): string {
   const cleaned = value.replace(/[^\d.]/g, '');

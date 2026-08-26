@@ -19,6 +19,7 @@ import {
   splitGroupMethodPath,
   splitGroupsPath,
 } from '../constants/routes';
+import { DEFAULT_CURRENCY } from '../constants/roomRules';
 import { useAsync } from '../hooks/useAsync';
 import { useLocalIdentity } from '../hooks/useLocalIdentity';
 import { createPayments } from '../services/paymentService';
@@ -33,6 +34,7 @@ import type { CreatePaymentInput, SplitGroup } from '../types/payment';
 import type { SettlementRoom } from '../types/room';
 import {
   formatAmount,
+  formatCurrencyTotals,
   formatDateSection,
   sumAmountsByCurrency,
   toDateKey,
@@ -128,15 +130,10 @@ export function SplitGroupItemsPage() {
 
   const selectedPayments = targetPayments.filter((payment) => selected.includes(payment.id));
   const currencyTotals = sumAmountsByCurrency(selectedPayments);
+  // 아무것도 고르지 않았으면 방의 기본 통화로 0 을 보여준다.
   const totalLabel =
-    currencyTotals.length < 2
-      ? formatAmount(
-          String(currencyTotals[0]?.amount ?? 0),
-          currencyTotals[0]?.currency ?? 'JPY',
-        )
-      : currencyTotals
-          .map(({ currency, amount }) => `${currency} ${formatAmount(String(amount), currency)}`)
-          .join(' · ');
+    formatCurrencyTotals(currencyTotals, { withSingleCurrencyCode: false }) ||
+    formatAmount('0', data?.room.defaultCurrency ?? DEFAULT_CURRENCY);
 
   const handleAddMissing = async (input: CreatePaymentInput) => {
     setSubmitting(true);
