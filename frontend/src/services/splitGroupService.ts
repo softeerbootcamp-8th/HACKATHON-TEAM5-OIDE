@@ -74,6 +74,10 @@ function mapSplitGroup(roomId: number, response: SplitGroupResponse): SplitGroup
     roomId: String(roomId),
     name: response.name,
     type: response.type,
+    creatorMemberId:
+      response.creatorMemberId === undefined || response.creatorMemberId === null
+        ? null
+        : String(response.creatorMemberId),
     memberIds,
     paymentCount: response.paymentCount ?? 0,
   };
@@ -172,12 +176,13 @@ export async function createSplitGroup(
   shareCode: string,
   name: string,
   memberIds: string[],
+  creatorMemberId: string,
 ): Promise<SplitGroup> {
   if (USE_MOCK) {
     try {
       const room = requireRoom(shareCode);
       const members = room.members.filter((member) => memberIds.includes(member.id));
-      return mockDelay(mockSplitGroupStore.create(room.id, members));
+      return mockDelay(mockSplitGroupStore.create(room.id, members, creatorMemberId));
     } catch (error) {
       return mockDelayReject(error as ApiError);
     }
@@ -185,7 +190,11 @@ export async function createSplitGroup(
 
   const roomId = await resolveRoomId(shareCode);
   const response = await callOrval<SplitGroupResponse>(() =>
-    createGroup(roomId, { name, memberIds: memberIds.map(parseApiId) }),
+    createGroup(roomId, {
+      name,
+      memberIds: memberIds.map(parseApiId),
+      creatorMemberId: parseApiId(creatorMemberId),
+    }),
   );
   return mapSplitGroup(roomId, response);
 }

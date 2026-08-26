@@ -76,7 +76,10 @@ export function SplitGroupMembersPage() {
   const isDuplicateGroup =
     selectedMembers.length >= MIN_GROUP_MEMBER_COUNT &&
     (data?.groups.some(
-      (group) => group.id !== groupId && hasSameMemberIds(group.memberIds, selectedMemberIds),
+      (group) =>
+        group.id !== groupId &&
+        group.creatorMemberId === identity.memberId &&
+        hasSameMemberIds(group.memberIds, selectedMemberIds),
     ) ?? false);
   const canSubmit =
     selectedMembers.length >= MIN_GROUP_MEMBER_COUNT && !isDuplicateGroup;
@@ -107,7 +110,7 @@ export function SplitGroupMembersPage() {
       if (groupId) {
         await updateSplitGroup(shareCode, groupId, groupName, selectedMemberIds);
       } else {
-        await createSplitGroup(shareCode, groupName, selectedMemberIds);
+        await createSplitGroup(shareCode, groupName, selectedMemberIds, identity.memberId);
       }
       navigate(returnPath, { replace: true });
     } catch (caught) {
