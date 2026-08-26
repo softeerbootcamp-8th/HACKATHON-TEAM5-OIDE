@@ -8,6 +8,7 @@ public record SplitGroupResponse(
 		Long id,
 		String name,
 		SplitGroupType type,
+		Long creatorMemberId,
 		List<MemberResponse> members,
 		long paymentCount) {
 

@@ -11,4 +11,5 @@ export interface CreateSplitGroupRequest {
   name?: string;
   /** @minItems 1 */
   memberIds?: number[];
+  creatorMemberId?: number;
 }

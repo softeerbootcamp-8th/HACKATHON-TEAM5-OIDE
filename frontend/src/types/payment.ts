@@ -29,6 +29,7 @@ export interface SplitGroup {
   /** 참여자 닉네임을 나열한 이름 (예: "민서·하늘"). ALL 그룹은 "전체". */
   name: string;
   type: SplitGroupType;
+  creatorMemberId: string | null;
   memberIds: string[];
   paymentCount?: number;
   createdAt?: IsoDateTime;
