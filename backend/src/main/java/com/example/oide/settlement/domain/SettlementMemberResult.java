@@ -1,5 +1,7 @@
 package com.example.oide.settlement.domain;
 
+import java.time.LocalDateTime;
+
 import com.example.oide.room.domain.RoomMember;
 
 import jakarta.persistence.Column;
@@ -42,11 +44,20 @@ public class SettlementMemberResult {
 	@Column(name = "owed_krw", nullable = false)
 	private long owedKrw;
 
+	@Column(name = "completed_at")
+	private LocalDateTime completedAt;
+
 	public SettlementMemberResult(
 			Settlement settlement, RoomMember member, long paidKrw, long owedKrw) {
 		this.settlement = settlement;
 		this.member = member;
 		this.paidKrw = paidKrw;
 		this.owedKrw = owedKrw;
+	}
+
+	public void complete(LocalDateTime completedAt) {
+		if (this.completedAt == null) {
+			this.completedAt = completedAt;
+		}
 	}
 }
