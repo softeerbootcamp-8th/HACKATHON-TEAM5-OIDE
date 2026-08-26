@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { Avatar } from '../components/common/Avatar';
 import { Button } from '../components/common/Button';
@@ -32,6 +32,15 @@ export function SettlementDonePage() {
   const load = useCallback(() => getConfirmedSettlement(shareCode), [shareCode]);
   const { status, data, error, retry } = useAsync(load, [shareCode]);
 
+  const everyoneDone =
+    data !== null && data.completedMemberIds.length === data.members.length;
+
+  useEffect(() => {
+    if (status !== 'success' || everyoneDone) return;
+    const intervalId = window.setInterval(retry, 3000);
+    return () => window.clearInterval(intervalId);
+  }, [everyoneDone, retry, status]);
+
   if (status === 'error' && error?.code === 'ROOM_EXPIRED') {
     return <RoomExpiredPage />;
   }
@@ -40,42 +49,58 @@ export function SettlementDonePage() {
   }
 
   return (
-    <MobileFrame>
+    <MobileFrame tone="subtle">
       <AppBar />
-      {status === 'loading' && <LoadingState />}
+      {status === 'loading' && !data && <LoadingState />}
 
       {status === 'error' && (
         <ErrorState title="불러오지 못했어요" description={error?.message} onRetry={retry} />
       )}
 
-      {status === 'success' && data && (
+      {status !== 'error' && data && (
         <>
           <ScreenBody>
             <ScreenHeader
-              title="내 정산이 완료되었어요!"
-              description="모두 정산을 마쳤어요. 최종 결과를 확인해보세요."
+              className={styles.header}
+              title={
+                <>
+                  <span className={styles.highlight}>내 정산</span>이 완료되었어요!
+                </>
+              }
+              description={
+                everyoneDone
+                  ? '모두 정산을 마쳤어요. 최종 결과를 확인해보세요.'
+                  : '다른 사람들의 정산이 끝날 때까지 기다려주세요.'
+              }
             />
             <div className={styles.content}>
               <ul className={styles.cards}>
-                {data.members.map((member) => (
-                  <li key={member.memberId}>
-                    <button
-                      type="button"
-                      className={styles.card}
-                      onClick={() => navigate(memberSummaryPath(shareCode, member.memberId))}
-                    >
-                      <Avatar nickname={member.nickname} />
-                      <span className={styles.nickname}>{member.nickname}</span>
-                      <span className={styles.trailing}>내역 보기</span>
-                    </button>
-                  </li>
-                ))}
+                {data.members.map((member) => {
+                  const isCompleted = data.completedMemberIds.includes(member.memberId);
+
+                  return (
+                    <li key={member.memberId}>
+                      <button
+                        type="button"
+                        className={styles.card}
+                        disabled={!isCompleted}
+                        onClick={() => navigate(memberSummaryPath(shareCode, member.memberId))}
+                      >
+                        <Avatar nickname={member.nickname} />
+                        <span className={styles.nickname}>{member.nickname}</span>
+                        {isCompleted && <span className={styles.trailing}>내역 보기</span>}
+                      </button>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           </ScreenBody>
 
           <BottomActionBar>
             <Button
+              className={styles.action}
+              disabled={!everyoneDone}
               onClick={() => navigate(transferListPath(shareCode))}
             >
               최종 정산하기

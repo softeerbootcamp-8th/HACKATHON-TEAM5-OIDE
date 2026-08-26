@@ -1,7 +1,25 @@
+.header {
+  margin-bottom: 10px;
+  padding-top: var(--space-md);
+}
+
+.header h1 {
+  font-size: 22px;
+}
+
+.header p {
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.highlight {
+  color: var(--color-primary);
+}
+
 .content {
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
+  gap: 10px;
   padding: 0 var(--space-screen-x);
 }
 
@@ -14,11 +32,11 @@
 .transfer {
   display: flex;
   align-items: center;
-  gap: var(--space-xs);
+  gap: 10px;
   width: 100%;
   min-height: 64px;
-  padding: var(--space-md);
-  border-radius: var(--radius-md);
+  padding: 14px var(--space-md);
+  border-radius: 10px;
   background: var(--color-surface);
   text-align: left;
 }
@@ -28,8 +46,15 @@
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
-  font-size: var(--font-size-body);
+  font-size: 16px;
+  font-weight: 500;
   color: var(--color-text);
+}
+
+.transferAvatar {
+  width: 28px;
+  height: 28px;
+  background: var(--color-border-strong);
 }
 
 .arrow {
@@ -52,20 +77,23 @@
 
 .rateBox {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: var(--space-md);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
+  align-items: center;
+  justify-content: space-between;
+  padding-top: var(--space-xs);
 }
 
 .rateLabel {
-  font-size: var(--font-size-caption);
+  font-size: 14px;
   color: var(--color-text-muted);
 }
 
 .rateValue {
-  font-size: var(--font-size-body);
-  color: var(--color-text);
+  font-size: 14px;
+  color: var(--color-text-muted);
 }
 
+.action {
+  border-radius: 16px;
+  font-size: 16px;
+  font-weight: 500;
+}

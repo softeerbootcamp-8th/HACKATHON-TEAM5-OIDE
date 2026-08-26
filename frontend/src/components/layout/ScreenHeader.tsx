@@ -3,7 +3,7 @@ import styles from './ScreenHeader.module.css';
 
 interface ScreenHeaderProps {
   /** 줄바꿈이 필요하면 \n 을 넣는다. 와이어프레임의 2줄 타이틀을 그대로 재현하기 위함이다. */
-  title: string;
+  title: ReactNode;
   description?: ReactNode;
   className?: string;
 }
