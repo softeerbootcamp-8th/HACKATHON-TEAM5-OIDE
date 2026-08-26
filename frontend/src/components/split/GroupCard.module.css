@@ -1,0 +1,39 @@
+.card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  min-height: 90px;
+  padding: 16px;
+  border-radius: 10px;
+  background: #f6f6f6;
+  text-align: left;
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.name {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+
+.trailing {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-shrink: 0;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.chevron {
+  color: var(--color-text-muted);
+}

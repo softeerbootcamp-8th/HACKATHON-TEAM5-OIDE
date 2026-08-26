@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import com.example.oide.global.currency.SupportedCurrency;
 import com.example.oide.room.domain.RoomMember;
 import com.example.oide.room.domain.SettlementRoom;
 import com.example.oide.splitgroup.domain.SplitGroup;
@@ -43,17 +44,20 @@ public class Payment {
 	@JoinColumn(name = "payer_member_id", nullable = false)
 	private RoomMember payer;
 
-	@Column(nullable = false)
+	// FR-02: 결제처와 결제 시각은 입력하지 않아도 되므로 null을 허용한다.
+	@Column
 	private String merchant;
 
-	@Column(name = "paid_at", nullable = false)
+	@Column(name = "paid_at")
 	private LocalDateTime paidAt;
 
-	@Column(nullable = false)
+	// 원 통화 기준 금액을 그대로 보관한다. 원화 환산은 FR-04에서 정산 시점에 수행한다.
+	@Column(nullable = false, precision = 19, scale = 4)
 	private BigDecimal amount;
 
+	@Enumerated(EnumType.STRING)
 	@Column(nullable = false, length = 3)
-	private String currency;
+	private SupportedCurrency currency;
 
 	@Enumerated(EnumType.STRING)
 	@Column(name = "split_method", length = 20)
@@ -77,7 +81,7 @@ public class Payment {
 			String merchant,
 			LocalDateTime paidAt,
 			BigDecimal amount,
-			String currency,
+			SupportedCurrency currency,
 			SplitMethod splitMethod) {
 		this.room = room;
 		this.payer = payer;

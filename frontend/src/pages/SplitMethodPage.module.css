@@ -1,0 +1,99 @@
+.screenHeader {
+  padding-top: var(--space-md);
+  margin-bottom: var(--space-sm);
+}
+
+.screenHeader h1 {
+  font-size: 22px;
+}
+
+.screenHeader p {
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.highlight {
+  color: var(--color-primary);
+  font-weight: 500;
+}
+
+.avatars {
+  padding: 0 var(--space-screen-x);
+  margin-bottom: var(--space-lg);
+}
+
+.content {
+  padding: 0 var(--space-screen-x);
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.row {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 12px 14px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--color-bg);
+  box-shadow: 0 0 1px rgb(0 0 0 / 25%);
+  text-align: left;
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.merchant {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.amount {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.meta {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--color-text-muted);
+}
+
+.method {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex-shrink: 0;
+  font-size: 14px;
+  color: var(--color-primary);
+}
+
+.methodBadge {
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-tint);
+}
+
+.chevron {
+  color: var(--color-text);
+  font-size: 16px;
+}
+
+.primaryButton {
+  border-radius: 16px;
+  font-size: 16px;
+  font-weight: 500;
+}

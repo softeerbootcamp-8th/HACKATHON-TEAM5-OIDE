@@ -1,0 +1,79 @@
+/* bottom 은 키보드가 덮은 높이만큼 인라인으로 채워진다. */
+.backdrop {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 10;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: var(--frame-max-width);
+  /* 백드롭이 키보드 위까지만 차지하므로 그 안에서의 비율로 잡는다. */
+  max-height: 92%;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  background: var(--color-bg);
+}
+
+.scrollArea {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-lg) var(--space-screen-x) 0;
+}
+
+.title {
+  margin-bottom: var(--space-md);
+  font-size: var(--font-size-title);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+}
+
+.footnote {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-muted);
+}
+
+/* 필드가 길어져도 등록 버튼은 항상 보이게 아래에 붙여둔다. */
+.actions {
+  display: flex;
+  gap: var(--space-sm);
+  flex-shrink: 0;
+  padding: var(--space-md) var(--space-screen-x)
+    calc(var(--space-lg) + env(safe-area-inset-bottom));
+  background: var(--color-bg);
+}
+
+.cancel {
+  flex: 1;
+  min-height: var(--control-height);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-button);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.submit {
+  flex: 2;
+}
+

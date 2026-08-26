@@ -1,0 +1,25 @@
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: 0 var(--space-screen-x);
+  margin-bottom: var(--space-lg);
+}
+
+.title {
+  font-size: var(--font-size-title);
+  font-weight: 700;
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.memberCount {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-muted);
+}

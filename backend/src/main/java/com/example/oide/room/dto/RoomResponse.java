@@ -2,6 +2,7 @@ package com.example.oide.room.dto;
 
 import java.util.List;
 
+import com.example.oide.global.currency.SupportedCurrency;
 import com.example.oide.room.domain.RoomMember;
 import com.example.oide.room.domain.SettlementRoom;
 
@@ -15,7 +16,7 @@ public record RoomResponse(
 		@Schema(description = "정산방 ID", example = "1") Long roomId,
 		@Schema(description = "공유 링크에 사용되는 코드 (소문자+숫자 6자리)", example = "4ypi20") String shareCode,
 		@Schema(description = "방 이름", example = "제주 여행") String title,
-		@Schema(description = "기본 통화 (현재는 KRW로 고정)", example = "KRW") String defaultCurrency,
+		@Schema(description = "기본 통화 (현재는 KRW로 고정)", example = "KRW") SupportedCurrency defaultCurrency,
 		@Schema(description = "참여자 목록") List<RoomMemberResponse> members) {
 
 	/** SettlementRoom 엔티티와 그에 속한 RoomMember 목록을 응답 DTO로 조립한다. */

@@ -17,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.oide.global.currency.SupportedCurrency;
 import com.example.oide.global.exception.BusinessException;
 import com.example.oide.global.exception.ErrorCode;
 import com.example.oide.payment.domain.Payment;
@@ -60,7 +61,7 @@ class SplitGroupPaymentSelectionTest {
 
 	@BeforeEach
 	void setUp() {
-		room = roomRepository.save(new SettlementRoom("payment-test", "결제 선택 방", "KRW"));
+		room = roomRepository.save(new SettlementRoom("payment-test", "결제 선택 방", SupportedCurrency.KRW));
 		firstMember = roomMemberRepository.save(new RoomMember(room, "첫째", 1));
 		secondMember = roomMemberRepository.save(new RoomMember(room, "둘째", 2));
 		thirdMember = roomMemberRepository.save(new RoomMember(room, "셋째", 3));
@@ -130,7 +131,7 @@ class SplitGroupPaymentSelectionTest {
 				merchant,
 				LocalDateTime.of(2026, 8, day, 12, 0),
 				BigDecimal.valueOf(10_000),
-				"KRW",
+				SupportedCurrency.KRW,
 				null));
 	}
 }

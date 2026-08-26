@@ -1,0 +1,7 @@
+/* 스크롤되는 본문 영역. 하단 고정 바에 가리지 않도록 여백을 둔다. */
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: var(--space-xl);
+}

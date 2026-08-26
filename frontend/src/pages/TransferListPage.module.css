@@ -1,0 +1,99 @@
+.header {
+  margin-bottom: 10px;
+  padding-top: var(--space-md);
+}
+
+.header h1 {
+  font-size: 22px;
+}
+
+.header p {
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.highlight {
+  color: var(--color-primary);
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 var(--space-screen-x);
+}
+
+.transfers {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.transfer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 64px;
+  padding: 14px var(--space-md);
+  border-radius: 10px;
+  background: var(--color-surface);
+  text-align: left;
+}
+
+.person {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.transferAvatar {
+  width: 28px;
+  height: 28px;
+  background: var(--color-border-strong);
+}
+
+.arrow {
+  flex-shrink: 0;
+  margin: 0 4px;
+  color: var(--color-text-muted);
+}
+
+.spacer {
+  flex: 1;
+}
+
+.amount {
+  flex-shrink: 0;
+  font-size: var(--font-size-body);
+  font-weight: 700;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.rateBox {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: var(--space-xs);
+}
+
+.rateLabel {
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.rateValue {
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.action {
+  border-radius: 16px;
+  font-size: 16px;
+  font-weight: 500;
+}

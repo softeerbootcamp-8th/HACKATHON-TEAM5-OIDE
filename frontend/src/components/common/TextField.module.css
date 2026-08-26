@@ -1,0 +1,50 @@
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.inputWrapper {
+  display: flex;
+  align-items: center;
+  min-height: var(--control-height);
+  padding: 0 var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  transition: border-color 0.12s ease;
+}
+
+.inputWrapper:focus-within {
+  border-color: var(--color-text-accent);
+}
+
+.invalid {
+  border-color: var(--color-text-accent);
+}
+
+.input {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  /* 16px 미만이면 iOS Safari 가 포커스 시 화면을 확대한다. */
+  font-size: var(--font-size-input);
+}
+
+.input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.helperRow {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-xs);
+  padding: 0 2px;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-muted);
+}
+
+.errorMessage {
+  color: var(--color-text-accent);
+}

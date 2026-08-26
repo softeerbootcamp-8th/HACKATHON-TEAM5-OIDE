@@ -16,10 +16,12 @@ import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import com.example.oide.global.currency.SupportedCurrency;
 import com.example.oide.global.exception.BusinessException;
 import com.example.oide.global.exception.ErrorCode;
 import com.example.oide.room.domain.RoomMember;
@@ -28,6 +30,9 @@ import com.example.oide.room.dto.RoomCreateRequest;
 import com.example.oide.room.dto.RoomResponse;
 import com.example.oide.room.repository.RoomMemberRepository;
 import com.example.oide.room.repository.SettlementRoomRepository;
+import com.example.oide.splitgroup.domain.SplitGroup;
+import com.example.oide.splitgroup.domain.SplitGroupType;
+import com.example.oide.splitgroup.repository.SplitGroupRepository;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("RoomService 단위 테스트")
@@ -37,10 +42,12 @@ class RoomServiceTest {
 
 	@Mock private RoomMemberRepository roomMemberRepository;
 
+	@Mock private SplitGroupRepository splitGroupRepository;
+
 	private RoomService roomService;
 
 	private RoomService createRoomService() {
-		return new RoomService(settlementRoomRepository, roomMemberRepository);
+		return new RoomService(settlementRoomRepository, roomMemberRepository, splitGroupRepository);
 	}
 
 	@Test
@@ -56,12 +63,17 @@ class RoomServiceTest {
 				roomService.createRoom(new RoomCreateRequest("여행 정산", List.of("민수", "영희")));
 
 		assertThat(response.title()).isEqualTo("여행 정산");
-		assertThat(response.defaultCurrency()).isEqualTo("KRW");
+		assertThat(response.defaultCurrency()).isEqualTo(SupportedCurrency.KRW);
 		assertThat(response.shareCode()).hasSize(6);
 		assertThat(response.members()).hasSize(2);
 		assertThat(response.members().get(0).nickname()).isEqualTo("민수");
 		assertThat(response.members().get(0).displayOrder()).isEqualTo(0);
 		assertThat(response.members().get(1).displayOrder()).isEqualTo(1);
+
+		ArgumentCaptor<SplitGroup> groupCaptor = ArgumentCaptor.forClass(SplitGroup.class);
+		verify(splitGroupRepository).save(groupCaptor.capture());
+		assertThat(groupCaptor.getValue().getName()).isEqualTo("전체");
+		assertThat(groupCaptor.getValue().getType()).isEqualTo(SplitGroupType.ALL);
 	}
 
 	@Test
@@ -147,7 +159,7 @@ class RoomServiceTest {
 	@DisplayName("shareCode에 해당하는 방이 있고 만료되지 않았으면 방 정보를 반환한다")
 	void returnsRoomWhenShareCodeExistsAndNotExpired() {
 		roomService = createRoomService();
-		SettlementRoom room = new SettlementRoom("abc123", "여행 정산", "KRW");
+		SettlementRoom room = new SettlementRoom("abc123", "여행 정산", SupportedCurrency.KRW);
 		ReflectionTestUtils.setField(room, "id", 1L);
 		ReflectionTestUtils.setField(room, "createdAt", LocalDateTime.now().minusDays(1));
 		given(settlementRoomRepository.findByShareCode("abc123")).willReturn(Optional.of(room));
@@ -176,7 +188,7 @@ class RoomServiceTest {
 	@DisplayName("생성된 지 7일이 지난 방을 조회하면 ROOM_EXPIRED 예외를 던진다")
 	void throwsRoomExpiredWhenOlderThanSevenDays() {
 		roomService = createRoomService();
-		SettlementRoom room = new SettlementRoom("abc123", "여행 정산", "KRW");
+		SettlementRoom room = new SettlementRoom("abc123", "여행 정산", SupportedCurrency.KRW);
 		ReflectionTestUtils.setField(room, "id", 1L);
 		ReflectionTestUtils.setField(room, "createdAt", LocalDateTime.now().minusDays(8));
 		given(settlementRoomRepository.findByShareCode("abc123")).willReturn(Optional.of(room));

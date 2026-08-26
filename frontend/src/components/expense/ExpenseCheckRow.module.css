@@ -1,0 +1,44 @@
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--color-bg);
+  box-shadow: 0 0 1px rgb(0 0 0 / 25%);
+  text-align: left;
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.merchant {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.amount {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.meta {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--color-text-muted);
+}
+
+/* 다른 그룹이 이미 가져간 항목. 감추지 않고 고를 수 없다는 것만 드러낸다. */
+.taken {
+  opacity: 0.5;
+}

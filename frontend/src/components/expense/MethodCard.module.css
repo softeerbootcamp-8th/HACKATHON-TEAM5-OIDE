@@ -1,0 +1,43 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  height: 233px;
+  padding: var(--space-screen-x);
+  /* 선택되지 않은 카드도 같은 두께의 테두리를 둬야 선택 시 크기가 흔들리지 않는다. */
+  border: 1.4px solid transparent;
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  box-shadow: var(--shadow-card);
+  text-align: center;
+}
+
+.selected {
+  border-color: var(--color-primary);
+}
+
+.badge {
+  padding: 2px var(--space-sm);
+  border-radius: var(--radius-full);
+  background: var(--color-primary-tint);
+  color: var(--color-primary);
+  font-size: var(--font-size-label);
+  font-weight: 700;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.icon {
+  /* 내려받은 일러스트마다 여백 비율이 달라 늘어나지 않도록 contain 을 쓴다. */
+  object-fit: contain;
+}
+
+.title {
+  font-size: var(--font-size-subtitle);
+  font-weight: 700;
+  line-height: 1.5;
+  color: var(--color-text);
+  white-space: pre-line;
+}

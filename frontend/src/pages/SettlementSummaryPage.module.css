@@ -1,0 +1,71 @@
+.header {
+  margin-bottom: var(--space-sm);
+  padding-top: var(--space-md);
+}
+
+.header h1 {
+  font-size: 22px;
+}
+
+.header p {
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.content {
+  padding: 0 var(--space-screen-x);
+}
+
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: 20px var(--space-md);
+  border-radius: 10px;
+  background: var(--color-bg);
+  box-shadow: var(--shadow-card);
+  text-align: left;
+}
+
+.nickname {
+  flex: 1;
+  font-size: var(--font-size-body);
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+
+/* 내 카드는 한눈에 찾을 수 있게 굵게 둔다. */
+.mine .nickname {
+  font-weight: 700;
+}
+
+.amount {
+  flex-shrink: 0;
+  font-size: var(--font-size-body);
+  font-weight: 500;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.mine .amount {
+  font-weight: 700;
+}
+
+.action {
+  border-radius: 16px;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.trailing {
+  flex-shrink: 0;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-muted);
+}

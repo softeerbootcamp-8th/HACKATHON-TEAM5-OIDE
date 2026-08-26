@@ -1,0 +1,20 @@
+.content {
+  padding: 0 var(--space-screen-x);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-sm);
+}
+
+.counter {
+  margin-top: var(--space-sm);
+  text-align: right;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-muted);
+}
+
+.fileInput {
+  display: none;
+}

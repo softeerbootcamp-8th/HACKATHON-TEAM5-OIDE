@@ -1,0 +1,54 @@
+.content {
+  /* 헤더 아래 24px 에 8px 을 더해 디자인의 32px 간격을 맞춘다. */
+  padding: var(--space-xs) var(--space-screen-x) 0;
+}
+
+.section {
+  margin-bottom: 36px;
+}
+
+.section:last-child {
+  margin-bottom: 0;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: 10px;
+}
+
+.thumbButton {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  overflow: hidden;
+}
+
+.thumbImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sectionTitle {
+  font-size: var(--font-size-label);
+  line-height: var(--line-height-title);
+  color: var(--color-text-muted);
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.restLabel {
+  margin: 40px 0 var(--space-md);
+  font-size: var(--font-size-lead);
+  font-weight: 500;
+  line-height: var(--line-height-title);
+  color: var(--color-text-muted);
+}

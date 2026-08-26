@@ -1,0 +1,55 @@
+.screenHeader {
+  padding-top: var(--space-md);
+  margin-bottom: var(--space-sm);
+}
+
+.screenHeader h1 {
+  font-size: 22px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 0 var(--space-screen-x);
+  margin-bottom: var(--space-lg);
+}
+
+.editLink {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.content {
+  padding: 0 var(--space-screen-x);
+}
+
+.section + .section {
+  margin-top: var(--space-sm);
+}
+
+.sectionHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.selectAll {
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.addMissing {
+  width: 100%;
+  padding: var(--space-lg) 0 var(--space-md);
+  font-size: 16px;
+  color: #707070;
+}

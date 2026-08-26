@@ -9,6 +9,7 @@ import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.oide.global.currency.SupportedCurrency;
 import com.example.oide.global.exception.BusinessException;
 import com.example.oide.global.exception.ErrorCode;
 import com.example.oide.global.util.RoomExpirationValidator;
@@ -18,6 +19,9 @@ import com.example.oide.room.dto.RoomCreateRequest;
 import com.example.oide.room.dto.RoomResponse;
 import com.example.oide.room.repository.RoomMemberRepository;
 import com.example.oide.room.repository.SettlementRoomRepository;
+import com.example.oide.splitgroup.domain.SplitGroup;
+import com.example.oide.splitgroup.domain.SplitGroupType;
+import com.example.oide.splitgroup.repository.SplitGroupRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -30,7 +34,7 @@ import lombok.RequiredArgsConstructor;
 public class RoomService {
 
 	// 방 생성 시 통화 선택 UI가 없어 KRW로 고정한다(#18 코멘트 결정 사항).
-	private static final String DEFAULT_CURRENCY = "KRW";
+	private static final SupportedCurrency DEFAULT_CURRENCY = SupportedCurrency.KRW;
 	private static final int MAX_TITLE_LENGTH = 10;
 	private static final int MIN_MEMBER_COUNT = 2;
 	private static final int MAX_NICKNAME_LENGTH = 10;
@@ -38,9 +42,11 @@ public class RoomService {
 	private static final String SHARE_CODE_ALPHABET = "abcdefghijklmnopqrstuvwxyz0123456789";
 	private static final int SHARE_CODE_LENGTH = 6;
 	private static final int MAX_SHARE_CODE_ATTEMPTS = 5;
+	private static final String ALL_GROUP_NAME = "전체";
 
 	private final SettlementRoomRepository settlementRoomRepository;
 	private final RoomMemberRepository roomMemberRepository;
+	private final SplitGroupRepository splitGroupRepository;
 	private final SecureRandom secureRandom = new SecureRandom();
 
 	/**
@@ -63,6 +69,7 @@ public class RoomService {
 			members.add(new RoomMember(room, nicknames.get(i), i));
 		}
 		roomMemberRepository.saveAll(members);
+		splitGroupRepository.save(new SplitGroup(room, ALL_GROUP_NAME, SplitGroupType.ALL));
 
 		return RoomResponse.of(room, members);
 	}

@@ -1,0 +1,10 @@
+.banner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font-size: var(--font-size-caption);
+  color: var(--color-text-accent);
+}

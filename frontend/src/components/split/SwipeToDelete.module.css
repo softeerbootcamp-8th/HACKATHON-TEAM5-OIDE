@@ -1,0 +1,42 @@
+.wrapper {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+}
+
+/* 카드가 오른쪽으로 밀리면 그 아래에서 드러난다. */
+.deleteLayer {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  padding-left: 14px;
+}
+
+/* 닫혀 있으면 카드에 가려 보이지 않으므로 눌리지도 않아야 한다. */
+.deleteLayer[data-opened='false'] {
+  pointer-events: none;
+}
+
+.deleteButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--touch-target-min);
+  height: var(--touch-target-min);
+  border-radius: var(--radius-full);
+  color: var(--color-text);
+  font-size: 15px;
+}
+
+.content {
+  position: relative;
+  transition: transform 0.18s ease;
+  touch-action: pan-y;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .content {
+    transition: none;
+  }
+}
