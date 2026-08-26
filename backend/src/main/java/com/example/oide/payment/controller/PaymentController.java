@@ -6,12 +6,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.oide.global.exception.ErrorResponse;
 import com.example.oide.payment.dto.PaymentBulkRegisterRequest;
+import com.example.oide.payment.dto.PaymentInclusionRequest;
 import com.example.oide.payment.dto.PaymentRegisterRequest;
 import com.example.oide.payment.dto.PaymentResponse;
 import com.example.oide.payment.service.PaymentCommandService;
@@ -123,5 +125,26 @@ public class PaymentController {
 	public List<PaymentResponse> findAll(
 			@Parameter(description = "정산방 ID", example = "1") @PathVariable Long roomId) {
 		return paymentCommandService.findAll(roomId).stream().map(PaymentResponse::from).toList();
+	}
+
+	@PatchMapping("/api/rooms/{roomId}/payments/{paymentId}/inclusion")
+	@Operation(summary = "정산 대상 포함 여부 변경")
+	@ApiResponses({
+		@ApiResponse(responseCode = "204", description = "변경 성공"),
+		@ApiResponse(
+				responseCode = "404",
+				description = "정산방 또는 결제 내역을 찾을 수 없음",
+				content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+		@ApiResponse(
+				responseCode = "410",
+				description = "정산방이 만료됨",
+				content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+	})
+	public ResponseEntity<Void> updateInclusion(
+			@Parameter(description = "정산방 ID", example = "1") @PathVariable Long roomId,
+			@Parameter(description = "결제 내역 ID", example = "101") @PathVariable Long paymentId,
+			@RequestBody PaymentInclusionRequest request) {
+		paymentCommandService.updateInclusion(roomId, paymentId, request.includedInSettlement());
+		return ResponseEntity.noContent().build();
 	}
 }

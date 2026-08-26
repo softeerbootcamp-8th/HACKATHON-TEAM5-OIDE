@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * 결제 분담 방식: EQUAL=균등 분담, CUSTOM=참여자별 직접 입력
+ */
 export type PaymentShareResponseSplitMethod = typeof PaymentShareResponseSplitMethod[keyof typeof PaymentShareResponseSplitMethod];
 
 

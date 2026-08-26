@@ -7,7 +7,13 @@
  */
 import type { PaymentRegisterRequest } from './paymentRegisterRequest';
 
+/**
+ * 사용자가 확인·수정한 결제 내역 일괄 등록 요청
+ */
 export interface PaymentBulkRegisterRequest {
-  /** @minItems 1 */
+  /**
+     * 등록할 결제 내역. 최소 한 건 이상이어야 함
+     * @minItems 1
+     */
   payments?: PaymentRegisterRequest[];
 }

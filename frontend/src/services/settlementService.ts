@@ -167,7 +167,6 @@ export async function confirmSettlement(
       room.id,
       manualRate ?? null,
     );
-    mockSettlementStore.resetCompletedMembers(room.id);
     await mockDelay(undefined);
     return;
   }
