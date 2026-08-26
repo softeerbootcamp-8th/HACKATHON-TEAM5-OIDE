@@ -1,3 +1,46 @@
-.intro {
+.title {
+  padding: 36px var(--space-screen-x) 0; /* Figma pt-36 */
+  font-size: 26px; /* Figma Mobile/Title1 */
+  font-weight: 700;
+  line-height: 1.5;
+  color: var(--color-text);
+}
+
+.accent {
+  color: var(--color-primary);
+}
+
+.middle {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  gap: 20px; /* Figma gap-20 */
   padding: 0 var(--space-screen-x);
+}
+
+/* 남는 세로 공간은 여기서만 흡수한다. 로고 아래 목록~버튼 사이 간격은 고정값으로 유지. */
+.logoCenter {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  align-items: center;
+  justify-content: center;
+}
+
+.logo {
+  width: 216px;
+  height: 216px;
+}
+
+/* Figma 기준(390x844)보다 세로가 짧은 창에서는 로고를 줄여 스크롤 없이 다 보이게 한다. */
+@media (max-height: 780px) {
+  .logo {
+    width: 160px;
+    height: 160px;
+  }
+
+  .middle {
+    gap: 12px;
+  }
 }
