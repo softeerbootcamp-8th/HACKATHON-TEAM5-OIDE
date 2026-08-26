@@ -103,10 +103,12 @@ public class SplitGroupService {
 
 	// 사용자 지정 그룹명과 구성원을 수정한다.
 	@Transactional
-	public SplitGroupResponse update(Long roomId, Long groupId, UpdateSplitGroupRequest request) {
+	public SplitGroupResponse update(
+			Long roomId, Long groupId, Long requesterMemberId, UpdateSplitGroupRequest request) {
 		findRoomForUpdate(roomId);
 		// 전체 그룹은 고정이므로 사용자 지정 그룹인지와 방 소속을 함께 확인한다.
 		SplitGroup group = findCustomGroup(roomId, groupId);
+		validateGroupOwner(group, requesterMemberId);
 		// 변경하려는 구성원도 현재 정산방의 참여자인지 확인한다.
 		List<RoomMember> members = findMembers(roomId, request.memberIds());
 		// 구성원 교체 후에도 최소 인원 수 조건을 만족해야 한다.
@@ -182,17 +184,18 @@ public class SplitGroupService {
 			boolean requiresDefaultSplit = payment.getSplitMethod() == null;
 			payment.assignGroup(group);
 			if (requiresDefaultSplit) {
-				paymentShareService.saveEqual(roomId, payment.getId());
+				paymentShareService.saveEqual(roomId, payment.getId(), member.getId());
 			}
 		}
 	}
 
 	// 사용자 지정 그룹을 삭제한다.
 	@Transactional
-	public void delete(Long roomId, Long groupId) {
+	public void delete(Long roomId, Long groupId, Long requesterMemberId) {
 		findRoomForUpdate(roomId);
 		// 전체 그룹 삭제나 다른 정산방의 그룹 삭제를 막는다.
 		SplitGroup group = findCustomGroup(roomId, groupId);
+		validateGroupOwner(group, requesterMemberId);
 		// 삭제 전에 이 그룹에 연결된 결제를 해제해 결제의 외래 키 참조를 없앤다.
 		for (Payment payment : paymentRepository.findAllByRoomIdAndSplitGroupIdForUpdate(roomId, groupId)) {
 			payment.clearSplit();
@@ -295,6 +298,12 @@ public class SplitGroupService {
 			throw new BusinessException(ErrorCode.GROUP_NOT_FOUND);
 		}
 		return group;
+	}
+
+	private void validateGroupOwner(SplitGroup group, Long requesterMemberId) {
+		if (!group.getCreator().getId().equals(requesterMemberId)) {
+			throw new BusinessException(ErrorCode.GROUP_NOT_OWNER);
+		}
 	}
 
 	// 사용자 지정 그룹의 최소 인원 수를 검증한다.

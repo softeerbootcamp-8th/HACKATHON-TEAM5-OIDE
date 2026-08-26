@@ -40,9 +40,10 @@ public class PaymentShareService {
 	private final EqualShareCalculator equalShareCalculator;
 
 	@Transactional
-	public PaymentShareResponse saveEqual(Long roomId, Long paymentId) {
+	public PaymentShareResponse saveEqual(Long roomId, Long paymentId, Long requesterMemberId) {
 		lockRoom(roomId);
 		Payment payment = findPaymentForUpdate(roomId, paymentId);
+		validatePaymentOwner(payment, requesterMemberId);
 		List<RoomMember> members = findGroupMembers(requireGroup(payment));
 		Map<Long, BigDecimal> shares = equalShareCalculator.calculate(payment.getAmount(), members, payment.getPayer().getId());
 		replaceShares(payment, members, shares);
@@ -51,9 +52,11 @@ public class PaymentShareService {
 	}
 
 	@Transactional
-	public PaymentShareResponse saveCustom(Long roomId, Long paymentId, CustomShareRequest request) {
+	public PaymentShareResponse saveCustom(
+			Long roomId, Long paymentId, Long requesterMemberId, CustomShareRequest request) {
 		lockRoom(roomId);
 		Payment payment = findPaymentForUpdate(roomId, paymentId);
+		validatePaymentOwner(payment, requesterMemberId);
 		List<RoomMember> members = findGroupMembers(requireGroup(payment));
 		Map<Long, BigDecimal> shares = validateCustomShares(payment, members, request);
 		replaceShares(payment, members, shares);
@@ -146,6 +149,12 @@ public class PaymentShareService {
 	private Payment findPaymentForUpdate(Long roomId, Long paymentId) {
 		return paymentRepository.findByRoomIdAndIdForUpdate(roomId, paymentId)
 				.orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND));
+	}
+
+	private void validatePaymentOwner(Payment payment, Long requesterMemberId) {
+		if (!payment.getPayer().getId().equals(requesterMemberId)) {
+			throw new BusinessException(ErrorCode.PAYMENT_NOT_OWNER);
+		}
 	}
 
 	private void lockRoom(Long roomId) {

@@ -111,8 +111,9 @@ class SplitGroupServiceTest {
 		SplitGroupResponse updated = splitGroupService.update(
 				room.getId(),
 				created.id(),
+				created.creatorMemberId(),
 				new UpdateSplitGroupRequest("교통", List.of(secondMember.getId(), thirdMember.getId())));
-		splitGroupService.delete(room.getId(), created.id());
+		splitGroupService.delete(room.getId(), created.id(), created.creatorMemberId());
 
 		assertEquals("교통", updated.name());
 		assertEquals(List.of(secondMember.getId(), thirdMember.getId()),
@@ -141,6 +142,7 @@ class SplitGroupServiceTest {
 		splitGroupService.update(
 				room.getId(),
 				group.id(),
+				group.creatorMemberId(),
 				new UpdateSplitGroupRequest("저녁", List.of(firstMember.getId(), secondMember.getId())));
 
 		assertEquals(SplitMethod.CUSTOM, payment.getSplitMethod());
@@ -149,6 +151,7 @@ class SplitGroupServiceTest {
 		splitGroupService.update(
 				room.getId(),
 				group.id(),
+				group.creatorMemberId(),
 				new UpdateSplitGroupRequest("식사", List.of(firstMember.getId(), thirdMember.getId())));
 
 		assertEquals(SplitMethod.EQUAL, payment.getSplitMethod());
@@ -163,6 +166,7 @@ class SplitGroupServiceTest {
 		BusinessException exception = assertThrows(BusinessException.class, () -> splitGroupService.update(
 				room.getId(),
 				allGroup.getId(),
+				firstMember.getId(),
 				new UpdateSplitGroupRequest("변경", List.of(firstMember.getId(), secondMember.getId()))));
 
 		assertEquals(ErrorCode.ALL_GROUP_IMMUTABLE, exception.getErrorCode());
@@ -237,6 +241,7 @@ class SplitGroupServiceTest {
 		BusinessException exception = assertThrows(BusinessException.class, () -> splitGroupService.update(
 				room.getId(),
 				group.id(),
+				group.creatorMemberId(),
 				new UpdateSplitGroupRequest("중복", List.of(secondMember.getId(), firstMember.getId()))));
 
 		assertEquals(ErrorCode.DUPLICATE_GROUP_MEMBERS, exception.getErrorCode());
@@ -251,6 +256,7 @@ class SplitGroupServiceTest {
 		BusinessException exception = assertThrows(BusinessException.class, () -> splitGroupService.update(
 				room.getId(),
 				group.id(),
+				group.creatorMemberId(),
 				new UpdateSplitGroupRequest(
 						"전체",
 						List.of(firstMember.getId(), secondMember.getId(), thirdMember.getId()))));
@@ -267,11 +273,32 @@ class SplitGroupServiceTest {
 		SplitGroupResponse response = splitGroupService.update(
 				room.getId(),
 				group.id(),
+				group.creatorMemberId(),
 				new UpdateSplitGroupRequest("저녁", List.of(secondMember.getId(), firstMember.getId())));
 
 		assertEquals("저녁", response.name());
 		assertEquals(List.of(firstMember.getId(), secondMember.getId()),
 				response.members().stream().map(SplitGroupResponse.MemberResponse::id).toList());
+	}
+
+	@Test
+	void rejectsUpdateAndDeleteByAnotherMember() {
+		SplitGroupResponse group = splitGroupService.create(
+				room.getId(),
+				new CreateSplitGroupRequest(
+						"식사", List.of(firstMember.getId(), secondMember.getId()), firstMember.getId()));
+
+		BusinessException updateException = assertThrows(BusinessException.class, () -> splitGroupService.update(
+				room.getId(),
+				group.id(),
+				secondMember.getId(),
+				new UpdateSplitGroupRequest("변경", List.of(firstMember.getId(), secondMember.getId()))));
+		BusinessException deleteException = assertThrows(BusinessException.class, () -> splitGroupService.delete(
+				room.getId(), group.id(), secondMember.getId()));
+
+		assertEquals(ErrorCode.GROUP_NOT_OWNER, updateException.getErrorCode());
+		assertEquals(ErrorCode.GROUP_NOT_OWNER, deleteException.getErrorCode());
+		assertTrue(groupRepository.findById(group.id()).isPresent());
 	}
 
 	@Test

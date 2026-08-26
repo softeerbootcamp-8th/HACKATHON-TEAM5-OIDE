@@ -44,6 +44,7 @@ export type ApiErrorCode =
   | 'INVALID_PAYMENT_SELECTION'
   /** 결제에 담을 그룹이 지정되지 않음 */
   | 'PAYMENT_GROUP_REQUIRED'
+  | 'PAYMENT_NOT_OWNER'
   /** 분담 참여자 구성이 유효하지 않음 */
   | 'INVALID_SHARE_MEMBERS'
   /** 분담 금액이 유효하지 않음 */
@@ -58,6 +59,7 @@ export type ApiErrorCode =
   | 'INVALID_GROUP_MEMBER_COUNT'
   /** 같은 참여자 구성의 그룹이 이미 존재함 */
   | 'DUPLICATE_GROUP_MEMBERS'
+  | 'GROUP_NOT_OWNER'
   /** 정산 실행 전 검증에 실패함 */
   | 'SETTLEMENT_VALIDATION_FAILED'
   /** 정산 결과를 찾을 수 없음 */

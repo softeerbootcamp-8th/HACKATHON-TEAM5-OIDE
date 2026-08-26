@@ -231,11 +231,11 @@ class SplitGroupPaymentSelectionTest {
 		Payment payment = createPayment("식당", 1);
 		splitGroupService.updatePayments(
 				room.getId(), group.id(), new UpdateGroupPaymentsRequest(firstMember.getId(), List.of(payment.getId())));
-		paymentShareService.saveCustom(room.getId(), payment.getId(), new CustomShareRequest(List.of(
+		paymentShareService.saveCustom(room.getId(), payment.getId(), firstMember.getId(), new CustomShareRequest(List.of(
 				new CustomShareRequest.ShareAmountRequest(firstMember.getId(), BigDecimal.valueOf(8_000)),
 				new CustomShareRequest.ShareAmountRequest(secondMember.getId(), BigDecimal.valueOf(2_000)))));
 
-		splitGroupService.update(room.getId(), group.id(), new UpdateSplitGroupRequest(
+		splitGroupService.update(room.getId(), group.id(), group.creatorMemberId(), new UpdateSplitGroupRequest(
 				"식사", List.of(firstMember.getId(), thirdMember.getId())));
 
 		assertEquals(SplitMethod.EQUAL, payment.getSplitMethod());

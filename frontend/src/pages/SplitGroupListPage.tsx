@@ -85,7 +85,7 @@ export function SplitGroupListPage() {
   const handleDelete = async (group: SplitGroup) => {
     setActionError(null);
     try {
-      await deleteSplitGroup(shareCode, group.id);
+      await deleteSplitGroup(shareCode, group.id, identity.memberId);
       retry();
     } catch (caught) {
       setActionError(isApiError(caught) ? caught.message : '그룹을 지우지 못했어요.');
@@ -93,7 +93,8 @@ export function SplitGroupListPage() {
   };
 
   const handleComplete = async () => {
-    const unassigned = targetPayments.filter((payment) => payment.splitGroupId === null);
+    const unassigned =
+      data?.payments.filter((payment) => payment.splitGroupId === null) ?? [];
     const defaultEqualPayments = targetPayments.filter(
       (payment) => payment.splitGroupId !== null && payment.splitMethod === null,
     );
@@ -103,7 +104,7 @@ export function SplitGroupListPage() {
     try {
       await Promise.all(
         defaultEqualPayments.map((payment) =>
-          setPaymentSplit(shareCode, payment.id, 'EQUAL', []),
+          setPaymentSplit(shareCode, payment.id, 'EQUAL', [], identity.memberId),
         ),
       );
       navigate(

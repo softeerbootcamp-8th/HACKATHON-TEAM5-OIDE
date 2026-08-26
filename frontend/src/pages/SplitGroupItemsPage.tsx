@@ -75,6 +75,8 @@ export function SplitGroupItemsPage() {
   const [actionError, setActionError] = useState<string | null>(null);
 
   const group = data?.groups.find((item) => item.id === groupId);
+  const canManageGroup =
+    group?.type === 'ALL' || group?.creatorMemberId === identity?.memberId;
 
   // 정산 대상으로 고른 항목만 다룬다.
   const targetPayments = useMemo(
@@ -97,7 +99,7 @@ export function SplitGroupItemsPage() {
   if (!identity) {
     return <Navigate to={joinRoomPath(shareCode)} replace />;
   }
-  if (status === 'success' && !group) {
+  if (status === 'success' && (!group || !canManageGroup)) {
     return <Navigate to={splitGroupsPath(shareCode)} replace />;
   }
 

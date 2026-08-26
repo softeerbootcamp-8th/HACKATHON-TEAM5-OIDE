@@ -12,6 +12,7 @@ import { ScreenHeader } from '../components/layout/ScreenHeader';
 import {
   joinRoomPath,
   memberSummaryPath,
+  settlementSummaryPath,
   transferListPath,
 } from '../constants/routes';
 import { useAsync } from '../hooks/useAsync';
@@ -46,6 +47,13 @@ export function SettlementDonePage() {
   }
   if (!identity) {
     return <Navigate to={joinRoomPath(shareCode)} replace />;
+  }
+  if (
+    status === 'success' &&
+    data &&
+    !data.completedMemberIds.includes(identity.memberId)
+  ) {
+    return <Navigate to={settlementSummaryPath(shareCode)} replace />;
   }
 
   return (

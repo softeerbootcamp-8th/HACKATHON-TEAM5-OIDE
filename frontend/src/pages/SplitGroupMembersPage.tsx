@@ -67,6 +67,13 @@ export function SplitGroupMembersPage() {
   if (!identity) {
     return <Navigate to={joinRoomPath(shareCode)} replace />;
   }
+  if (
+    status === 'success' &&
+    groupId &&
+    (!data?.group || data.group.creatorMemberId !== identity.memberId)
+  ) {
+    return <Navigate to={splitGroupsPath(shareCode)} replace />;
+  }
 
   // 수정 화면은 기존 인원을 미리 골라둔 상태로 연다.
   const effectiveIds = selectedIds ?? data?.group?.memberIds ?? [];
@@ -109,7 +116,13 @@ export function SplitGroupMembersPage() {
     try {
       const groupName = buildGroupName(selectedMembers);
       if (groupId) {
-        await updateSplitGroup(shareCode, groupId, groupName, selectedMemberIds);
+        await updateSplitGroup(
+          shareCode,
+          groupId,
+          identity.memberId,
+          groupName,
+          selectedMemberIds,
+        );
       } else {
         await createSplitGroup(shareCode, groupName, selectedMemberIds, identity.memberId);
       }
