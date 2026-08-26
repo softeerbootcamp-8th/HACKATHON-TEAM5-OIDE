@@ -17,14 +17,22 @@
   background: var(--color-surface);
 }
 
+/* 실제 아이콘은 자리 표시의 면색 없이 그림만 놓는다. */
+.iconImage {
+  width: 48px;
+  height: 48px;
+  margin-bottom: var(--space-xs);
+  object-fit: contain;
+}
+
 .title {
-  font-size: var(--font-size-body);
+  font-size: 20px; /* Figma Mobile/Title3 */
   font-weight: 700;
   color: var(--color-text);
 }
 
 .description {
-  font-size: var(--font-size-caption);
+  font-size: var(--font-size-label); /* Figma Mobile/Body2, 14px */
   color: var(--color-text-muted);
   white-space: pre-line;
 }

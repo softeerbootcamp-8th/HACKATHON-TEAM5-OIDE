@@ -162,6 +162,11 @@ export const mockPaymentStore = {
       throw new Error(`결제 내역을 찾을 수 없습니다: ${paymentId}`);
     }
     target.includedInSettlement = included;
+    if (!included) {
+      target.splitGroupId = null;
+      target.splitMethod = null;
+      writeShares(readShares().filter((share) => share.paymentId !== paymentId));
+    }
     target.updatedAt = new Date().toISOString();
     write(payments);
     return target;

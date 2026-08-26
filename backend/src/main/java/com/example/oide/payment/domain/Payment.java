@@ -63,6 +63,9 @@ public class Payment {
 	@Column(name = "split_method", length = 20)
 	private SplitMethod splitMethod;
 
+	@Column(name = "included_in_settlement", nullable = false)
+	private boolean includedInSettlement;
+
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "split_group_id")
 	private SplitGroup splitGroup;
@@ -82,7 +85,8 @@ public class Payment {
 			LocalDateTime paidAt,
 			BigDecimal amount,
 			SupportedCurrency currency,
-			SplitMethod splitMethod) {
+			SplitMethod splitMethod,
+			boolean includedInSettlement) {
 		this.room = room;
 		this.payer = payer;
 		this.merchant = merchant;
@@ -90,6 +94,7 @@ public class Payment {
 		this.amount = amount;
 		this.currency = currency;
 		this.splitMethod = splitMethod;
+		this.includedInSettlement = includedInSettlement;
 	}
 
 	// 결제를 분담할 그룹을 지정한다.
@@ -106,5 +111,9 @@ public class Payment {
 	// 다음 분담 저장 단계에서 선택한 방식을 기록한다.
 	public void changeSplitMethod(SplitMethod splitMethod) {
 		this.splitMethod = splitMethod;
+	}
+
+	public void changeInclusion(boolean includedInSettlement) {
+		this.includedInSettlement = includedInSettlement;
 	}
 }

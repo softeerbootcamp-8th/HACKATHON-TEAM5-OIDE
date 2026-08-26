@@ -47,7 +47,7 @@ export function JoinRoomPage() {
   };
 
   return (
-    <MobileFrame>
+    <MobileFrame tone="white">
       {/* 링크로 들어온 최상위 화면이라 되돌아갈 곳이 없다. */}
       <AppBar />
       {status === 'loading' && <LoadingState />}

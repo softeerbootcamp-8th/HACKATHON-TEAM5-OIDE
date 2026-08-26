@@ -5,6 +5,4 @@
   flex-shrink: 0;
   padding: var(--space-md) var(--space-screen-x)
     calc(var(--space-xl) + env(safe-area-inset-bottom));
-  background: var(--color-page);
-
 }

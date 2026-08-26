@@ -57,6 +57,9 @@ class PaymentOpenApiTest {
 				.andExpect(
 						jsonPath("$.paths['/api/rooms/{roomId}/payments'].get.summary")
 								.value("정산방 결제 내역 조회"))
+				.andExpect(
+						jsonPath("$.paths['/api/rooms/{roomId}/payments/{paymentId}/inclusion'].patch.summary")
+								.value("정산 대상 포함 여부 변경"))
 				.andExpect(jsonPath("$.components.schemas.ExtractedPayment.properties.reviewFlags.description").exists())
 				.andExpect(jsonPath("$.components.schemas.ImageFailure.properties.reason.description").exists())
 				.andExpect(jsonPath("$.components.schemas.PaymentRegisterRequest.properties.amount.example").value(3200));

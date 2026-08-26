@@ -1,37 +1,53 @@
 import { useNavigate } from 'react-router-dom';
+import logo from '../assets/enppang-logo.png';
+import iconDollar from '../assets/icon-dollar.svg';
+import iconLink from '../assets/icon-link.svg';
+import iconReceipt from '../assets/icon-receipt.svg';
 import { Button } from '../components/common/Button';
-import { BulletCardList } from '../components/common/BulletCardList';
+import { FeatureList } from '../components/common/FeatureList';
 import { AppBar } from '../components/layout/AppBar';
 import { BottomActionBar } from '../components/layout/BottomActionBar';
 import { MobileFrame } from '../components/layout/MobileFrame';
 import { ScreenBody } from '../components/layout/ScreenBody';
-import { ScreenHeader } from '../components/layout/ScreenHeader';
 import { ROUTES } from '../constants/routes';
-import { ROOM_TTL_DAYS } from '../constants/roomRules';
 import styles from './LandingPage.module.css';
 
-/** A-01 랜딩. 설치·가입이 없다는 점과 7일 후 삭제를 여기에서 알린다. */
+const FEATURES = [
+  {
+    icon: iconLink,
+    title: '링크로 쉽고 빠르게',
+    description: '링크를 공유하여 바로 함께 정산해요',
+  },
+  {
+    icon: iconReceipt,
+    title: '복잡한 n번 송금은 그만!',
+    description: '결제 내역을 올리면 간단한 정산 방식을 알려드려요',
+  },
+  {
+    icon: iconDollar,
+    title: '귀찮은 환율 계산을 대신',
+    description: '환율을 반영해 원화로 송금 금액을 알려드려요',
+  },
+];
+
+/** A-01 랜딩. */
 export function LandingPage() {
   const navigate = useNavigate();
 
-  const features = [
-    '앱 설치도, 회원가입도 필요 없어요',
-    '링크를 공유하면 바로 함께 정산해요',
-    `정산방은 만든 날부터 ${ROOM_TTL_DAYS}일 뒤 사라져요`,
-  ];
-
   return (
-    <MobileFrame>
+    <MobileFrame tone="white">
       <AppBar showBack={false} />
       <ScreenBody>
-        <ScreenHeader
-          title={'여행 정산,\n사진만 올리면 끝나요'}
-          description={
-            '결제 내역 스크린샷을 올리면 환율까지 반영해\n누가 누구에게 얼마를 보내면 되는지 알려드려요.'
-          }
-        />
-        <div className={styles.intro}>
-          <BulletCardList items={features} />
+        <h1 className={styles.title}>
+          <span className={styles.accent}>여행</span> 다녀오셨나요?
+          <br />
+          사진만 올리면 <span className={styles.accent}>정산</span>이 끝나요
+        </h1>
+        <div className={styles.middle}>
+          <div className={styles.logoCenter}>
+            <img src={logo} alt="엔빵" className={styles.logo} />
+          </div>
+          <FeatureList items={FEATURES} />
         </div>
       </ScreenBody>
       <BottomActionBar>

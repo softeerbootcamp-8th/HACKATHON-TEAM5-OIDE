@@ -62,7 +62,7 @@ export function CreateRoomNamePage() {
   };
 
   return (
-    <MobileFrame>
+    <MobileFrame tone="white">
       <AppBar backTo={ROUTES.createNicknames} />
       <ScreenBody>
         <ScreenHeader

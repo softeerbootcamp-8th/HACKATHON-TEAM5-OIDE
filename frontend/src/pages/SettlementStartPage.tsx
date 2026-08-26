@@ -82,7 +82,7 @@ export function SettlementStartPage() {
   };
 
   return (
-    <MobileFrame>
+    <MobileFrame tone="white">
       <AppBar backTo={splitGroupsPath(shareCode)} />
       {status === 'loading' && <LoadingState />}
 
@@ -168,7 +168,7 @@ export function SettlementStartPage() {
               loadingLabel="정산하고 있어요…"
               onClick={handleConfirm}
             >
-              내 정산 완료하기
+              다음
             </Button>
             <Button variant="text" onClick={() => navigate(rateEditPath(shareCode))}>
               환율 직접 입력하기

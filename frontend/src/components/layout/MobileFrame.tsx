@@ -3,7 +3,7 @@ import styles from './MobileFrame.module.css';
 
 interface MobileFrameProps {
   children: ReactNode;
-  tone?: 'default' | 'subtle';
+  tone?: 'default' | 'subtle' | 'white';
 }
 
 /**
@@ -12,7 +12,7 @@ interface MobileFrameProps {
  */
 export function MobileFrame({ children, tone = 'default' }: MobileFrameProps) {
   return (
-    <div className={`${styles.frame} ${tone === 'subtle' ? styles.subtle : ''}`}>
+    <div className={`${styles.frame} ${styles[tone]}`}>
       <div className={styles.content}>{children}</div>
     </div>
   );

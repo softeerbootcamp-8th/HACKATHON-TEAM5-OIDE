@@ -1,9 +1,9 @@
 .box {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  gap: var(--space-xs); /* Figma gap-8 */
   padding: var(--space-xs) var(--space-xs) var(--space-xs) var(--space-md);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm); /* Figma rounded-8 */
   background: var(--color-surface);
 }
 
@@ -13,7 +13,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: var(--font-size-body);
+  font-size: var(--font-size-label); /* Figma 14px */
   color: var(--color-text);
 }
 
@@ -22,10 +22,10 @@
   min-width: 64px;
   min-height: var(--touch-target-min);
   padding: 0 var(--space-md);
-  border-radius: var(--radius-sm);
+  border-radius: 10px; /* Figma rounded-10, 토큰과 정확히 안 맞음 */
   background: var(--color-primary);
   color: var(--color-on-primary);
-  font-size: var(--font-size-body);
+  font-size: var(--font-size-lead); /* Figma 16px */
   font-weight: 700;
 }
 

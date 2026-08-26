@@ -1,27 +1,27 @@
 .content {
   display: flex;
   flex-direction: column;
-  gap: var(--space-md);
+  gap: 20px;
   padding: 0 var(--space-screen-x);
 }
 
 .nameBox {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: var(--space-md);
-  border-radius: var(--radius-md);
+  gap: 4px;
+  padding: 14px var(--space-md);
+  border-radius: 10px;
   background: var(--color-surface);
 }
 
 .nameLabel {
-  font-size: var(--font-size-caption);
+  font-size: 14px;
   color: var(--color-text-muted);
 }
 
 .nameValue {
-  font-size: var(--font-size-body);
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
   color: var(--color-text);
   overflow-wrap: anywhere;
 }

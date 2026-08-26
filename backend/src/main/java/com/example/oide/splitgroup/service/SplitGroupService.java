@@ -75,7 +75,8 @@ public class SplitGroupService {
 				.map(group -> toResponse(
 						group,
 						findGroupMembers(group, roomId),
-						paymentRepository.findAllByRoomIdAndSplitGroupId(roomId, group.getId()).size()))
+						paymentRepository.findAllByRoomIdAndSplitGroupIdAndIncludedInSettlementTrue(
+								roomId, group.getId()).size()))
 				.toList();
 	}
 
@@ -85,11 +86,13 @@ public class SplitGroupService {
 		// 전체 그룹을 포함해 요청한 그룹이 해당 정산방에 속하는지 확인한다.
 		SplitGroup group = findGroup(roomId, groupId);
 		// 그룹에 이미 지정된 결제 ID를 집합으로 만들어 각 결제의 상태를 빠르게 판단한다.
-		Set<Long> selectedPaymentIds = paymentRepository.findAllByRoomIdAndSplitGroupId(roomId, groupId).stream()
+		Set<Long> selectedPaymentIds = paymentRepository
+				.findAllByRoomIdAndSplitGroupIdAndIncludedInSettlementTrue(roomId, groupId).stream()
 				.map(Payment::getId)
 				.collect(Collectors.toSet());
 		// 방의 모든 결제를 조회해 현재 그룹 관점의 선택 상태와 함께 화면에 전달한다.
-		List<GroupPaymentResponse> payments = paymentRepository.findAllByRoomIdOrderByPaidAtDescIdDesc(roomId).stream()
+		List<GroupPaymentResponse> payments = paymentRepository
+				.findAllByRoomIdAndIncludedInSettlementTrueOrderByPaidAtDescIdDesc(roomId).stream()
 				.map(payment -> toPaymentResponse(payment, selectedPaymentIds))
 				.toList();
 		return new SplitGroupDetailResponse(
@@ -116,7 +119,8 @@ public class SplitGroupService {
 		groupMemberRepository.saveAll(createGroupMembers(group, members));
 		paymentShareService.adjustGroupPayments(group);
 		// 변경된 그룹 정보와 구성원을 응답으로 반환한다.
-		long paymentCount = paymentRepository.findAllByRoomIdAndSplitGroupId(roomId, groupId).size();
+		long paymentCount = paymentRepository
+				.findAllByRoomIdAndSplitGroupIdAndIncludedInSettlementTrue(roomId, groupId).size();
 		return toResponse(group, members, paymentCount);
 	}
 
@@ -134,6 +138,9 @@ public class SplitGroupService {
 		List<Payment> requestedPayments = paymentRepository.findAllByRoomIdAndIdIn(roomId, request.paymentIds());
 		if (requestedPayments.size() != requestedPaymentIds.size()) {
 			throw new BusinessException(ErrorCode.PAYMENT_NOT_FOUND);
+		}
+		if (requestedPayments.stream().anyMatch(payment -> !payment.isIncludedInSettlement())) {
+			throw new BusinessException(ErrorCode.INVALID_PAYMENT_SELECTION);
 		}
 		// 다른 그룹이 이미 선택한 결제는 현재 그룹으로 옮길 수 없다.
 		for (Payment payment : requestedPayments) {

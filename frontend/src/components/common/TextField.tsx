@@ -9,6 +9,7 @@ interface TextFieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'va
   errorMessage?: string;
   /** 지정하면 `n/max` 카운터를 helperText 뒤에 붙인다. */
   maxLengthHint?: number;
+  strongBorder?: boolean;
 }
 
 /**
@@ -20,6 +21,7 @@ export function TextField({
   helperText,
   errorMessage,
   maxLengthHint,
+  strongBorder = false,
   ...rest
 }: TextFieldProps) {
   const hasError = Boolean(errorMessage);
@@ -28,7 +30,9 @@ export function TextField({
 
   return (
     <div className={styles.field}>
-      <div className={`${styles.inputWrapper} ${hasError ? styles.invalid : ''}`}>
+      <div
+        className={`${styles.inputWrapper} ${strongBorder ? styles.strongBorder : ''} ${hasError ? styles.invalid : ''}`}
+      >
         <input
           {...rest}
           className={styles.input}

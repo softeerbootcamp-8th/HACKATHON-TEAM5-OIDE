@@ -6,13 +6,13 @@
 }
 
 .linkHint {
-  font-size: var(--font-size-caption);
-  color: var(--color-text-muted);
+  font-size: 12px; /* Figma Mobile/Caption */
+  color: var(--color-text-soft);
 }
 
 .sectionTitle {
   margin-top: var(--space-lg);
-  font-size: var(--font-size-body);
+  font-size: var(--font-size-lead); /* Figma Mobile/Title5, 16px */
   font-weight: 700;
   color: var(--color-text);
 }

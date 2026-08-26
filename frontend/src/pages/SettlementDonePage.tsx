@@ -88,7 +88,9 @@ export function SettlementDonePage() {
                       >
                         <Avatar nickname={member.nickname} />
                         <span className={styles.nickname}>{member.nickname}</span>
-                        {isCompleted && <span className={styles.trailing}>내역 보기</span>}
+                        <span className={styles.trailing}>
+                          {isCompleted ? '내역 보기' : '정산 중'}
+                        </span>
                       </button>
                     </li>
                   );
