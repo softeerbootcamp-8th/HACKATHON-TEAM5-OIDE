@@ -13,7 +13,7 @@ import { RoomSummaryHeader } from '../components/room/RoomSummaryHeader';
 import {
   expenseMethodPath,
   joinRoomPath,
-  myExpensesPath,
+  memberSummaryPath,
   settlementDonePath,
 } from '../constants/routes';
 import { useAsync } from '../hooks/useAsync';
@@ -69,7 +69,11 @@ export function RoomHomePage() {
     return <Navigate to={settlementDonePath(shareCode)} replace />;
   }
 
-  const hasEntries = (data?.summaries.length ?? 0) > 0;
+  const completedSummaries =
+    data?.summaries.filter((summary) =>
+      data.completedMemberIds?.includes(summary.memberId),
+    ) ?? [];
+  const hasEntries = completedSummaries.length > 0;
 
   return (
     <MobileFrame tone="white">
@@ -95,12 +99,14 @@ export function RoomHomePage() {
 
             {hasEntries ? (
               <ul className={styles.memberList}>
-                {data.summaries.map((summary) => (
+                {completedSummaries.map((summary) => (
                   <li key={summary.memberId}>
                     <MemberEntryCard
                       nickname={summary.nickname}
                       paymentCount={summary.paymentCount}
-                      onViewEntries={() => navigate(myExpensesPath(shareCode))}
+                      onViewEntries={() =>
+                        navigate(memberSummaryPath(shareCode, summary.memberId))
+                      }
                     />
                   </li>
                 ))}
