@@ -17,13 +17,14 @@ export function Button({
   disabled,
   children,
   type = 'button',
+  className = '',
   ...rest
 }: ButtonProps) {
   return (
     <button
       {...rest}
       type={type}
-      className={`${styles.button} ${styles[variant]}`}
+      className={`${styles.button} ${styles[variant]} ${className}`}
       disabled={disabled || loading}
       aria-busy={loading}
     >

@@ -171,7 +171,7 @@ export function SplitGroupItemsPage() {
     : `${group?.name}이 정산할\n목록을 선택해주세요`;
 
   return (
-    <MobileFrame>
+    <MobileFrame tone="subtle">
       <AppBar backTo={splitGroupsPath(shareCode)} />
       {status === 'loading' && <LoadingState />}
 
@@ -182,7 +182,7 @@ export function SplitGroupItemsPage() {
       {status === 'success' && data && group && (
         <>
           <ScreenBody>
-            <ScreenHeader title={title} />
+            <ScreenHeader className={styles.screenHeader} title={title} />
             <div className={styles.header}>
               <AvatarStack nicknames={nicknames} size="md" />
               {/* `전체` 는 방 인원 그대로라 고칠 수 없다. */}
@@ -247,7 +247,7 @@ export function SplitGroupItemsPage() {
 
           <SelectionBottomBar
             selectedCount={selected.length}
-            totalLabel={`${currency} ${formatAmount(String(total), currency)}`}
+            totalLabel={formatAmount(String(total), currency)}
             actionLabel="다음"
             disabled={submitting}
             onAction={handleNext}

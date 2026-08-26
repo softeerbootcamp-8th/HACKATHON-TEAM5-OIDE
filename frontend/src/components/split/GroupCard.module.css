@@ -3,10 +3,10 @@
   align-items: center;
   gap: var(--space-sm);
   width: 100%;
-  min-height: 86px;
-  padding: 14px 16px;
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
+  min-height: 90px;
+  padding: 16px;
+  border-radius: 10px;
+  background: #f6f6f6;
   text-align: left;
 }
 
@@ -19,8 +19,8 @@
 }
 
 .name {
-  font-size: var(--font-size-body);
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 500;
   color: var(--color-text);
   overflow-wrap: anywhere;
 }
@@ -30,7 +30,7 @@
   align-items: center;
   gap: var(--space-sm);
   flex-shrink: 0;
-  font-size: var(--font-size-caption);
+  font-size: 14px;
   color: var(--color-text-muted);
 }
 

@@ -5,11 +5,17 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.oide.global.currency.SupportedCurrency;
@@ -46,13 +52,16 @@ class SplitGroupServiceTest {
 	private RoomMember firstMember;
 	private RoomMember secondMember;
 	private RoomMember thirdMember;
+	private SplitGroup allGroup;
 
 	@BeforeEach
 	void setUp() {
-		room = roomRepository.save(new SettlementRoom("test-code", "테스트 방", SupportedCurrency.KRW));
+		String shareCode = UUID.randomUUID().toString().substring(0, 6);
+		room = roomRepository.save(new SettlementRoom(shareCode, "테스트 방", SupportedCurrency.KRW));
 		firstMember = roomMemberRepository.save(new RoomMember(room, "첫째", 1));
 		secondMember = roomMemberRepository.save(new RoomMember(room, "둘째", 2));
 		thirdMember = roomMemberRepository.save(new RoomMember(room, "셋째", 3));
+		allGroup = groupRepository.save(new SplitGroup(room, "전체", SplitGroupType.ALL));
 	}
 
 	@Test
@@ -68,7 +77,7 @@ class SplitGroupServiceTest {
 	}
 
 	@Test
-	void initializesAllGroupOnlyOnce() {
+	void listsAllGroupWithoutCreatingAnotherGroup() {
 		List<SplitGroupResponse> firstResponse = splitGroupService.findAll(room.getId());
 		List<SplitGroupResponse> secondResponse = splitGroupService.findAll(room.getId());
 
@@ -99,13 +108,144 @@ class SplitGroupServiceTest {
 
 	@Test
 	void rejectsAllGroupUpdate() {
-		SplitGroup allGroup = splitGroupService.initializeAllGroup(room.getId());
-
 		BusinessException exception = assertThrows(BusinessException.class, () -> splitGroupService.update(
 				room.getId(),
 				allGroup.getId(),
 				new UpdateSplitGroupRequest("변경", List.of(firstMember.getId(), secondMember.getId()))));
 
 		assertEquals(ErrorCode.ALL_GROUP_IMMUTABLE, exception.getErrorCode());
+	}
+
+	@Test
+	void rejectsCustomGroupContainingEveryRoomMember() {
+		BusinessException exception = assertThrows(BusinessException.class, () -> splitGroupService.create(
+				room.getId(),
+				new CreateSplitGroupRequest(
+						"또 다른 전체",
+						List.of(firstMember.getId(), secondMember.getId(), thirdMember.getId()))));
+
+		assertEquals(ErrorCode.DUPLICATE_GROUP_MEMBERS, exception.getErrorCode());
+	}
+
+	@Test
+	void rejectsCustomGroupWithSameMemberSetInDifferentOrder() {
+		splitGroupService.create(
+				room.getId(),
+				new CreateSplitGroupRequest("식사", List.of(firstMember.getId(), secondMember.getId())));
+
+		BusinessException exception = assertThrows(BusinessException.class, () -> splitGroupService.create(
+				room.getId(),
+				new CreateSplitGroupRequest("교통", List.of(secondMember.getId(), firstMember.getId()))));
+
+		assertEquals(ErrorCode.DUPLICATE_GROUP_MEMBERS, exception.getErrorCode());
+	}
+
+	@Test
+	void allowsPartiallyOverlappingGroups() {
+		splitGroupService.create(
+				room.getId(),
+				new CreateSplitGroupRequest("식사", List.of(firstMember.getId(), secondMember.getId())));
+
+		SplitGroupResponse response = splitGroupService.create(
+				room.getId(),
+				new CreateSplitGroupRequest("교통", List.of(secondMember.getId(), thirdMember.getId())));
+
+		assertEquals(List.of(secondMember.getId(), thirdMember.getId()),
+				response.members().stream().map(SplitGroupResponse.MemberResponse::id).toList());
+	}
+
+	@Test
+	void rejectsUpdateToAnotherGroupsMemberSet() {
+		splitGroupService.create(
+				room.getId(),
+				new CreateSplitGroupRequest("식사", List.of(firstMember.getId(), secondMember.getId())));
+		SplitGroupResponse group = splitGroupService.create(
+				room.getId(),
+				new CreateSplitGroupRequest("교통", List.of(secondMember.getId(), thirdMember.getId())));
+
+		BusinessException exception = assertThrows(BusinessException.class, () -> splitGroupService.update(
+				room.getId(),
+				group.id(),
+				new UpdateSplitGroupRequest("중복", List.of(secondMember.getId(), firstMember.getId()))));
+
+		assertEquals(ErrorCode.DUPLICATE_GROUP_MEMBERS, exception.getErrorCode());
+	}
+
+	@Test
+	void rejectsUpdateContainingEveryRoomMember() {
+		SplitGroupResponse group = splitGroupService.create(
+				room.getId(),
+				new CreateSplitGroupRequest("식사", List.of(firstMember.getId(), secondMember.getId())));
+
+		BusinessException exception = assertThrows(BusinessException.class, () -> splitGroupService.update(
+				room.getId(),
+				group.id(),
+				new UpdateSplitGroupRequest(
+						"전체",
+						List.of(firstMember.getId(), secondMember.getId(), thirdMember.getId()))));
+
+		assertEquals(ErrorCode.DUPLICATE_GROUP_MEMBERS, exception.getErrorCode());
+	}
+
+	@Test
+	void allowsUpdateKeepingItsOwnMemberSet() {
+		SplitGroupResponse group = splitGroupService.create(
+				room.getId(),
+				new CreateSplitGroupRequest("식사", List.of(firstMember.getId(), secondMember.getId())));
+
+		SplitGroupResponse response = splitGroupService.update(
+				room.getId(),
+				group.id(),
+				new UpdateSplitGroupRequest("저녁", List.of(secondMember.getId(), firstMember.getId())));
+
+		assertEquals("저녁", response.name());
+		assertEquals(List.of(firstMember.getId(), secondMember.getId()),
+				response.members().stream().map(SplitGroupResponse.MemberResponse::id).toList());
+	}
+
+	@Test
+	@Transactional(propagation = Propagation.NOT_SUPPORTED)
+	void allowsOnlyOneConcurrentCreationForSameMemberSet() throws Exception {
+		CountDownLatch ready = new CountDownLatch(2);
+		CountDownLatch start = new CountDownLatch(1);
+		ExecutorService executor = Executors.newFixedThreadPool(2);
+
+		try {
+			List<Future<ErrorCode>> results = List.of(
+					executor.submit(() -> createGroupConcurrently("식사", ready, start)),
+					executor.submit(() -> createGroupConcurrently("교통", ready, start)));
+			ready.await();
+			start.countDown();
+
+			List<ErrorCode> errorCodes = results.stream().map(this::getResult).toList();
+			assertEquals(1, errorCodes.stream().filter(errorCode -> errorCode == null).count());
+			assertEquals(1, errorCodes.stream()
+					.filter(ErrorCode.DUPLICATE_GROUP_MEMBERS::equals)
+					.count());
+		} finally {
+			executor.shutdownNow();
+		}
+	}
+
+	private ErrorCode createGroupConcurrently(String name, CountDownLatch ready, CountDownLatch start)
+			throws InterruptedException {
+		ready.countDown();
+		start.await();
+		try {
+			splitGroupService.create(
+					room.getId(),
+					new CreateSplitGroupRequest(name, List.of(firstMember.getId(), secondMember.getId())));
+			return null;
+		} catch (BusinessException exception) {
+			return exception.getErrorCode();
+		}
+	}
+
+	private ErrorCode getResult(Future<ErrorCode> result) {
+		try {
+			return result.get();
+		} catch (Exception exception) {
+			throw new RuntimeException(exception);
+		}
 	}
 }

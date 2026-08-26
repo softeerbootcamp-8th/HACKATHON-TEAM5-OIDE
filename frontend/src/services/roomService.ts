@@ -6,7 +6,7 @@
  */
 
 import { USE_MOCK } from '../api/apiConfig';
-import { getRoom } from '../api/generated/client';
+import { createRoom as createRoomRequest, getRoom } from '../api/generated/client';
 import type { RoomResponse } from '../api/generated/models';
 import { httpClient } from '../api/httpClient';
 import { callOrval } from '../api/orvalResponse';
@@ -86,7 +86,13 @@ export async function createRoom(request: CreateRoomRequest): Promise<Settlement
     return mockDelay(mockRoomStore.create(request));
   }
 
-  return httpClient.post<SettlementRoom>('/rooms', request);
+  const response = await callOrval<RoomResponse>(() =>
+    createRoomRequest({
+      title: request.title,
+      nicknames: request.members.map((member) => member.nickname),
+    }),
+  );
+  return mapRoom(response);
 }
 
 /** shareCode URL을 유지하면서 roomId 기반 하위 API를 호출하기 위한 식별자 조회. */

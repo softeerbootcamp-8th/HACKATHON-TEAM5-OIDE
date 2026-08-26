@@ -5,6 +5,7 @@
  */
 
 const RATE_KEY = 'oide:mock:manualRate';
+const COMPLETED_MEMBERS_KEY = 'oide:mock:completedMembers';
 
 interface ManualRate {
   currency: string;
@@ -29,5 +30,27 @@ export const mockSettlementStore = {
     } catch {
       // 무시한다.
     }
+  },
+
+  findCompletedMemberIds(roomId: string): string[] {
+    try {
+      const raw = window.sessionStorage.getItem(`${COMPLETED_MEMBERS_KEY}:${roomId}`);
+      return raw ? (JSON.parse(raw) as string[]) : [];
+    } catch {
+      return [];
+    }
+  },
+
+  completeMember(roomId: string, memberId: string): void {
+    const completedMemberIds = this.findCompletedMemberIds(roomId);
+    if (completedMemberIds.includes(memberId)) return;
+    window.sessionStorage.setItem(
+      `${COMPLETED_MEMBERS_KEY}:${roomId}`,
+      JSON.stringify([...completedMemberIds, memberId]),
+    );
+  },
+
+  resetCompletedMembers(roomId: string): void {
+    window.sessionStorage.removeItem(`${COMPLETED_MEMBERS_KEY}:${roomId}`);
   },
 };

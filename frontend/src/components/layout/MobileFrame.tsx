@@ -3,15 +3,16 @@ import styles from './MobileFrame.module.css';
 
 interface MobileFrameProps {
   children: ReactNode;
+  tone?: 'default' | 'subtle';
 }
 
 /**
  * 모든 화면을 감싸는 최상위 컨테이너.
  * 모바일에서는 화면 전체 폭, 그보다 넓으면 가운데 정렬된 컬럼이 된다.
  */
-export function MobileFrame({ children }: MobileFrameProps) {
+export function MobileFrame({ children, tone = 'default' }: MobileFrameProps) {
   return (
-    <div className={styles.frame}>
+    <div className={`${styles.frame} ${tone === 'subtle' ? styles.subtle : ''}`}>
       <div className={styles.content}>{children}</div>
     </div>
   );

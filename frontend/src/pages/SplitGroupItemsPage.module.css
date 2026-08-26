@@ -1,3 +1,12 @@
+.screenHeader {
+  padding-top: var(--space-md);
+  margin-bottom: var(--space-sm);
+}
+
+.screenHeader h1 {
+  font-size: 22px;
+}
+
 .header {
   display: flex;
   align-items: center;
@@ -7,8 +16,9 @@
 }
 
 .editLink {
-  font-size: var(--font-size-body);
-  color: var(--color-text-muted);
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--color-text);
 }
 
 .content {
@@ -27,7 +37,7 @@
 }
 
 .selectAll {
-  font-size: var(--font-size-caption);
+  font-size: 14px;
   color: var(--color-text-muted);
 }
 
@@ -40,6 +50,6 @@
 .addMissing {
   width: 100%;
   padding: var(--space-lg) 0 var(--space-md);
-  font-size: var(--font-size-body);
-  color: var(--color-text-muted);
+  font-size: 16px;
+  color: #707070;
 }

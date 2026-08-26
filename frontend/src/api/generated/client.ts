@@ -226,6 +226,59 @@ const res = await fetch(getUpdatePaymentsUrl(roomId,groupId),
 
 
 
+export type completeMemberSettlementResponse204 = {
+  data: void
+  status: 204
+}
+
+export type completeMemberSettlementResponse404 = {
+  data: ErrorResponse
+  status: 404
+}
+
+export type completeMemberSettlementResponseSuccess = (completeMemberSettlementResponse204) & {
+  headers: Headers;
+};
+export type completeMemberSettlementResponseError = (completeMemberSettlementResponse404) & {
+  headers: Headers;
+};
+
+export type completeMemberSettlementResponse = (completeMemberSettlementResponseSuccess | completeMemberSettlementResponseError)
+
+export const getCompleteMemberSettlementUrl = (roomId: number,
+    memberId: number,) => {
+
+
+
+
+  return `${API_ORIGIN}/api/rooms/${roomId}/settlements/members/${memberId}/completion`
+}
+
+/**
+ * 참여자의 정산 완료 상태를 멱등하게 저장한다.
+ * @summary 참여자 정산 완료
+ */
+export const completeMemberSettlement = async (roomId: number,
+    memberId: number, options?: RequestInit): Promise<completeMemberSettlementResponse> => {
+
+  const res = await fetch(getCompleteMemberSettlementUrl(roomId,memberId),
+  {
+    ...options,
+    method: 'PUT'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: completeMemberSettlementResponse['data'] = body ? JSON.parse(body) : undefined
+  return { data, status: res.status, headers: res.headers } as completeMemberSettlementResponse
+}
+
+
+
 export type saveEqualResponse200 = {
   data: PaymentShareResponse
   status: 200

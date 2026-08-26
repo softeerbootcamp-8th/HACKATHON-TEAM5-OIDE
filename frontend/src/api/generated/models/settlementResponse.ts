@@ -10,5 +10,6 @@ import type { SettlementPreviewResponse } from './settlementPreviewResponse';
 export interface SettlementResponse {
   settlementId?: number;
   calculatedAt?: string;
+  completedMemberIds?: number[];
   result?: SettlementPreviewResponse;
 }

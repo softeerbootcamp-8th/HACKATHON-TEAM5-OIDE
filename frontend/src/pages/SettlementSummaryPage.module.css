@@ -1,3 +1,17 @@
+.header {
+  margin-bottom: var(--space-sm);
+  padding-top: var(--space-md);
+}
+
+.header h1 {
+  font-size: 22px;
+}
+
+.header p {
+  font-size: 16px;
+  line-height: 1.5;
+}
+
 .content {
   padding: 0 var(--space-screen-x);
 }
@@ -13,10 +27,10 @@
   align-items: center;
   gap: var(--space-sm);
   width: 100%;
-  min-height: 64px;
-  padding: var(--space-md);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  padding: 20px var(--space-md);
+  border-radius: 10px;
+  background: var(--color-bg);
+  box-shadow: var(--shadow-card);
   text-align: left;
 }
 
@@ -35,9 +49,19 @@
 .amount {
   flex-shrink: 0;
   font-size: var(--font-size-body);
-  font-weight: 700;
+  font-weight: 500;
   color: var(--color-text);
   font-variant-numeric: tabular-nums;
+}
+
+.mine .amount {
+  font-weight: 700;
+}
+
+.action {
+  border-radius: 16px;
+  font-size: 16px;
+  font-weight: 500;
 }
 
 .trailing {
@@ -45,4 +69,3 @@
   font-size: var(--font-size-caption);
   color: var(--color-text-muted);
 }
-

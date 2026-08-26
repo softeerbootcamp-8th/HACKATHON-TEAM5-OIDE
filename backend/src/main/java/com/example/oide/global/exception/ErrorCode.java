@@ -47,6 +47,7 @@ public enum ErrorCode {
 	GROUP_NOT_FOUND(HttpStatus.NOT_FOUND, "GROUP_001", "분담 그룹을 찾을 수 없습니다."),
 	ALL_GROUP_IMMUTABLE(HttpStatus.BAD_REQUEST, "GROUP_002", "전체 그룹은 수정하거나 삭제할 수 없습니다."),
 	INVALID_GROUP_MEMBER_COUNT(HttpStatus.BAD_REQUEST, "GROUP_003", "그룹은 두 명 이상의 참여자로 구성해야 합니다."),
+	DUPLICATE_GROUP_MEMBERS(HttpStatus.BAD_REQUEST, "GROUP_004", "같은 참여자로 구성된 그룹이 이미 존재합니다."),
 
 	// Settlement
 	SETTLEMENT_VALIDATION_FAILED(HttpStatus.BAD_REQUEST, "SETTLEMENT_001", "정산을 완료할 수 없습니다."),

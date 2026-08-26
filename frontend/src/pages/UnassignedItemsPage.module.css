@@ -1,3 +1,12 @@
+.screenHeader {
+  padding-top: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.screenHeader h1 {
+  font-size: 22px;
+}
+
 .content {
   padding: 0 var(--space-screen-x);
 }
@@ -12,26 +21,39 @@
   display: flex;
   flex-direction: column;
   padding: 12px 14px;
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-md);
+  border: 0;
+  border-radius: 10px;
   background: var(--color-bg);
+  box-shadow: 0 0 1px rgb(0 0 0 / 25%);
 }
 
 .merchant {
-  font-size: var(--font-size-caption);
+  font-size: 14px;
+  line-height: 1.5;
   color: var(--color-text-muted);
   overflow-wrap: anywhere;
 }
 
 .amount {
-  font-size: 17px;
+  font-size: 18px;
   font-weight: 700;
   color: var(--color-text);
   font-variant-numeric: tabular-nums;
 }
 
 .meta {
-  font-size: var(--font-size-caption);
-  line-height: 1.3;
+  font-size: 12px;
+  line-height: 1.4;
   color: var(--color-text-muted);
+}
+
+.primaryButton {
+  border-radius: 16px;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.textButton {
+  font-size: 16px;
+  font-weight: 500;
 }
