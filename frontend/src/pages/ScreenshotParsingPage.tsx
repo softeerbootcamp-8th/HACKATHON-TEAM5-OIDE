@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../components/common/Button';
 import { ErrorState } from '../components/common/ErrorState';
 import { ProgressBar } from '../components/common/ProgressBar';
@@ -11,12 +11,14 @@ import { ScreenBody } from '../components/layout/ScreenBody';
 import { ScreenHeader } from '../components/layout/ScreenHeader';
 import {
   expenseMethodPath,
+  joinRoomPath,
   manualExpensePath,
   parsedResultPath,
   screenshotUploadPath,
 } from '../constants/routes';
 import { useExpenseDraft } from '../hooks/useExpenseDraft';
 import { useLeaveConsumedScreen } from '../hooks/useLeaveConsumedScreen';
+import { useLocalIdentity } from '../hooks/useLocalIdentity';
 import { usePaymentExtraction } from '../hooks/usePaymentExtraction';
 import { RoomExpiredPage } from './RoomExpiredPage';
 import styles from './ScreenshotParsingPage.module.css';
@@ -30,6 +32,7 @@ import styles from './ScreenshotParsingPage.module.css';
 export function ScreenshotParsingPage() {
   const navigate = useNavigate();
   const { shareCode = '' } = useParams<{ shareCode: string }>();
+  const { identity } = useLocalIdentity(shareCode);
   const { screenshots, setParsed } = useExpenseDraft();
   const extraction = usePaymentExtraction(shareCode, screenshots);
   const consumedRef = useRef(false);
@@ -51,6 +54,9 @@ export function ScreenshotParsingPage() {
 
   if (extraction.error?.code === 'ROOM_EXPIRED') {
     return <RoomExpiredPage />;
+  }
+  if (!identity) {
+    return <Navigate to={joinRoomPath(shareCode)} replace />;
   }
 
   const noExtractedPayments =

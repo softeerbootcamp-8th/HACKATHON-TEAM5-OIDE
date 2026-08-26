@@ -10,8 +10,9 @@ import { BottomActionBar } from '../components/layout/BottomActionBar';
 import { MobileFrame } from '../components/layout/MobileFrame';
 import { ScreenBody } from '../components/layout/ScreenBody';
 import { DEFAULT_CURRENCY } from '../constants/roomRules';
-import { parsedResultPath } from '../constants/routes';
+import { joinRoomPath, parsedResultPath } from '../constants/routes';
 import { useExpenseDraft } from '../hooks/useExpenseDraft';
+import { useLocalIdentity } from '../hooks/useLocalIdentity';
 import type { CurrencyCode } from '../types/room';
 import { formatDateTimeInput, parseDateTimeInput } from '../utils/formatters';
 import styles from './ParsedItemEditPage.module.css';
@@ -25,6 +26,7 @@ import styles from './ParsedItemEditPage.module.css';
 export function ParsedItemEditPage() {
   const navigate = useNavigate();
   const { shareCode = '', draftId = '' } = useParams<{ shareCode: string; draftId: string }>();
+  const { identity } = useLocalIdentity(shareCode);
   const { drafts, images, updateDraft } = useExpenseDraft();
 
   const draft = drafts.find((item) => item.id === draftId);
@@ -40,6 +42,9 @@ export function ParsedItemEditPage() {
   );
   const [showPreview, setShowPreview] = useState(false);
 
+  if (!identity) {
+    return <Navigate to={joinRoomPath(shareCode)} replace />;
+  }
   // 새로고침 등으로 초안이 사라진 경우. 렌더 도중 navigate 를 부르면 멈추므로
   // 선언형 Navigate 로 되돌린다.
   if (!draft) {

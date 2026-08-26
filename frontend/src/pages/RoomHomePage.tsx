@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../components/common/Button';
 import { EmptyState } from '../components/common/EmptyState';
 import { ErrorState } from '../components/common/ErrorState';
@@ -10,8 +10,9 @@ import { MobileFrame } from '../components/layout/MobileFrame';
 import { ScreenBody } from '../components/layout/ScreenBody';
 import { MemberEntryCard } from '../components/room/MemberEntryCard';
 import { RoomSummaryHeader } from '../components/room/RoomSummaryHeader';
-import { expenseMethodPath, myExpensesPath } from '../constants/routes';
+import { expenseMethodPath, joinRoomPath, myExpensesPath } from '../constants/routes';
 import { useAsync } from '../hooks/useAsync';
+import { useLocalIdentity } from '../hooks/useLocalIdentity';
 import {
   getMemberPaymentSummaries,
 } from '../services/memberService';
@@ -34,6 +35,7 @@ interface RoomHomeData {
 export function RoomHomePage() {
   const navigate = useNavigate();
   const { shareCode = '' } = useParams<{ shareCode: string }>();
+  const { identity } = useLocalIdentity(shareCode);
 
   const load = useCallback(async (): Promise<RoomHomeData> => {
     const [room, summaries] = await Promise.all([
@@ -47,6 +49,9 @@ export function RoomHomePage() {
 
   if (status === 'error' && error?.code === 'ROOM_EXPIRED') {
     return <RoomExpiredPage />;
+  }
+  if (!identity) {
+    return <Navigate to={joinRoomPath(shareCode)} replace />;
   }
 
   const hasEntries = (data?.summaries.length ?? 0) > 0;

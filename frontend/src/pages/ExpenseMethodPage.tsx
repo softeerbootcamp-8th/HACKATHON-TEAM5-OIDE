@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import manualIcon from '../assets/method-manual.png';
 import screenshotIcon from '../assets/method-screenshot.png';
 import { Button } from '../components/common/Button';
@@ -10,8 +10,14 @@ import { MobileFrame } from '../components/layout/MobileFrame';
 import { ScreenBody } from '../components/layout/ScreenBody';
 import { ScreenHeader } from '../components/layout/ScreenHeader';
 import { ACCEPTED_IMAGE_TYPES, MAX_SCREENSHOT_COUNT } from '../constants/roomRules';
-import { manualExpensePath, roomHomePath, screenshotUploadPath } from '../constants/routes';
+import {
+  joinRoomPath,
+  manualExpensePath,
+  roomHomePath,
+  screenshotUploadPath,
+} from '../constants/routes';
 import { useExpenseDraft } from '../hooks/useExpenseDraft';
+import { useLocalIdentity } from '../hooks/useLocalIdentity';
 import styles from './ExpenseMethodPage.module.css';
 
 type ExpenseMethod = 'screenshot' | 'manual';
@@ -26,9 +32,14 @@ type ExpenseMethod = 'screenshot' | 'manual';
 export function ExpenseMethodPage() {
   const navigate = useNavigate();
   const { shareCode = '' } = useParams<{ shareCode: string }>();
+  const { identity } = useLocalIdentity(shareCode);
   const { addScreenshots, reset } = useExpenseDraft();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [method, setMethod] = useState<ExpenseMethod | null>(null);
+
+  if (!identity) {
+    return <Navigate to={joinRoomPath(shareCode)} replace />;
+  }
 
   const handleNext = () => {
     if (method === 'screenshot') {
