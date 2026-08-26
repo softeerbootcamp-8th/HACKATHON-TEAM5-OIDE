@@ -110,6 +110,8 @@ public class SplitGroupService {
 		// 구성원 교체 후에도 최소 인원 수 조건을 만족해야 한다.
 		validateMemberCount(members);
 		validateUniqueMemberSet(roomId, members, groupId);
+		List<Long> previousMemberIds = findGroupMembers(group, roomId).stream().map(RoomMember::getId).toList();
+		List<Long> updatedMemberIds = members.stream().map(RoomMember::getId).toList();
 		// 그룹명은 공백을 제거한 값으로 변경한다.
 		group.updateName(request.name().trim());
 		// 기존 구성원 연결을 모두 제거한 뒤 요청한 구성원으로 다시 저장한다.
@@ -117,7 +119,9 @@ public class SplitGroupService {
 		// 기존 연결 삭제를 먼저 반영해 같은 참여자를 새 구성원으로 다시 저장할 수 있게 한다.
 		groupMemberRepository.flush();
 		groupMemberRepository.saveAll(createGroupMembers(group, members));
-		paymentShareService.adjustGroupPayments(group);
+		if (!previousMemberIds.equals(updatedMemberIds)) {
+			paymentShareService.adjustGroupPayments(group);
+		}
 		// 변경된 그룹 정보와 구성원을 응답으로 반환한다.
 		long paymentCount = paymentRepository
 				.findAllByRoomIdAndSplitGroupIdAndIncludedInSettlementTrue(roomId, groupId).size();
@@ -127,8 +131,14 @@ public class SplitGroupService {
 	// 그룹 완료 요청으로 선택한 결제 목록을 현재 그룹에 저장한다.
 	@Transactional
 	public void updatePayments(Long roomId, Long groupId, UpdateGroupPaymentsRequest request) {
+		findRoomForUpdate(roomId);
 		// 전체 그룹을 포함해 해당 방의 그룹인지 먼저 확인한다.
 		SplitGroup group = findGroup(roomId, groupId);
+		RoomMember member = findMembers(roomId, List.of(request.memberId())).getFirst();
+		if (findGroupMembers(group, roomId).stream()
+				.noneMatch(groupMember -> groupMember.getId().equals(member.getId()))) {
+			throw new BusinessException(ErrorCode.INVALID_PAYMENT_SELECTION);
+		}
 		// 같은 결제를 두 번 선택한 요청은 상태를 모호하게 만들므로 거절한다.
 		Set<Long> requestedPaymentIds = new HashSet<>(request.paymentIds());
 		if (requestedPaymentIds.size() != request.paymentIds().size()) {
@@ -145,18 +155,23 @@ public class SplitGroupService {
 		if (requestedPayments.stream().anyMatch(payment -> !payment.isIncludedInSettlement())) {
 			throw new BusinessException(ErrorCode.INVALID_PAYMENT_SELECTION);
 		}
+		if (requestedPayments.stream()
+				.anyMatch(payment -> !payment.getPayer().getId().equals(member.getId()))) {
+			throw new BusinessException(ErrorCode.INVALID_PAYMENT_SELECTION);
+		}
 		// 다른 그룹이 이미 선택한 결제는 현재 그룹으로 옮길 수 없다.
 		for (Payment payment : requestedPayments) {
 			if (payment.getSplitGroup() != null && !payment.getSplitGroup().getId().equals(groupId)) {
 				throw new BusinessException(ErrorCode.PAYMENT_ALREADY_ASSIGNED);
 			}
 		}
-		// 기존에 이 그룹이 선택했지만 이번 요청에서 빠진 결제는 그룹·분담 정보를 함께 해제한다.
+		// 기존에 이 그룹이 선택했지만 이번 요청에서 빠진 해당 사용자의 결제는 그룹·분담 정보를 함께 해제한다.
 		for (Payment payment : roomPayments) {
 			if (payment.getSplitGroup() == null || !payment.getSplitGroup().getId().equals(groupId)) {
 				continue;
 			}
-			if (!requestedPaymentIds.contains(payment.getId())) {
+			if (payment.getPayer().getId().equals(member.getId())
+					&& !requestedPaymentIds.contains(payment.getId())) {
 				payment.clearSplit();
 				paymentShareRepository.deleteAllByPaymentId(payment.getId());
 			}
@@ -174,6 +189,7 @@ public class SplitGroupService {
 	// 사용자 지정 그룹을 삭제한다.
 	@Transactional
 	public void delete(Long roomId, Long groupId) {
+		findRoomForUpdate(roomId);
 		// 전체 그룹 삭제나 다른 정산방의 그룹 삭제를 막는다.
 		SplitGroup group = findCustomGroup(roomId, groupId);
 		// 삭제 전에 이 그룹에 연결된 결제를 해제해 결제의 외래 키 참조를 없앤다.
@@ -212,6 +228,7 @@ public class SplitGroupService {
 						: GroupPaymentSelectionStatus.LOCKED;
 		return new GroupPaymentResponse(
 				payment.getId(),
+				payment.getPayer().getId(),
 				payment.getMerchant(),
 				payment.getPaidAt(),
 				payment.getAmount(),

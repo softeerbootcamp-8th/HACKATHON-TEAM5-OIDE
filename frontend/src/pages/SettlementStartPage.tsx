@@ -68,6 +68,8 @@ export function SettlementStartPage() {
   ];
   const shownRates =
     data?.preview.rates.filter((rate) => usedCurrencies.includes(rate.currency)) ?? [];
+  const visibleGroups =
+    data?.groups.filter((group) => group.memberIds.includes(identity.memberId)) ?? [];
 
   const handleConfirm = async () => {
     setSubmitting(true);
@@ -109,7 +111,7 @@ export function SettlementStartPage() {
                   <div className={styles.summaryRow}>
                     <span className={styles.summaryLabel}>그룹</span>
                     <span className={styles.chips}>
-                      {data.groups.map((group) => (
+                      {visibleGroups.map((group) => (
                         <span key={group.id} className={styles.chip}>
                           {group.name}
                         </span>

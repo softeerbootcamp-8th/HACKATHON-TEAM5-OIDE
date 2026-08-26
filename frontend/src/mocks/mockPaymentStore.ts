@@ -85,12 +85,17 @@ export const mockPaymentStore = {
   },
 
   /** 결제 항목들을 한 그룹에 담는다. 목록에서 빠진 것은 그룹에서 뺀다. */
-  assignToGroup(roomId: string, groupId: string, paymentIds: string[]): Payment[] {
+  assignToGroup(
+    roomId: string,
+    groupId: string,
+    memberId: string,
+    paymentIds: string[],
+  ): Payment[] {
     const payments = read();
     const now = new Date().toISOString();
 
     for (const payment of payments) {
-      if (payment.roomId !== roomId) continue;
+      if (payment.roomId !== roomId || payment.payerMemberId !== memberId) continue;
 
       const shouldBelong = paymentIds.includes(payment.id);
       const belongsNow = payment.splitGroupId === groupId;

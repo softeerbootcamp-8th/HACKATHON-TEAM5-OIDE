@@ -21,6 +21,7 @@ import com.example.oide.payment.repository.PaymentRepository;
 import com.example.oide.payment.repository.PaymentShareRepository;
 import com.example.oide.room.domain.RoomMember;
 import com.example.oide.room.repository.RoomMemberRepository;
+import com.example.oide.room.repository.SettlementRoomRepository;
 import com.example.oide.splitgroup.domain.SplitGroup;
 import com.example.oide.splitgroup.domain.SplitGroupMember;
 import com.example.oide.splitgroup.repository.SplitGroupMemberRepository;
@@ -34,11 +35,13 @@ public class PaymentShareService {
 	private final PaymentRepository paymentRepository;
 	private final PaymentShareRepository paymentShareRepository;
 	private final RoomMemberRepository roomMemberRepository;
+	private final SettlementRoomRepository roomRepository;
 	private final SplitGroupMemberRepository groupMemberRepository;
 	private final EqualShareCalculator equalShareCalculator;
 
 	@Transactional
 	public PaymentShareResponse saveEqual(Long roomId, Long paymentId) {
+		lockRoom(roomId);
 		Payment payment = findPaymentForUpdate(roomId, paymentId);
 		List<RoomMember> members = findGroupMembers(requireGroup(payment));
 		Map<Long, BigDecimal> shares = equalShareCalculator.calculate(payment.getAmount(), members, payment.getPayer().getId());
@@ -49,6 +52,7 @@ public class PaymentShareService {
 
 	@Transactional
 	public PaymentShareResponse saveCustom(Long roomId, Long paymentId, CustomShareRequest request) {
+		lockRoom(roomId);
 		Payment payment = findPaymentForUpdate(roomId, paymentId);
 		List<RoomMember> members = findGroupMembers(requireGroup(payment));
 		Map<Long, BigDecimal> shares = validateCustomShares(payment, members, request);
@@ -68,6 +72,7 @@ public class PaymentShareService {
 
 	@Transactional
 	public void adjustGroupPayments(SplitGroup group) {
+		lockRoom(group.getRoom().getId());
 		List<RoomMember> members = findGroupMembers(group);
 		List<Payment> payments = paymentRepository.findAllByRoomIdAndSplitGroupIdForUpdate(
 				group.getRoom().getId(), group.getId());
@@ -118,6 +123,11 @@ public class PaymentShareService {
 	private Payment findPaymentForUpdate(Long roomId, Long paymentId) {
 		return paymentRepository.findByRoomIdAndIdForUpdate(roomId, paymentId)
 				.orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND));
+	}
+
+	private void lockRoom(Long roomId) {
+		roomRepository.findByIdForUpdate(roomId)
+				.orElseThrow(() -> new BusinessException(ErrorCode.ROOM_NOT_FOUND));
 	}
 
 	private SplitGroup requireGroup(Payment payment) {

@@ -39,21 +39,29 @@ export function UnassignedItemsPage() {
   const { status, data, error, retry } = useAsync(load, [shareCode]);
 
   const unassigned = useMemo(
-    () => data?.payments.filter((payment) => payment.splitGroupId === null) ?? [],
-    [data],
+    () =>
+      data?.payments.filter(
+        (payment) =>
+          payment.payerMemberId === identity?.memberId && payment.splitGroupId === null,
+      ) ?? [],
+    [data, identity],
   );
   const allGroup = data?.groups.find((group) => group.type === 'ALL');
 
   const handleApplyRates = async () => {
-    if (!data || !allGroup) return;
+    if (!data || !allGroup || !identity) return;
 
     setSubmitting(true);
     setSubmitError(null);
     try {
       const allGroupPaymentIds = data.payments
-        .filter((payment) => payment.splitGroupId === allGroup.id)
+        .filter(
+          (payment) =>
+            payment.payerMemberId === identity.memberId &&
+            payment.splitGroupId === allGroup.id,
+        )
         .map((payment) => payment.id);
-      await assignPaymentsToGroup(shareCode, allGroup.id, [
+      await assignPaymentsToGroup(shareCode, allGroup.id, identity.memberId, [
         ...allGroupPaymentIds,
         ...unassigned.map((payment) => payment.id),
       ]);

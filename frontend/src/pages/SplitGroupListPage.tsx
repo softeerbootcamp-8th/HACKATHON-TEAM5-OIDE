@@ -67,16 +67,22 @@ export function SplitGroupListPage() {
   }
 
   // 정산 대상으로 고른 항목만 그룹에 담을 수 있다.
-  const targetPayments = data?.payments ?? [];
+  const targetPayments =
+    data?.payments.filter((payment) => payment.payerMemberId === identity.memberId) ?? [];
+  const visibleGroups =
+    data?.groups.filter((group) => group.memberIds.includes(identity.memberId)) ?? [];
   const itemsOf = (groupId: string) =>
     targetPayments.filter((payment) => payment.splitGroupId === groupId);
 
   const totalLabelOf = (groupId: string) => {
     const items = itemsOf(groupId);
     if (items.length === 0) return undefined;
-    return sumAmountsByCurrency(items)
-      .map(({ currency, amount }) => `${currency} ${formatAmount(String(amount), currency)}`)
-      .join(' · ');
+    const [firstTotal, ...otherTotals] = sumAmountsByCurrency(items);
+    const firstLabel = `${firstTotal.currency} ${formatAmount(
+      String(firstTotal.amount),
+      firstTotal.currency,
+    )}`;
+    return otherTotals.length > 0 ? `${firstLabel} · …` : firstLabel;
   };
 
   const handleDelete = async (group: SplitGroup) => {
@@ -143,7 +149,7 @@ export function SplitGroupListPage() {
             />
             <div className={styles.content}>
               <ul className={styles.groups}>
-                {data.groups.map((group) => {
+                {visibleGroups.map((group) => {
                   const card = (
                     <GroupCard
                       group={group}

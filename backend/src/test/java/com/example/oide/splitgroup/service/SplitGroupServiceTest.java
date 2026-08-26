@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
@@ -21,6 +23,11 @@ import org.springframework.transaction.annotation.Transactional;
 import com.example.oide.global.currency.SupportedCurrency;
 import com.example.oide.global.exception.BusinessException;
 import com.example.oide.global.exception.ErrorCode;
+import com.example.oide.payment.domain.Payment;
+import com.example.oide.payment.domain.PaymentShare;
+import com.example.oide.payment.domain.SplitMethod;
+import com.example.oide.payment.repository.PaymentRepository;
+import com.example.oide.payment.repository.PaymentShareRepository;
 import com.example.oide.room.domain.RoomMember;
 import com.example.oide.room.domain.SettlementRoom;
 import com.example.oide.room.repository.RoomMemberRepository;
@@ -47,6 +54,12 @@ class SplitGroupServiceTest {
 
 	@Autowired
 	private SplitGroupRepository groupRepository;
+
+	@Autowired
+	private PaymentRepository paymentRepository;
+
+	@Autowired
+	private PaymentShareRepository paymentShareRepository;
 
 	private SettlementRoom room;
 	private RoomMember firstMember;
@@ -104,6 +117,44 @@ class SplitGroupServiceTest {
 		assertEquals(List.of(secondMember.getId(), thirdMember.getId()),
 				updated.members().stream().map(SplitGroupResponse.MemberResponse::id).toList());
 		assertTrue(groupRepository.findById(created.id()).isEmpty());
+	}
+
+	@Test
+	void resetsCustomSharesWhenGroupMembersChange() {
+		SplitGroupResponse group = splitGroupService.create(
+				room.getId(),
+				new CreateSplitGroupRequest("식사", List.of(firstMember.getId(), secondMember.getId())));
+		Payment payment = paymentRepository.save(new Payment(
+				room,
+				firstMember,
+				"저녁",
+				LocalDateTime.now(),
+				new BigDecimal("10000"),
+				SupportedCurrency.KRW,
+				SplitMethod.CUSTOM,
+				true));
+		payment.assignGroup(groupRepository.findById(group.id()).orElseThrow());
+		paymentShareRepository.saveAll(List.of(
+				new PaymentShare(payment, firstMember, new BigDecimal("7000")),
+				new PaymentShare(payment, secondMember, new BigDecimal("3000"))));
+		splitGroupService.update(
+				room.getId(),
+				group.id(),
+				new UpdateSplitGroupRequest("저녁", List.of(firstMember.getId(), secondMember.getId())));
+
+		assertEquals(SplitMethod.CUSTOM, payment.getSplitMethod());
+		assertEquals(2, paymentShareRepository.findAllByPaymentId(payment.getId()).size());
+
+		splitGroupService.update(
+				room.getId(),
+				group.id(),
+				new UpdateSplitGroupRequest("식사", List.of(firstMember.getId(), thirdMember.getId())));
+
+		assertEquals(SplitMethod.EQUAL, payment.getSplitMethod());
+		assertEquals(0, paymentShareRepository.findAllByPaymentId(payment.getId()).stream()
+				.map(PaymentShare::getShareAmount)
+				.reduce(BigDecimal.ZERO, BigDecimal::add)
+				.compareTo(payment.getAmount()));
 	}
 
 	@Test

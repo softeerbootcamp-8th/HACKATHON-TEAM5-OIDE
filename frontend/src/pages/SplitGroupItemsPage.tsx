@@ -76,8 +76,8 @@ export function SplitGroupItemsPage() {
 
   // 정산 대상으로 고른 항목만 다룬다.
   const targetPayments = useMemo(
-    () => data?.payments ?? [],
-    [data],
+    () => data?.payments.filter((payment) => payment.payerMemberId === identity?.memberId) ?? [],
+    [data, identity],
   );
 
   // 이미 이 그룹에 담긴 항목을 미리 골라둔 상태로 연다.
@@ -162,7 +162,7 @@ export function SplitGroupItemsPage() {
     setSubmitting(true);
     setActionError(null);
     try {
-      await assignPaymentsToGroup(shareCode, groupId, selected);
+      await assignPaymentsToGroup(shareCode, groupId, identity.memberId, selected);
       navigate(splitGroupMethodPath(shareCode, groupId));
     } catch (caught) {
       setActionError(isApiError(caught) ? caught.message : '저장하지 못했어요.');
