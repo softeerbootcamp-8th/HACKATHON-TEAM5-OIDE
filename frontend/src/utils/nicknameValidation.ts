@@ -77,11 +77,16 @@ export function validateNickname(
   return { valid: true };
 }
 
-/** 닉네임 목록 전체가 방을 만들 수 있는 상태인지 검사한다. */
+/**
+ * 닉네임 목록 전체가 방을 만들 수 있는 상태인지 검사한다.
+ *
+ * 중복은 먼저 입력된 칸을 기준으로 판정한다. 같은 닉네임이 여러 칸에 있으면
+ * 가장 앞선 칸만 정상이고 나머지 칸에 DUPLICATE 를 띄운다.
+ */
 export function validateNicknameList(values: string[]): NicknameValidationResult[] {
   return values.map((value, index) => {
-    const others = values.filter((_, otherIndex) => otherIndex !== index);
-    return validateNickname(value, others);
+    const earlier = values.slice(0, index);
+    return validateNickname(value, earlier);
   });
 }
 

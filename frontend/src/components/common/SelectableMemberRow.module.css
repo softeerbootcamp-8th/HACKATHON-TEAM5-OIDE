@@ -5,8 +5,8 @@
   width: 100%;
   min-height: 64px;
   padding: 0 var(--space-md);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-strong);
+  border-radius: 10px; /* Figma rounded-10, 토큰과 정확히 안 맞음 */
   text-align: left;
   transition:
     border-color 0.12s ease,
@@ -27,11 +27,11 @@
 
 .selected .nickname {
   color: var(--color-primary);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .trailing {
   flex-shrink: 0;
-  font-size: var(--font-size-caption);
+  font-size: var(--font-size-label); /* Figma 14px */
   color: var(--color-text-muted);
 }

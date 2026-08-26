@@ -17,14 +17,15 @@ export function CreateRoomMemberCountPage() {
   const { draft, setMemberCount } = useCreateRoomDraft();
 
   return (
-    <MobileFrame>
+    <MobileFrame tone="white">
       <AppBar backTo={ROUTES.landing} />
       <ScreenBody>
         <ScreenHeader
           title="몇 명이 함께 정산하나요?"
-          description="본인을 포함한 인원을 골라주세요."
+          description={`본인을 포함해 ${MIN_MEMBER_COUNT}명 이상일 때 개설할 수 있어요.`}
         />
         <div className={styles.content}>
+          <span className={styles.label}>총 정산 인원</span>
           <Stepper
             label="정산 인원 수"
             value={draft.memberCount}
@@ -32,7 +33,6 @@ export function CreateRoomMemberCountPage() {
             max={MAX_MEMBER_COUNT}
             onChange={setMemberCount}
           />
-          <p className={styles.hint}>최소 {MIN_MEMBER_COUNT}명부터 만들 수 있어요</p>
         </div>
       </ScreenBody>
       <BottomActionBar>

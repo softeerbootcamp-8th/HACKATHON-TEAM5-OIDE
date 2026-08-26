@@ -18,13 +18,13 @@
 }
 
 .title {
-  font-size: var(--font-size-body);
+  font-size: 20px; /* Figma Mobile/Title3 */
   font-weight: 700;
   color: var(--color-text);
 }
 
 .description {
-  font-size: var(--font-size-caption);
+  font-size: var(--font-size-label); /* Figma Mobile/Body2, 14px */
   color: var(--color-text-muted);
   white-space: pre-line;
 }

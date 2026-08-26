@@ -57,7 +57,7 @@ export function RoomHomePage() {
   const hasEntries = (data?.summaries.length ?? 0) > 0;
 
   return (
-    <MobileFrame>
+    <MobileFrame tone="white">
       {/* 참여자의 홈. 링크로 바로 들어왔다면 되돌아갈 곳이 없다. */}
       <AppBar />
       {status === 'loading' && <LoadingState />}

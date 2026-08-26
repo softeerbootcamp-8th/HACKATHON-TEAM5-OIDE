@@ -15,7 +15,7 @@ export function RoomExpiredPage() {
   const navigate = useNavigate();
 
   return (
-    <MobileFrame>
+    <MobileFrame tone="white">
       <AppBar showBack={false} />
       <EmptyState
         title="이 정산방은 사라졌어요"

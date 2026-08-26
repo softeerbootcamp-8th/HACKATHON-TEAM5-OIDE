@@ -27,7 +27,7 @@
   --color-disabled-bg: #e5e5e5; /* 페이지 바탕(#f9f9f9) 위에서도 버튼 면이 보여야 한다. */
   --color-disabled-text: #a1a1aa;
 
-  --color-avatar-bg: #f4f4f5;
+  --color-avatar-bg: #d4d4d8; /* Figma 기본 아바타(스택·미선택 카드) 색. A-05만 예외로 더 옅은 회색을 쓴다 */
   --color-avatar-text: #3f3f46;
 
   /* 아직 고르지 않은 원형 체크의 테두리와 체크 표시 */

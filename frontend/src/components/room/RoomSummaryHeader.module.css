@@ -1,7 +1,7 @@
 .header {
   display: flex;
   flex-direction: column;
-  gap: var(--space-xs);
+  gap: var(--space-sm); /* Figma gap-12 */
   padding: 0 var(--space-screen-x);
   margin-bottom: var(--space-lg);
 }
@@ -16,10 +16,10 @@
 .meta {
   display: flex;
   align-items: center;
-  gap: var(--space-xs);
+  gap: 10px; /* Figma gap-10, 토큰과 정확히 안 맞음 */
 }
 
 .memberCount {
-  font-size: var(--font-size-caption);
+  font-size: var(--font-size-label); /* Figma Mobile/Body2, 14px */
   color: var(--color-text-muted);
 }
