@@ -16,70 +16,22 @@
   padding: 0 var(--space-screen-x);
 }
 
-.payments {
+.cards {
   display: flex;
   flex-direction: column;
-  gap: var(--space-md);
+  gap: var(--space-sm);
 }
 
-.paymentCard {
-  overflow: hidden;
+.card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: 20px var(--space-md);
   border-radius: 10px;
   background: var(--color-bg);
   box-shadow: var(--shadow-card);
-}
-
-.paymentHeader {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  padding: var(--space-md);
-  border-bottom: 1px solid var(--color-border);
-}
-
-.paymentInfo {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.merchant {
-  overflow-wrap: anywhere;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--color-text);
-}
-
-.paymentMeta {
-  font-size: var(--font-size-caption);
-  color: var(--color-text-muted);
-}
-
-.paymentAmount {
-  flex-shrink: 0;
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--color-text);
-  font-variant-numeric: tabular-nums;
-}
-
-.shares {
-  display: flex;
-  flex-direction: column;
-  padding: 0 var(--space-md);
-}
-
-.shareRow {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  padding: 14px 0;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.shareRow:last-child {
-  border-bottom: 0;
+  text-align: left;
 }
 
 .nickname {
@@ -89,12 +41,20 @@
   overflow-wrap: anywhere;
 }
 
-.shareAmount {
+.mine .nickname {
+  font-weight: 700;
+}
+
+.amount {
   flex-shrink: 0;
   font-size: 16px;
   font-weight: 500;
   color: var(--color-text);
   font-variant-numeric: tabular-nums;
+}
+
+.mine .amount {
+  font-weight: 700;
 }
 
 .action {

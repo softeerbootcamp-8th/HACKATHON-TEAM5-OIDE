@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Navigate, useNavigate, useParams } from 'react-router-dom';
+import { Navigate, useParams } from 'react-router-dom';
 import { Banner } from '../components/common/Banner';
 import { Button } from '../components/common/Button';
 import { ErrorState } from '../components/common/ErrorState';
@@ -13,6 +13,7 @@ import { ScreenHeader } from '../components/layout/ScreenHeader';
 import { MIN_GROUP_MEMBER_COUNT } from '../constants/roomRules';
 import { joinRoomPath, splitGroupItemsPath, splitGroupsPath } from '../constants/routes';
 import { useAsync } from '../hooks/useAsync';
+import { useBackNavigation } from '../hooks/useBackNavigation';
 import { useLocalIdentity } from '../hooks/useLocalIdentity';
 import { getRoomByShareCode } from '../services/roomService';
 import { createSplitGroup, getSplitGroups, updateSplitGroup } from '../services/splitGroupService';
@@ -42,7 +43,6 @@ function hasSameMemberIds(first: string[], second: string[]): boolean {
  * 1명짜리 그룹은 만들 수 없다. 혼자 부담할 항목은 정산 대상에서 빼면 된다.
  */
 export function SplitGroupMembersPage() {
-  const navigate = useNavigate();
   const { shareCode = '', groupId } = useParams<{ shareCode: string; groupId?: string }>();
   const { identity } = useLocalIdentity(shareCode);
 
@@ -91,6 +91,7 @@ export function SplitGroupMembersPage() {
   const returnPath = groupId
     ? splitGroupItemsPath(shareCode, groupId)
     : splitGroupsPath(shareCode);
+  const { goBack } = useBackNavigation(returnPath);
 
   // 연속으로 눌러도 앞선 선택이 사라지지 않도록 함수형으로 갱신한다.
   const toggle = (memberId: string) => {
@@ -112,7 +113,7 @@ export function SplitGroupMembersPage() {
       } else {
         await createSplitGroup(shareCode, groupName, selectedMemberIds, identity.memberId);
       }
-      navigate(returnPath, { replace: true });
+      goBack();
     } catch (caught) {
       setSubmitError(isApiError(caught) ? caught.message : '그룹을 저장하지 못했어요.');
       setSubmitting(false);

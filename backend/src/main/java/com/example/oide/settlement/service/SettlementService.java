@@ -363,7 +363,7 @@ public class SettlementService {
 		Map<String, ResolvedRate> rates = new LinkedHashMap<>();
 		for (ManualRatesRequest.ManualRateRequest manualRate : request.manualRates()) {
 			String currency = manualRate.currency().trim().toUpperCase();
-			if (!currencies.add(currency) || "KRW".equals(currency) || !paymentCurrencies.contains(currency)) {
+			if (!currencies.add(currency) || !paymentCurrencies.contains(currency)) {
 				throw new BusinessException(ErrorCode.INVALID_REQUEST);
 			}
 			rates.put(currency, new ResolvedRate(

@@ -12,6 +12,7 @@ import { ScreenHeader } from '../components/layout/ScreenHeader';
 import { findCurrency } from '../constants/currencies';
 import { joinRoomPath, settlementStartPath, settlementSummaryPath } from '../constants/routes';
 import { useAsync } from '../hooks/useAsync';
+import { useBackNavigation } from '../hooks/useBackNavigation';
 import { useLocalIdentity } from '../hooks/useLocalIdentity';
 import {
   confirmSettlement,
@@ -33,6 +34,7 @@ export function RateEditPage() {
   const navigate = useNavigate();
   const { shareCode = '' } = useParams<{ shareCode: string }>();
   const { identity } = useLocalIdentity(shareCode);
+  const { goBack } = useBackNavigation(settlementStartPath(shareCode));
   const load = useCallback(async () => {
     const [overview, preview] = await Promise.all([
       getSplitGroupOverview(shareCode),
@@ -54,11 +56,7 @@ export function RateEditPage() {
   }
 
   const targetCurrencies = [
-    ...new Set(
-      data?.payments
-        .filter((payment) => payment.currency !== 'KRW')
-        .map((payment) => payment.currency) ?? [],
-    ),
+    ...new Set(data?.payments.map((payment) => payment.currency) ?? []),
   ];
   const editableRates = targetCurrencies.map((currency) => ({
     currency,
@@ -158,7 +156,7 @@ export function RateEditPage() {
             <Button
               variant="text"
               disabled={submitting}
-              onClick={() => navigate(settlementStartPath(shareCode), { replace: true })}
+              onClick={() => goBack()}
             >
               자동 환율로 되돌리기
             </Button>

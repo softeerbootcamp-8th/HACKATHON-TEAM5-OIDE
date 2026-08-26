@@ -9,6 +9,7 @@ import type { SettlementRate } from '../types/settlement';
 
 /** 통화별 1단위당 원화. 와이어프레임의 `1엔 = 9.31원` 을 그대로 쓴다. */
 export const SEED_RATES: Record<string, string> = {
+  KRW: '1',
   JPY: '9.31',
   USD: '1385.20',
   EUR: '1502.60',
@@ -25,4 +26,3 @@ export function buildSeedRates(roomCreatedAt: string): SettlementRate[] {
     quotedAt: roomCreatedAt,
   }));
 }
-

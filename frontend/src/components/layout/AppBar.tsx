@@ -1,4 +1,4 @@
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useBackNavigation } from '../../hooks/useBackNavigation';
 import styles from './AppBar.module.css';
 
 interface AppBarProps {
@@ -19,23 +19,8 @@ interface AppBarProps {
  * iOS 스와이프를 눌렀을 때 오히려 앞으로 진행하는 것처럼 보인다.
  */
 export function AppBar({ showBack = true, backTo }: AppBarProps) {
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  // 앱 안에서 이동해 온 항목만 key 를 갖는다. 링크로 바로 열었으면 'default' 다.
-  const hasAppHistory = location.key !== 'default';
-  const visible = showBack && (hasAppHistory || Boolean(backTo));
-
-  const handleBack = () => {
-    if (hasAppHistory) {
-      navigate(-1);
-      return;
-    }
-    if (backTo) {
-      // 되돌아갈 기록이 없으므로 기록을 늘리지 않고 대체한다.
-      navigate(backTo, { replace: true });
-    }
-  };
+  const { canGoBack, goBack } = useBackNavigation(backTo);
+  const visible = showBack && canGoBack;
 
   return (
     <header className={styles.bar}>
@@ -43,7 +28,7 @@ export function AppBar({ showBack = true, backTo }: AppBarProps) {
         <button
           type="button"
           className={styles.backButton}
-          onClick={handleBack}
+          onClick={() => goBack()}
           aria-label="뒤로 가기"
         >
           <svg
