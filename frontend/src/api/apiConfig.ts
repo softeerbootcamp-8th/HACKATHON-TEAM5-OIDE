@@ -33,3 +33,6 @@ export const SHARE_LINK_ORIGIN: string =
 
 /** 네트워크 요청 타임아웃(ms). */
 export const REQUEST_TIMEOUT_MS = 10_000;
+
+/** 최대 200MB multipart 업로드는 일반 JSON 요청보다 오래 기다린다. */
+export const UPLOAD_REQUEST_TIMEOUT_MS = 5 * 60 * 1_000;

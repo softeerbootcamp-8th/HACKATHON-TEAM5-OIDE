@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../components/common/Button';
 import { ErrorState } from '../components/common/ErrorState';
@@ -17,78 +17,45 @@ import {
 } from '../constants/routes';
 import { useExpenseDraft } from '../hooks/useExpenseDraft';
 import { useLeaveConsumedScreen } from '../hooks/useLeaveConsumedScreen';
-import { parseReceiptImage } from '../services/paymentService';
-import type { ParsedPaymentDraft, ReceiptImage } from '../types/payment';
+import { usePaymentExtraction } from '../hooks/usePaymentExtraction';
+import { RoomExpiredPage } from './RoomExpiredPage';
 import styles from './ScreenshotParsingPage.module.css';
 
 /**
  * C-04 파싱 중.
  *
- * 스크린샷을 한 장씩 요청하고 완료 개수로 진행률을 센다.
- * 한 장이 실패해도 나머지는 살리고, 전부 실패했을 때만 오류 화면을 보여준다.
+ * 스크린샷을 한 번에 올리고 비동기 추출 작업을 폴링한다.
+ * 한 장이 실패해도 나머지는 살리고, 등록할 결과가 없을 때만 오류 화면을 보여준다.
  */
 export function ScreenshotParsingPage() {
   const navigate = useNavigate();
   const { shareCode = '' } = useParams<{ shareCode: string }>();
   const { screenshots, setParsed } = useExpenseDraft();
-
-  const [doneCount, setDoneCount] = useState(0);
-  const [failed, setFailed] = useState(false);
-  /** 업로드를 두 번 시작하지 않도록 하는 잠금. */
-  const startedRef = useRef(false);
-  /** 아직 이 화면에 있는지. 떠났으면 결과 화면으로 밀지 않는다. */
-  const onScreenRef = useRef(true);
-
-  const total = screenshots.length;
-
-  // StrictMode 는 이 효과를 두 번 실행하지만 ref 는 살아남는다.
-  // 취소 플래그로 중단하면 두 번째 실행이 잠금에 막혀 아무도 이어받지 못하므로,
-  // 시작은 한 번만 하되 중간에 끊지 않는다.
-  useEffect(() => {
-    onScreenRef.current = true;
-    return () => {
-      onScreenRef.current = false;
-    };
-  }, []);
+  const extraction = usePaymentExtraction(shareCode, screenshots);
+  const consumedRef = useRef(false);
+  const total = extraction.totalImages;
 
   const leave = useLeaveConsumedScreen(expenseMethodPath(shareCode));
 
   useEffect(() => {
-    if (total === 0) {
-      leave();
-      return;
-    }
-    if (startedRef.current) return;
-    startedRef.current = true;
+    if (screenshots.length === 0) leave();
+  }, [screenshots.length, leave]);
 
-    void (async () => {
-      const images: ReceiptImage[] = [];
-      const drafts: ParsedPaymentDraft[] = [];
+  useEffect(() => {
+    const result = extraction.result;
+    if (!result || result.drafts.length === 0 || consumedRef.current) return;
+    consumedRef.current = true;
+    setParsed(result.images, result.drafts);
+    navigate(parsedResultPath(shareCode), { replace: true });
+  }, [extraction.result, navigate, setParsed, shareCode]);
 
-      for (const [index, screenshot] of screenshots.entries()) {
-        try {
-          const result = await parseReceiptImage(shareCode, screenshot.file, index);
-          images.push(result.image);
-          drafts.push(...result.drafts);
-        } catch {
-          // 이 장은 건너뛴다. 아래에서 전체 실패 여부만 따진다.
-        }
-        setDoneCount(index + 1);
-      }
+  if (extraction.error?.code === 'ROOM_EXPIRED') {
+    return <RoomExpiredPage />;
+  }
 
-      if (drafts.length === 0) {
-        setFailed(true);
-        return;
-      }
-
-      setParsed(images, drafts);
-      if (onScreenRef.current) {
-        navigate(parsedResultPath(shareCode), { replace: true });
-      }
-    })();
-  }, [total, screenshots, shareCode, navigate, setParsed, leave]);
-
-  if (failed) {
+  const noExtractedPayments =
+    extraction.status === 'success' && extraction.result?.drafts.length === 0;
+  if (extraction.status === 'error' || noExtractedPayments) {
     return (
       <MobileFrame>
         <AppBar backTo={screenshotUploadPath(shareCode)} />
@@ -106,7 +73,7 @@ export function ScreenshotParsingPage() {
     );
   }
 
-  const current = Math.min(doneCount + 1, total);
+  const current = Math.min(extraction.finishedImages + 1, total);
 
   return (
     <MobileFrame>
@@ -117,7 +84,10 @@ export function ScreenshotParsingPage() {
           description={`${total}장 중 ${current}장째 · 잠시만 기다려주세요`}
         />
         <div className={styles.content}>
-          <ProgressBar value={total === 0 ? 0 : doneCount / total} label="분석 진행률" />
+          <ProgressBar
+            value={total === 0 ? 0 : extraction.finishedImages / total}
+            label="분석 진행률"
+          />
           <SkeletonRows count={3} />
         </div>
       </ScreenBody>

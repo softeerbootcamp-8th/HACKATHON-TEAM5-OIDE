@@ -1,39 +1,38 @@
 /**
- * 결제 내역 파싱 · 등록 · 조회.
- *
- * 스크린샷은 한 장씩 파싱을 요청한다. 진행률(`3장 중 2장째`)은 프론트가 완료 개수로 센다.
- * 서버에 파싱 작업 상태 테이블이 필요 없고, 한 장이 실패해도 나머지는 살릴 수 있다.
+ * 결제 내역 확정 등록 · 직접 입력 · 조회.
+ * 스크린샷 비동기 추출은 paymentExtractionService가 담당한다.
  */
 
-import { API_BASE_URL, USE_MOCK } from '../api/apiConfig';
+import { USE_MOCK } from '../api/apiConfig';
 import {
   findAll1,
   getShares,
+  register,
   registerBulk,
   saveCustom,
   saveEqual,
 } from '../api/generated/client';
 import type { PaymentResponse, PaymentShareResponse } from '../api/generated/models';
-import { httpClient } from '../api/httpClient';
 import { callOrval, parseApiId } from '../api/orvalResponse';
 import { resolveRoomId } from '../api/roomIdResolver';
 import { mockDelay, mockDelayReject } from '../mocks/mockDelay';
-import { draftsForImage } from '../mocks/mockPayments';
 import { mockPaymentStore } from '../mocks/mockPaymentStore';
 import { mockRoomStore } from '../mocks/mockRoomStore';
 import { ApiError } from '../types/api';
 import type {
   CreatePaymentInput,
-  ParseReceiptResult,
   Payment,
   PaymentShare,
   SplitMethod,
 } from '../types/payment';
+import { getIncludedPaymentIds, setPaymentIncluded } from './paymentInclusionStore';
 
-/** 목 모드에서 스크린샷 순번을 매기기 위한 카운터. */
-let mockImageCounter = 0;
-
-function mapPayment(roomId: number, response: PaymentResponse): Payment {
+function mapPayment(
+  roomId: number,
+  response: PaymentResponse,
+  includedInSettlement: boolean,
+  receiptImageId: string | null = null,
+): Payment {
   if (
     response.id === undefined ||
     response.payerMemberId === undefined ||
@@ -53,11 +52,12 @@ function mapPayment(roomId: number, response: PaymentResponse): Payment {
     amount: String(response.amount),
     currency: response.currency as Payment['currency'],
     splitMethod: response.splitMethod ?? null,
-    includedInSettlement: true,
-    receiptImageId: null,
+    includedInSettlement,
+    receiptImageId,
   };
 }
 
+/** Spring LocalDateTime 계약에 맞춰 시간대 없는 로컬 시각 문자열로 보낸다. */
 function toLocalDateTime(isoDateTime: string | null): string | undefined {
   if (!isoDateTime) return undefined;
 
@@ -70,57 +70,14 @@ function toLocalDateTime(isoDateTime: string | null): string | undefined {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
 }
 
-/**
- * 스크린샷 1장을 파싱한다.
- * @param imageIndex 이번 업로드에서 몇 번째 장인지. 화면의 `스크린샷 n` 표기에 쓴다.
- */
-export async function parseReceiptImage(
-  shareCode: string,
-  file: File,
-  imageIndex: number,
-): Promise<ParseReceiptResult> {
-  if (USE_MOCK) {
-    mockImageCounter += 1;
-    const imageId = `img-${Date.now()}-${mockImageCounter}`;
-    return mockDelay(
-      {
-        image: {
-          id: imageId,
-          // 목 모드에서는 실제로 올린 파일을 그대로 미리보기에 쓴다.
-          url: URL.createObjectURL(file),
-          displayOrder: imageIndex,
-        },
-        drafts: draftsForImage(imageIndex, imageId),
-      },
-      700,
-    );
-  }
-
-  const body = new FormData();
-  body.append('image', file);
-  body.append('displayOrder', String(imageIndex));
-
-  // multipart 는 Content-Type 을 브라우저가 boundary 와 함께 정해야 해서
-  // JSON 전용인 httpClient 를 쓰지 않는다.
-  let response: Response;
-  try {
-    response = await fetch(`${API_BASE_URL}/rooms/${shareCode}/receipt-images`, {
-      method: 'POST',
-      body,
-    });
-  } catch {
-    throw new ApiError('NETWORK_ERROR', '연결이 원활하지 않아요. 잠시 후 다시 시도해주세요.');
-  }
-
-  if (!response.ok) {
-    throw new ApiError(
-      'UNKNOWN_ERROR',
-      `스크린샷을 읽지 못했어요. (${response.status})`,
-      response.status,
-    );
-  }
-
-  return (await response.json()) as ParseReceiptResult;
+function toRegisterRequest(payerMemberId: string, payment: CreatePaymentInput) {
+  return {
+    payerMemberId: parseApiId(payerMemberId),
+    merchant: payment.merchant ?? undefined,
+    paidAt: toLocalDateTime(payment.paidAt),
+    amount: Number(payment.amount),
+    currency: payment.currency,
+  };
 }
 
 /** 확정한 결제 내역을 한 번에 등록한다. */
@@ -138,18 +95,54 @@ export async function createPayments(
   }
 
   const roomId = await resolveRoomId(shareCode);
-  const response = await callOrval<PaymentResponse[]>(() =>
+  const responses = await callOrval<PaymentResponse[]>(() =>
     registerBulk(roomId, {
-      payments: payments.map((payment) => ({
-        payerMemberId: parseApiId(payerMemberId),
-        merchant: payment.merchant ?? undefined,
-        paidAt: toLocalDateTime(payment.paidAt),
-        amount: Number(payment.amount),
-        currency: payment.currency,
-      })),
+      payments: payments.map((payment) => toRegisterRequest(payerMemberId, payment)),
     }),
   );
-  return response.map((payment) => mapPayment(roomId, payment));
+
+  return responses.map((response, index) => {
+    const input = payments[index];
+    const includedInSettlement = input?.includedInSettlement ?? false;
+    const created = mapPayment(
+      roomId,
+      response,
+      includedInSettlement,
+      input?.receiptImageId ?? null,
+    );
+    setPaymentIncluded(shareCode, created.id, includedInSettlement);
+    return created;
+  });
+}
+
+/** 스크린샷 없이 직접 입력한 결제 내역 한 건을 등록한다. */
+export async function createPayment(
+  shareCode: string,
+  payerMemberId: string,
+  payment: CreatePaymentInput,
+): Promise<Payment> {
+  if (USE_MOCK) {
+    const room = mockRoomStore.findByShareCode(shareCode);
+    if (!room) {
+      return mockDelayReject(new ApiError('ROOM_NOT_FOUND', '정산방을 찾을 수 없어요.', 404));
+    }
+    return mockDelay(mockPaymentStore.createMany(room.id, payerMemberId, [payment])[0]);
+  }
+
+  const roomId = await resolveRoomId(shareCode);
+  const response = await callOrval<PaymentResponse>(() =>
+    register(roomId, toRegisterRequest(payerMemberId, payment)),
+  );
+
+  const includedInSettlement = payment.includedInSettlement ?? false;
+  const created = mapPayment(
+    roomId,
+    response,
+    includedInSettlement,
+    payment.receiptImageId ?? null,
+  );
+  setPaymentIncluded(shareCode, created.id, includedInSettlement);
+  return created;
 }
 
 /** 방에 등록된 결제 내역. memberId 를 주면 그 사람이 결제한 것만 가져온다. */
@@ -169,8 +162,12 @@ export async function getPayments(
   }
 
   const roomId = await resolveRoomId(shareCode);
-  const response = await callOrval<PaymentResponse[]>(() => findAll1(roomId));
-  const payments = response.map((payment) => mapPayment(roomId, payment));
+  const responses = await callOrval<PaymentResponse[]>(() => findAll1(roomId));
+  const includedPaymentIds = getIncludedPaymentIds(shareCode);
+  const payments = responses.map((response) =>
+    mapPayment(roomId, response, includedPaymentIds.has(String(response.id))),
+  );
+
   return payerMemberId
     ? payments.filter((payment) => payment.payerMemberId === payerMemberId)
     : payments;
@@ -181,14 +178,15 @@ export async function updatePaymentInclusion(
   shareCode: string,
   paymentId: string,
   includedInSettlement: boolean,
-): Promise<Payment> {
+): Promise<void> {
   if (USE_MOCK) {
-    return mockDelay(mockPaymentStore.setIncluded(paymentId, includedInSettlement), 150);
+    await mockDelay(mockPaymentStore.setIncluded(paymentId, includedInSettlement), 150);
+    return;
   }
 
-  return httpClient.patch<Payment>(`/rooms/${shareCode}/payments/${paymentId}`, {
-    includedInSettlement,
-  });
+  // 백엔드 Payment에는 정산 포함 필드와 PATCH API가 없다. 이 선택은 그룹 분담 전까지
+  // 필요한 UI 상태이므로 방별 세션 상태로 보관하고 이후 조회 시 다시 합성한다.
+  setPaymentIncluded(shareCode, paymentId, includedInSettlement);
 }
 
 /** 결제 1건의 참여자별 부담액. 아직 나누지 않았으면 빈 배열이다. */
