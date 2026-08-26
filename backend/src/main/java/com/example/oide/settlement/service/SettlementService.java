@@ -126,7 +126,17 @@ public class SettlementService {
 						transfer.amountKrw()))
 				.toList());
 
-		return new SettlementResponse(settlement.getId(), settlement.getCalculatedAt(), preview);
+		return new SettlementResponse(settlement.getId(), settlement.getCalculatedAt(), List.of(), preview);
+	}
+
+	@Transactional
+	public void completeMemberSettlement(Long roomId, Long memberId) {
+		Settlement settlement = settlementRepository.findByRoomId(roomId)
+				.orElseThrow(() -> new BusinessException(ErrorCode.SETTLEMENT_NOT_FOUND));
+		SettlementMemberResult memberResult = settlementMemberResultRepository
+				.findBySettlementIdAndMemberId(settlement.getId(), memberId)
+				.orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
+		memberResult.complete(LocalDateTime.now());
 	}
 
 	@Transactional(readOnly = true)
@@ -139,11 +149,16 @@ public class SettlementService {
 						rate.getCurrency().name(), rate.getRateToKrw(), rate.getRateSource(), rate.getEffectiveDate(),
 						rate.getQuotedAt(), false))
 				.toList();
-		List<SettlementPreviewResponse.MemberResultResponse> memberResults = settlementMemberResultRepository
-				.findAllBySettlementIdOrderByMemberOrder(settlement.getId()).stream()
+		List<SettlementMemberResult> storedMemberResults = settlementMemberResultRepository
+				.findAllBySettlementIdOrderByMemberOrder(settlement.getId());
+		List<SettlementPreviewResponse.MemberResultResponse> memberResults = storedMemberResults.stream()
 				.map(result -> new SettlementPreviewResponse.MemberResultResponse(
 						result.getMember().getId(), result.getMember().getNickname(), result.getPaidKrw(),
 						result.getOwedKrw(), result.getPaidKrw() - result.getOwedKrw()))
+				.toList();
+		List<Long> completedMemberIds = storedMemberResults.stream()
+				.filter(result -> result.getCompletedAt() != null)
+				.map(result -> result.getMember().getId())
 				.toList();
 		List<SettlementPreviewResponse.TransferResponse> transfers = settlementTransferRepository
 				.findAllBySettlementIdOrderByIdAsc(settlement.getId()).stream()
@@ -152,7 +167,7 @@ public class SettlementService {
 						transfer.getReceiver().getId(), transfer.getReceiver().getNickname(), transfer.getAmountKrw()))
 				.toList();
 		SettlementPreviewResponse result = new SettlementPreviewResponse(true, List.of(), List.of(), rates, memberResults, transfers);
-		return new SettlementResponse(settlement.getId(), settlement.getCalculatedAt(), result);
+		return new SettlementResponse(settlement.getId(), settlement.getCalculatedAt(), completedMemberIds, result);
 	}
 
 	private SettlementPreviewResponse createPreview(
