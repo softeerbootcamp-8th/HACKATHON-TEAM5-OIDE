@@ -33,13 +33,6 @@ export function formatDayTime(iso: string): string {
   return `${new Date(iso).getDate()}일 ${formatTime(iso)}`;
 }
 
-/** 항목 수정 화면의 입력값. 예: `2026-08-21 20:14` */
-export function formatDateTimeInput(iso: string): string {
-  const date = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
-
 /** `2026-08-21 20:14` 형태를 ISO 로 되돌린다. 형식이 틀리면 null. */
 export function parseDateTimeInput(value: string): string | null {
   const match = value.trim().match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})$/);
@@ -73,6 +66,28 @@ export function toPaidAtIso(dateText: string, hour: string, minute: string): str
   if (!date) return null;
   date.setHours(Number(hour || '0'), Number(minute || '0'), 0, 0);
   return date.toISOString();
+}
+
+/**
+ * ISO 를 날짜 선택 · 시 · 분 입력값으로 쪼갠다. `toPaidAtIso` 의 반대 방향이다.
+ * 시각을 모르는 내역은 모두 빈 문자열이 된다.
+ */
+export function splitPaidAtInput(iso: string | null): {
+  date: string;
+  hour: string;
+  minute: string;
+} {
+  const empty = { date: '', hour: '', minute: '' };
+  if (!iso) return empty;
+  const parsed = new Date(iso);
+  if (Number.isNaN(parsed.getTime())) return empty;
+
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return {
+    date: formatDateInput(parsed),
+    hour: pad(parsed.getHours()),
+    minute: pad(parsed.getMinutes()),
+  };
 }
 
 /** 천 단위 구분. 통화의 소수 자릿수를 따른다. 예: `3,200` */

@@ -1,27 +1,31 @@
 import { useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
-import { AmountCurrencyInput } from '../components/common/AmountCurrencyInput';
 import { Button } from '../components/common/Button';
+import { DatePickerSheet } from '../components/common/DatePickerSheet';
+import { DateSelectField } from '../components/common/DateSelectField';
 import { FieldLabel } from '../components/common/FieldLabel';
 import { ImagePreviewModal } from '../components/common/ImagePreviewModal';
 import { TextField } from '../components/common/TextField';
+import { TimeInput } from '../components/common/TimeInput';
 import { AppBar } from '../components/layout/AppBar';
 import { BottomActionBar } from '../components/layout/BottomActionBar';
 import { MobileFrame } from '../components/layout/MobileFrame';
 import { ScreenBody } from '../components/layout/ScreenBody';
+import { CURRENCY_OPTIONS, findCurrency } from '../constants/currencies';
 import { DEFAULT_CURRENCY } from '../constants/roomRules';
 import { joinRoomPath, parsedResultPath } from '../constants/routes';
 import { useExpenseDraft } from '../hooks/useExpenseDraft';
 import { useLocalIdentity } from '../hooks/useLocalIdentity';
 import type { CurrencyCode } from '../types/room';
-import { formatDateTimeInput, parseDateTimeInput } from '../utils/formatters';
+import { sanitizeAmountInput, splitPaidAtInput, toPaidAtIso } from '../utils/formatters';
 import styles from './ParsedItemEditPage.module.css';
 
 /**
  * C-06 파싱 항목 수정.
  *
- * 네 필드 모두 수정할 수 있어야 한다 (FR-02). 필수는 금액·통화뿐이고
- * 결제처·결제 시각은 비워둘 수 있다.
+ * 다섯 필드 모두 수정할 수 있어야 한다 (FR-02). 필수는 금액·통화뿐이고
+ * 결제처·결제 날짜·시간은 비워둘 수 있다.
+ * 날짜·시간 입력은 C-09 직접 입력과 같은 방식을 쓴다.
  */
 export function ParsedItemEditPage() {
   const navigate = useNavigate();
@@ -31,15 +35,17 @@ export function ParsedItemEditPage() {
 
   const draft = drafts.find((item) => item.id === draftId);
   const image = images.find((item) => item.id === draft?.receiptImageId);
+  const initialPaidAt = splitPaidAtInput(draft?.paidAt ?? null);
 
   const [merchant, setMerchant] = useState(draft?.merchant ?? '');
-  const [paidAtText, setPaidAtText] = useState(
-    draft?.paidAt ? formatDateTimeInput(draft.paidAt) : '',
-  );
+  const [paidDate, setPaidDate] = useState(initialPaidAt.date);
+  const [paidHour, setPaidHour] = useState(initialPaidAt.hour);
+  const [paidMinute, setPaidMinute] = useState(initialPaidAt.minute);
   const [amount, setAmount] = useState(draft?.amount ?? '');
   const [currency, setCurrency] = useState<CurrencyCode>(
     draft?.currency ?? draft?.suggestedCurrency ?? DEFAULT_CURRENCY,
   );
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
 
   if (!identity) {
@@ -52,13 +58,14 @@ export function ParsedItemEditPage() {
   }
 
   const amountValid = amount.trim().length > 0 && Number(amount) > 0;
-  const paidAtValid = paidAtText.trim().length === 0 || parseDateTimeInput(paidAtText) !== null;
-  const canSave = amountValid && paidAtValid;
+  // 시간만 넣으면 어느 날의 몇 시인지 알 수 없다. 값을 조용히 버리지 않고 막는다.
+  const timeNeedsDate = (paidHour !== '' || paidMinute !== '') && paidDate === '';
+  const canSave = amountValid && !timeNeedsDate;
 
   const handleSave = () => {
     updateDraft(draft.id, {
       merchant: merchant.trim() === '' ? null : merchant.trim(),
-      paidAt: paidAtText.trim() === '' ? null : parseDateTimeInput(paidAtText),
+      paidAt: toPaidAtIso(paidDate, paidHour, paidMinute),
       amount,
       currency,
     });
@@ -83,13 +90,13 @@ export function ParsedItemEditPage() {
               </button>
               <span className={styles.sourceText}>
                 <span className={styles.sourceTitle}>원본 스크린샷</span>
-                <span className={styles.sourceHint}>읽은 내용과 다르면 직접 고칠 수 있어요</span>
+                <span className={styles.sourceHint}>{'읽은 내용과 다르면\n직접 고칠 수 있어요'}</span>
               </span>
             </div>
           )}
 
           <div className={styles.field}>
-            <FieldLabel text="결제처" />
+            <FieldLabel text="결제처" showOptionalHint={false} />
             <TextField
               value={merchant}
               placeholder="예: 이치란 라멘"
@@ -99,25 +106,57 @@ export function ParsedItemEditPage() {
           </div>
 
           <div className={styles.field}>
-            <FieldLabel text="결제 시각" />
-            <TextField
-              value={paidAtText}
-              placeholder="2026-08-21 20:14"
-              aria-label="결제 시각"
-              errorMessage={paidAtValid ? undefined : '2026-08-21 20:14 형식으로 적어주세요'}
-              onChange={(event) => setPaidAtText(event.target.value)}
+            <FieldLabel text="결제 날짜" />
+            <DateSelectField
+              value={paidDate}
+              aria-label="결제 날짜"
+              onClick={() => setDatePickerOpen(true)}
             />
           </div>
 
           <div className={styles.field}>
-            <FieldLabel text="결제 금액과 통화" required />
-            <AmountCurrencyInput
-              amount={amount}
-              currency={currency}
-              invalid={amount.length > 0 && !amountValid}
-              onAmountChange={setAmount}
-              onCurrencyChange={setCurrency}
+            <FieldLabel text="결제 시간" />
+            <TimeInput
+              hour={paidHour}
+              minute={paidMinute}
+              errorMessage={timeNeedsDate ? '결제 날짜를 먼저 골라주세요' : undefined}
+              onHourChange={setPaidHour}
+              onMinuteChange={setPaidMinute}
             />
+          </div>
+
+          <div className={styles.field}>
+            <FieldLabel text="결제 금액" required />
+            <TextField
+              value={amount}
+              placeholder="0"
+              inputMode="decimal"
+              aria-label="결제 금액"
+              errorMessage={
+                amount.length > 0 && !amountValid ? '0 보다 큰 금액을 적어주세요' : undefined
+              }
+              onChange={(event) =>
+                setAmount(
+                  sanitizeAmountInput(event.target.value, findCurrency(currency).fractionDigits),
+                )
+              }
+            />
+          </div>
+
+          <div className={styles.field}>
+            <FieldLabel text="통화" required />
+            <select
+              className={styles.currency}
+              value={currency}
+              aria-label="통화"
+              onChange={(event) => setCurrency(event.target.value as CurrencyCode)}
+            >
+              {CURRENCY_OPTIONS.map((option) => (
+                <option key={option.code} value={option.code}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
       </ScreenBody>
@@ -127,6 +166,17 @@ export function ParsedItemEditPage() {
           수정 완료
         </Button>
       </BottomActionBar>
+
+      {datePickerOpen && (
+        <DatePickerSheet
+          value={paidDate}
+          onConfirm={(next) => {
+            setPaidDate(next);
+            setDatePickerOpen(false);
+          }}
+          onClose={() => setDatePickerOpen(false)}
+        />
+      )}
 
       {showPreview && image && (
         <ImagePreviewModal
