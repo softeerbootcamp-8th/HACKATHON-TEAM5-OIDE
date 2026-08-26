@@ -16,6 +16,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -29,6 +30,9 @@ import com.example.oide.room.dto.RoomCreateRequest;
 import com.example.oide.room.dto.RoomResponse;
 import com.example.oide.room.repository.RoomMemberRepository;
 import com.example.oide.room.repository.SettlementRoomRepository;
+import com.example.oide.splitgroup.domain.SplitGroup;
+import com.example.oide.splitgroup.domain.SplitGroupType;
+import com.example.oide.splitgroup.repository.SplitGroupRepository;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("RoomService 단위 테스트")
@@ -38,10 +42,12 @@ class RoomServiceTest {
 
 	@Mock private RoomMemberRepository roomMemberRepository;
 
+	@Mock private SplitGroupRepository splitGroupRepository;
+
 	private RoomService roomService;
 
 	private RoomService createRoomService() {
-		return new RoomService(settlementRoomRepository, roomMemberRepository);
+		return new RoomService(settlementRoomRepository, roomMemberRepository, splitGroupRepository);
 	}
 
 	@Test
@@ -63,6 +69,11 @@ class RoomServiceTest {
 		assertThat(response.members().get(0).nickname()).isEqualTo("민수");
 		assertThat(response.members().get(0).displayOrder()).isEqualTo(0);
 		assertThat(response.members().get(1).displayOrder()).isEqualTo(1);
+
+		ArgumentCaptor<SplitGroup> groupCaptor = ArgumentCaptor.forClass(SplitGroup.class);
+		verify(splitGroupRepository).save(groupCaptor.capture());
+		assertThat(groupCaptor.getValue().getName()).isEqualTo("전체");
+		assertThat(groupCaptor.getValue().getType()).isEqualTo(SplitGroupType.ALL);
 	}
 
 	@Test

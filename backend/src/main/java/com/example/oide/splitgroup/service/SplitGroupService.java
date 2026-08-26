@@ -1,8 +1,10 @@
 package com.example.oide.splitgroup.service;
 
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -39,8 +41,6 @@ import lombok.RequiredArgsConstructor;
 // 정산 그룹의 생성·조회·수정·삭제와 구성원 관리를 담당한다.
 public class SplitGroupService {
 
-	private static final String ALL_GROUP_NAME = "전체";
-
 	private final SettlementRoomRepository roomRepository;
 	private final RoomMemberRepository roomMemberRepository;
 	private final SplitGroupRepository groupRepository;
@@ -49,25 +49,15 @@ public class SplitGroupService {
 	private final PaymentShareRepository paymentShareRepository;
 	private final PaymentShareService paymentShareService;
 
-	// 정산방에 전체 그룹이 없으면 생성한다.
-	@Transactional
-	public SplitGroup initializeAllGroup(Long roomId) {
-		// 정산방마다 전체 그룹은 하나만 존재하므로 먼저 기존 데이터를 조회한다.
-		return groupRepository.findByRoomIdAndType(roomId, SplitGroupType.ALL)
-				// 처음 그룹 목록을 조회하는 방이라면 전체 그룹을 기본값으로 생성한다.
-				.orElseGet(() -> groupRepository.save(
-						new SplitGroup(findRoom(roomId), ALL_GROUP_NAME, SplitGroupType.ALL)));
-	}
-
 	// 사용자 지정 그룹과 구성원을 생성한다.
 	@Transactional
 	public SplitGroupResponse create(Long roomId, CreateSplitGroupRequest request) {
-		// 그룹이 생성될 정산방이 실제로 존재하는지 먼저 확인한다.
-		SettlementRoom room = findRoom(roomId);
+		SettlementRoom room = findRoomForUpdate(roomId);
 		// 요청한 참여자가 모두 이 정산방에 속하는지 확인하고 표시 순서로 정렬한다.
 		List<RoomMember> members = findMembers(roomId, request.memberIds());
 		// 사용자 지정 그룹은 최소 두 명이 있어야 분담 대상이 된다.
 		validateMemberCount(members);
+		validateUniqueMemberSet(roomId, members, null);
 		// 그룹 자체를 저장한 뒤 생성된 그룹 ID를 구성원 연결 데이터에서 사용한다.
 		SplitGroup group = groupRepository.save(new SplitGroup(room, request.name().trim(), SplitGroupType.CUSTOM));
 		// 그룹과 참여자의 다대다 관계를 SplitGroupMember로 저장한다.
@@ -77,10 +67,9 @@ public class SplitGroupService {
 	}
 
 	// 전체 그룹과 사용자 지정 그룹 목록을 조회한다.
-	@Transactional
+	@Transactional(readOnly = true)
 	public List<SplitGroupResponse> findAll(Long roomId) {
-		// 전체 그룹이 없는 기존 정산방도 목록을 열면 기본 그룹을 갖도록 보장한다.
-		initializeAllGroup(roomId);
+		findRoom(roomId);
 		// 전체 그룹과 사용자 지정 그룹을 조회하고 각 그룹의 현재 구성원을 함께 응답으로 만든다.
 		return groupRepository.findAllByRoomIdOrderByTypeAscIdAsc(roomId).stream()
 				.map(group -> toResponse(
@@ -110,12 +99,14 @@ public class SplitGroupService {
 	// 사용자 지정 그룹명과 구성원을 수정한다.
 	@Transactional
 	public SplitGroupResponse update(Long roomId, Long groupId, UpdateSplitGroupRequest request) {
+		findRoomForUpdate(roomId);
 		// 전체 그룹은 고정이므로 사용자 지정 그룹인지와 방 소속을 함께 확인한다.
 		SplitGroup group = findCustomGroup(roomId, groupId);
 		// 변경하려는 구성원도 현재 정산방의 참여자인지 확인한다.
 		List<RoomMember> members = findMembers(roomId, request.memberIds());
 		// 구성원 교체 후에도 최소 인원 수 조건을 만족해야 한다.
 		validateMemberCount(members);
+		validateUniqueMemberSet(roomId, members, groupId);
 		// 그룹명은 공백을 제거한 값으로 변경한다.
 		group.updateName(request.name().trim());
 		// 기존 구성원 연결을 모두 제거한 뒤 요청한 구성원으로 다시 저장한다.
@@ -243,6 +234,11 @@ public class SplitGroupService {
 				.orElseThrow(() -> new BusinessException(ErrorCode.ROOM_NOT_FOUND));
 	}
 
+	private SettlementRoom findRoomForUpdate(Long roomId) {
+		return roomRepository.findByIdForUpdate(roomId)
+				.orElseThrow(() -> new BusinessException(ErrorCode.ROOM_NOT_FOUND));
+	}
+
 	// 정산방 소속 사용자 지정 그룹을 조회한다.
 	private SplitGroup findCustomGroup(Long roomId, Long groupId) {
 		// 정산방 소속 검증을 포함한 그룹 조회를 먼저 수행한다.
@@ -271,6 +267,28 @@ public class SplitGroupService {
 		// 한 명만 포함된 그룹은 공동 분담 그룹으로 사용하지 않는다.
 		if (members.size() < 2) {
 			throw new BusinessException(ErrorCode.INVALID_GROUP_MEMBER_COUNT);
+		}
+	}
+
+	private void validateUniqueMemberSet(Long roomId, List<RoomMember> members, Long excludedGroupId) {
+		if (members.size() == roomMemberRepository.countByRoomId(roomId)) {
+			throw new BusinessException(ErrorCode.DUPLICATE_GROUP_MEMBERS);
+		}
+
+		Set<Long> requestedMemberIds = members.stream().map(RoomMember::getId).collect(Collectors.toSet());
+		Map<Long, Set<Long>> memberIdsByGroupId = new HashMap<>();
+		for (SplitGroupMember groupMember : groupMemberRepository.findAllByGroupRoomId(roomId)) {
+			Long existingGroupId = groupMember.getGroup().getId();
+			if (existingGroupId.equals(excludedGroupId)) {
+				continue;
+			}
+			memberIdsByGroupId
+					.computeIfAbsent(existingGroupId, ignored -> new HashSet<>())
+					.add(groupMember.getMember().getId());
+		}
+
+		if (memberIdsByGroupId.values().stream().anyMatch(requestedMemberIds::equals)) {
+			throw new BusinessException(ErrorCode.DUPLICATE_GROUP_MEMBERS);
 		}
 	}
 

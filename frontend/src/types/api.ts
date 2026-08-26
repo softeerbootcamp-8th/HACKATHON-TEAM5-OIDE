@@ -56,6 +56,8 @@ export type ApiErrorCode =
   | 'ALL_GROUP_IMMUTABLE'
   /** 그룹 인원 수가 유효하지 않음 */
   | 'INVALID_GROUP_MEMBER_COUNT'
+  /** 같은 참여자 구성의 그룹이 이미 존재함 */
+  | 'DUPLICATE_GROUP_MEMBERS'
   /** 정산 실행 전 검증에 실패함 */
   | 'SETTLEMENT_VALIDATION_FAILED'
   /** 정산 결과를 찾을 수 없음 */

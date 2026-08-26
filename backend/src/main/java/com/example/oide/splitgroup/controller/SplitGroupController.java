@@ -42,7 +42,7 @@ public class SplitGroupController {
 	@Operation(summary = "정산 그룹 생성", description = "이름과 참여자를 지정해 사용자 그룹을 만든다.")
 	@ApiResponses({
 			@ApiResponse(responseCode = "201", description = "생성 성공"),
-			@ApiResponse(responseCode = "400", description = "그룹 이름 또는 참여자 수가 유효하지 않음", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+			@ApiResponse(responseCode = "400", description = "그룹 이름, 참여자 수 또는 참여자 구성이 유효하지 않음", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
 			@ApiResponse(responseCode = "404", description = "방 또는 참여자를 찾을 수 없음", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
 	})
 	public ResponseEntity<SplitGroupResponse> create(
@@ -69,7 +69,7 @@ public class SplitGroupController {
 	}
 
 	@PutMapping("/{groupId}")
-	@Operation(summary = "정산 그룹 수정", description = "사용자 그룹의 이름과 구성원을 변경한다. 전체 그룹은 수정할 수 없다.")
+	@Operation(summary = "정산 그룹 수정", description = "사용자 그룹의 이름과 구성원을 변경한다. 전체 그룹 및 다른 그룹과 동일한 구성은 허용하지 않는다.")
 	public ResponseEntity<SplitGroupResponse> update(
 			@PathVariable Long roomId,
 			@PathVariable Long groupId,

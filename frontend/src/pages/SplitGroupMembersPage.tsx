@@ -24,7 +24,15 @@ import styles from './SplitGroupMembersPage.module.css';
 
 interface MembersData {
   room: SettlementRoom;
+  groups: SplitGroup[];
   group: SplitGroup | null;
+}
+
+function hasSameMemberIds(first: string[], second: string[]): boolean {
+  if (first.length !== second.length) return false;
+
+  const firstIds = new Set(first);
+  return second.every((memberId) => firstIds.has(memberId));
 }
 
 /**
@@ -39,11 +47,15 @@ export function SplitGroupMembersPage() {
   const { identity } = useLocalIdentity(shareCode);
 
   const load = useCallback(async (): Promise<MembersData> => {
-    const room = await getRoomByShareCode(shareCode);
-    if (!groupId) return { room, group: null };
-
-    const groups = await getSplitGroups(shareCode);
-    return { room, group: groups.find((group) => group.id === groupId) ?? null };
+    const [room, groups] = await Promise.all([
+      getRoomByShareCode(shareCode),
+      getSplitGroups(shareCode),
+    ]);
+    return {
+      room,
+      groups,
+      group: groups.find((group) => group.id === groupId) ?? null,
+    };
   }, [shareCode, groupId]);
 
   const { status, data, error, retry } = useAsync(load, [shareCode, groupId]);
@@ -60,7 +72,19 @@ export function SplitGroupMembersPage() {
   const effectiveIds = selectedIds ?? data?.group?.memberIds ?? [];
   const selectedMembers =
     data?.room.members.filter((member) => effectiveIds.includes(member.id)) ?? [];
-  const canSubmit = selectedMembers.length >= MIN_GROUP_MEMBER_COUNT;
+  const selectedMemberIds = selectedMembers.map((member) => member.id);
+  const isDuplicateGroup =
+    selectedMembers.length >= MIN_GROUP_MEMBER_COUNT &&
+    (data?.groups.some(
+      (group) => group.id !== groupId && hasSameMemberIds(group.memberIds, selectedMemberIds),
+    ) ?? false);
+  const canSubmit =
+    selectedMembers.length >= MIN_GROUP_MEMBER_COUNT && !isDuplicateGroup;
+  const submitLabel = isDuplicateGroup
+    ? '존재하는 그룹이에요'
+    : groupId
+      ? '수정 완료'
+      : '그룹 만들기';
 
   // 연속으로 눌러도 앞선 선택이 사라지지 않도록 함수형으로 갱신한다.
   const toggle = (memberId: string) => {
@@ -76,12 +100,11 @@ export function SplitGroupMembersPage() {
     setSubmitting(true);
     setSubmitError(null);
     try {
-      const memberIds = selectedMembers.map((member) => member.id);
       const groupName = buildGroupName(selectedMembers);
       if (groupId) {
-        await updateSplitGroup(shareCode, groupId, groupName, memberIds);
+        await updateSplitGroup(shareCode, groupId, groupName, selectedMemberIds);
       } else {
-        await createSplitGroup(shareCode, groupName, memberIds);
+        await createSplitGroup(shareCode, groupName, selectedMemberIds);
       }
       navigate(splitGroupsPath(shareCode), { replace: true });
     } catch (caught) {
@@ -136,7 +159,7 @@ export function SplitGroupMembersPage() {
               loadingLabel="저장하고 있어요…"
               onClick={handleSubmit}
             >
-              {groupId ? '수정 완료' : '그룹 만들기'}
+              {submitLabel}
             </Button>
           </BottomActionBar>
         </>
