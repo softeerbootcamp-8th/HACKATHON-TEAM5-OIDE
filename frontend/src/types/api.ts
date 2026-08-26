@@ -64,8 +64,6 @@ export type ApiErrorCode =
   | 'SETTLEMENT_VALIDATION_FAILED'
   /** 정산 결과를 찾을 수 없음 */
   | 'SETTLEMENT_NOT_FOUND'
-  | 'SETTLEMENT_SKIP_NOT_ALLOWED'
-  | 'SETTLEMENT_MEMBER_MISMATCH'
   /** 네트워크 단절 · 타임아웃 */
   | 'NETWORK_ERROR'
   /** 5xx 또는 분류되지 않은 실패 */
