@@ -15,7 +15,9 @@
 }
 
 .description {
-  font-size: var(--font-size-body);
+  font-size: var(--font-size-lead);
+  font-weight: 500;
+  line-height: var(--line-height-title);
   color: var(--color-text-muted);
   white-space: pre-line;
 }

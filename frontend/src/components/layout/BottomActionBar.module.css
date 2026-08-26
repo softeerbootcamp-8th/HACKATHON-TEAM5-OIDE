@@ -3,7 +3,8 @@
   flex-direction: column;
   gap: var(--space-sm);
   flex-shrink: 0;
-  padding: var(--space-sm) var(--space-screen-x)
-    calc(var(--space-lg) + env(safe-area-inset-bottom));
-  background: transparent;
+  padding: var(--space-md) var(--space-screen-x)
+    calc(var(--space-xl) + env(safe-area-inset-bottom));
+  background: var(--color-page);
+
 }

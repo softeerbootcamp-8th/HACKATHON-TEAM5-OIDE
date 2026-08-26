@@ -6,7 +6,7 @@
   max-width: var(--frame-max-width);
   min-height: 100dvh;
   margin: 0 auto;
-  background: var(--color-bg);
+  background: var(--color-page);
 }
 
 .subtle {

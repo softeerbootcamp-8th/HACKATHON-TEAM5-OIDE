@@ -3,61 +3,65 @@
   align-items: center;
   gap: var(--space-sm);
   width: 100%;
-  padding: var(--space-md);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  padding: var(--space-sm) 14px;
+  /* 입력이 필요할 때만 테두리를 보이게 하되, 항상 같은 두께를 둬야 크기가 흔들리지 않는다. */
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: var(--color-bg);
+  box-shadow: var(--shadow-card);
   text-align: left;
 }
 
-/* 금액·통화를 못 읽어 입력이 필요한 항목은 보더를 진하게 해 구분한다. */
+/* 금액·통화를 못 읽은 항목은 주황 테두리로 구분한다.
+   눈이 여기로 먼저 가야 하므로 나머지 카드의 그림자는 걷어낸다. */
 .needsInput {
-  border-color: var(--color-text);
+  border-color: var(--color-border-attention);
+  box-shadow: none;
 }
 
 .body {
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 2px;
   min-width: 0;
 }
 
 .merchant {
-  font-size: var(--font-size-caption);
+  font-size: var(--font-size-label);
+  line-height: var(--line-height-title);
   color: var(--color-text-muted);
   overflow-wrap: anywhere;
 }
 
 .amount {
-  font-size: 17px;
+  font-size: var(--font-size-subtitle);
   font-weight: 700;
+  line-height: var(--line-height-title);
   color: var(--color-text);
   font-variant-numeric: tabular-nums;
 }
 
 /* `금액을 못 읽었어요` 처럼 값 자리에 들어가는 안내. */
 .missingValue {
-  font-size: 17px;
+  font-size: var(--font-size-subtitle);
   font-weight: 700;
-  color: var(--color-text);
+  line-height: var(--line-height-title);
+  color: var(--color-primary);
 }
 
 .meta {
-  font-size: var(--font-size-caption);
+  font-size: 12px; /* Figma Mobile/Caption */
+  line-height: 1.4;
   color: var(--color-text-muted);
 }
 
 .missingMeta {
-  color: var(--color-text-accent);
+  color: var(--color-primary);
 }
 
 .action {
   flex-shrink: 0;
-  font-size: var(--font-size-caption);
-  color: var(--color-text-muted);
-}
-
-.actionStrong {
-  color: var(--color-text);
-  font-weight: 600;
+  font-size: var(--font-size-label);
+  line-height: var(--line-height-title);
+  color: var(--color-text-accent);
 }

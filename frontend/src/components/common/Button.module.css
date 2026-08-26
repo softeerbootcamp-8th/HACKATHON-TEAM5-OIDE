@@ -5,9 +5,9 @@
   width: 100%;
   min-height: var(--control-height);
   padding: 0 var(--space-md);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   font-size: var(--font-size-button);
-  font-weight: 700;
+  font-weight: 500;
   transition: background-color 0.12s ease;
 }
 
