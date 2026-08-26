@@ -8,8 +8,32 @@
 /** ISO-8601 문자열 (예: "2026-08-25T14:32:00Z"). */
 export type IsoDateTime = string;
 
-/** ISO-4217 통화 코드. 서비스가 다루는 범위만 좁혀둔다. */
-export type CurrencyCode = 'KRW' | 'JPY' | 'USD' | 'EUR';
+/**
+ * ISO-4217 통화 코드. 백엔드 `SupportedCurrency` enum 이 지원하는 범위와 같다.
+ * 목록과 표시 정보는 constants/currencies.ts 에 있다.
+ */
+export type CurrencyCode =
+  | 'KRW'
+  | 'JPY'
+  | 'VND'
+  | 'CNY'
+  | 'USD'
+  | 'EUR'
+  | 'THB'
+  | 'PHP'
+  | 'TWD'
+  | 'HKD'
+  | 'SGD'
+  | 'IDR'
+  | 'MYR'
+  | 'AUD'
+  | 'GBP'
+  | 'TRY'
+  | 'AED'
+  | 'CHF'
+  | 'MNT'
+  | 'CAD'
+  | 'INR';
 
 /** SETTLEMENT_ROOM */
 export interface SettlementRoom {
