@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
+import stateErrorIcon from '../assets/state-error.png';
 import { Button } from '../components/common/Button';
 import { ErrorState } from '../components/common/ErrorState';
 import { ProgressBar } from '../components/common/ProgressBar';
@@ -66,6 +67,7 @@ export function ScreenshotParsingPage() {
       <MobileFrame>
         <AppBar backTo={screenshotUploadPath(shareCode)} />
         <ErrorState
+          iconSrc={stateErrorIcon}
           title="스크린샷에서 결제 내역을 찾지 못했어요"
           description={'글자가 잘 보이는 사진으로 다시 올리거나,\n직접 입력해서 등록할 수 있어요.'}
         />
