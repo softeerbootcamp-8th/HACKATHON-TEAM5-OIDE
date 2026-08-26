@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   build:
-    name: Lint and build
+    name: Build
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -23,29 +23,21 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v6
 
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v4.4.0
-        with:
-          version: 10
-
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
           node-version: 22
-          cache: pnpm
-          cache-dependency-path: frontend/pnpm-lock.yaml
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: npm ci
 
-      - name: Lint
-        run: pnpm lint
-
-      # 테스트 스크립트가 아직 package.json에 없어 제외한다.
-      # 추가되면 여기에 `pnpm test` 스텝을 넣는다.
+      # lint·test 스크립트가 아직 package.json에 없어 제외한다.
+      # 추가되면 여기에 `npm run lint`/`npm test` 스텝을 넣는다.
 
       - name: Build
-        run: pnpm build
+        run: npm run build
 
       - name: Upload dist artifact
         uses: actions/upload-artifact@v6
