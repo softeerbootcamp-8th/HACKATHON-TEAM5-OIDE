@@ -32,6 +32,6 @@
 
 .trailing {
   flex-shrink: 0;
-  font-size: var(--font-size-caption);
+  font-size: var(--font-size-label); /* Figma 14px */
   color: var(--color-text-muted);
 }

@@ -48,7 +48,7 @@ export function RoomCreatedPage() {
   };
 
   return (
-    <MobileFrame>
+    <MobileFrame tone="white">
       {/* 방이 이미 만들어져 되돌릴 수 없다. 링크를 잃지 않도록 뒤로가기를 두지 않는다. */}
       <AppBar showBack={false} />
       {status === 'loading' && <LoadingState />}

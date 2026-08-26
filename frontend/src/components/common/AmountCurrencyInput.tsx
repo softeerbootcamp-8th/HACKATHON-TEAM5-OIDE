@@ -31,19 +31,7 @@ export function AmountCurrencyInput({
 
   return (
     <div className={`${styles.group} ${compact ? styles.compact : ''}`}>
-      <select
-        className={styles.currency}
-        value={currency}
-        aria-label="통화"
-        onChange={(event) => onCurrencyChange(event.target.value as CurrencyCode)}
-      >
-        {CURRENCY_OPTIONS.map((option) => (
-          <option key={option.code} value={option.code}>
-            {option.code}
-          </option>
-        ))}
-      </select>
-
+      <CurrencySelect value={currency} onChange={onCurrencyChange} variant="compact" />
 
       <div className={`${styles.amountWrapper} ${invalid ? styles.invalid : ''}`}>
         <input
