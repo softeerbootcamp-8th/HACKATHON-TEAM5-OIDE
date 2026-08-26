@@ -12,6 +12,7 @@ export interface SplitGroupResponse {
   id?: number;
   name?: string;
   type?: SplitGroupResponseType;
+  creatorMemberId?: number | null;
   members?: MemberResponse[];
   paymentCount?: number;
 }

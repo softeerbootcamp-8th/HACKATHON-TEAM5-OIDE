@@ -69,7 +69,9 @@ export function SettlementStartPage() {
   const shownRates =
     data?.preview.rates.filter((rate) => usedCurrencies.includes(rate.currency)) ?? [];
   const visibleGroups =
-    data?.groups.filter((group) => group.memberIds.includes(identity.memberId)) ?? [];
+    data?.groups.filter(
+      (group) => group.type === 'ALL' || group.creatorMemberId === identity.memberId,
+    ) ?? [];
 
   const handleConfirm = async () => {
     setSubmitting(true);

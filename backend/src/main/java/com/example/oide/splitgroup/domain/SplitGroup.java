@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import com.example.oide.room.domain.RoomMember;
 import com.example.oide.room.domain.SettlementRoom;
 
 import jakarta.persistence.Column;
@@ -43,6 +44,10 @@ public class SplitGroup {
 	@Column(nullable = false, length = 20)
 	private SplitGroupType type;
 
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "creator_member_id")
+	private RoomMember creator;
+
 	@CreationTimestamp
 	@Column(name = "created_at", nullable = false, updatable = false)
 	private LocalDateTime createdAt;
@@ -52,10 +57,15 @@ public class SplitGroup {
 	private LocalDateTime updatedAt;
 
 	public SplitGroup(SettlementRoom room, String name, SplitGroupType type) {
+		this(room, name, type, null);
+	}
+
+	public SplitGroup(SettlementRoom room, String name, SplitGroupType type, RoomMember creator) {
 		// 생성 시점에 그룹이 속한 정산방, 화면 표시명, 그룹 유형을 함께 고정한다.
 		this.room = room;
 		this.name = name;
 		this.type = type;
+		this.creator = creator;
 	}
 
 	public boolean isAll() {

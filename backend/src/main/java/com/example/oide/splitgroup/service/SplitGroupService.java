@@ -55,11 +55,13 @@ public class SplitGroupService {
 		SettlementRoom room = findRoomForUpdate(roomId);
 		// 요청한 참여자가 모두 이 정산방에 속하는지 확인하고 표시 순서로 정렬한다.
 		List<RoomMember> members = findMembers(roomId, request.memberIds());
+		RoomMember creator = findMembers(roomId, List.of(request.creatorMemberId())).getFirst();
 		// 사용자 지정 그룹은 최소 두 명이 있어야 분담 대상이 된다.
 		validateMemberCount(members);
-		validateUniqueMemberSet(roomId, members, null);
+		validateUniqueMemberSet(roomId, members, null, creator.getId());
 		// 그룹 자체를 저장한 뒤 생성된 그룹 ID를 구성원 연결 데이터에서 사용한다.
-		SplitGroup group = groupRepository.save(new SplitGroup(room, request.name().trim(), SplitGroupType.CUSTOM));
+		SplitGroup group = groupRepository.save(
+				new SplitGroup(room, request.name().trim(), SplitGroupType.CUSTOM, creator));
 		// 그룹과 참여자의 다대다 관계를 SplitGroupMember로 저장한다.
 		groupMemberRepository.saveAll(createGroupMembers(group, members));
 		// 저장된 그룹과 구성원을 화면에 필요한 형태로 반환한다.
@@ -109,7 +111,7 @@ public class SplitGroupService {
 		List<RoomMember> members = findMembers(roomId, request.memberIds());
 		// 구성원 교체 후에도 최소 인원 수 조건을 만족해야 한다.
 		validateMemberCount(members);
-		validateUniqueMemberSet(roomId, members, groupId);
+		validateUniqueMemberSet(roomId, members, groupId, group.getCreator().getId());
 		List<Long> previousMemberIds = findGroupMembers(group, roomId).stream().map(RoomMember::getId).toList();
 		List<Long> updatedMemberIds = members.stream().map(RoomMember::getId).toList();
 		// 그룹명은 공백을 제거한 값으로 변경한다.
@@ -135,6 +137,9 @@ public class SplitGroupService {
 		// 전체 그룹을 포함해 해당 방의 그룹인지 먼저 확인한다.
 		SplitGroup group = findGroup(roomId, groupId);
 		RoomMember member = findMembers(roomId, List.of(request.memberId())).getFirst();
+		if (!group.isAll() && !group.getCreator().getId().equals(member.getId())) {
+			throw new BusinessException(ErrorCode.INVALID_PAYMENT_SELECTION);
+		}
 		// 같은 결제를 두 번 선택한 요청은 상태를 모호하게 만들므로 거절한다.
 		Set<Long> requestedPaymentIds = new HashSet<>(request.paymentIds());
 		if (requestedPaymentIds.size() != request.paymentIds().size()) {
@@ -300,7 +305,8 @@ public class SplitGroupService {
 		}
 	}
 
-	private void validateUniqueMemberSet(Long roomId, List<RoomMember> members, Long excludedGroupId) {
+	private void validateUniqueMemberSet(
+			Long roomId, List<RoomMember> members, Long excludedGroupId, Long creatorMemberId) {
 		if (members.size() == roomMemberRepository.countByRoomId(roomId)) {
 			throw new BusinessException(ErrorCode.DUPLICATE_GROUP_MEMBERS);
 		}
@@ -309,7 +315,9 @@ public class SplitGroupService {
 		Map<Long, Set<Long>> memberIdsByGroupId = new HashMap<>();
 		for (SplitGroupMember groupMember : groupMemberRepository.findAllByGroupRoomId(roomId)) {
 			Long existingGroupId = groupMember.getGroup().getId();
-			if (existingGroupId.equals(excludedGroupId)) {
+			if (existingGroupId.equals(excludedGroupId)
+					|| groupMember.getGroup().getCreator() == null
+					|| !groupMember.getGroup().getCreator().getId().equals(creatorMemberId)) {
 				continue;
 			}
 			memberIdsByGroupId
@@ -329,6 +337,7 @@ public class SplitGroupService {
 				group.getId(),
 				group.getName(),
 				group.getType(),
+				group.getCreator() == null ? null : group.getCreator().getId(),
 				members.stream()
 						.map(member -> new SplitGroupResponse.MemberResponse(
 								member.getId(), member.getNickname(), member.getDisplayOrder()))

@@ -106,8 +106,8 @@ class SplitGroupPaymentSelectionTest {
 
 	@Test
 	void rejectsPaymentAlreadySelectedByAnotherGroup() {
-		SplitGroupResponse firstGroup = createGroup("식사", firstMember, secondMember);
-		SplitGroupResponse secondGroup = createGroup("교통", secondMember, thirdMember);
+		SplitGroupResponse firstGroup = createGroupBy("식사", secondMember, firstMember, secondMember);
+		SplitGroupResponse secondGroup = createGroupBy("교통", secondMember, secondMember, thirdMember);
 		Payment payment = createPayment("식당", 1, secondMember);
 		splitGroupService.updatePayments(
 				room.getId(), firstGroup.id(), new UpdateGroupPaymentsRequest(secondMember.getId(), List.of(payment.getId())));
@@ -131,7 +131,7 @@ class SplitGroupPaymentSelectionTest {
 
 	@Test
 	void allowsPayerToAssignPaymentToGroupTheyAreNotIn() {
-		SplitGroupResponse group = createGroup("식사", secondMember, thirdMember);
+		SplitGroupResponse group = createGroupBy("식사", firstMember, secondMember, thirdMember);
 		Payment payment = createPayment("식당", 1, firstMember);
 
 		splitGroupService.updatePayments(
@@ -145,6 +145,17 @@ class SplitGroupPaymentSelectionTest {
 						.map(share -> share.getMember().getId())
 						.sorted()
 						.toList());
+	}
+
+	@Test
+	void rejectsAssigningPaymentToAnotherMembersGroup() {
+		SplitGroupResponse group = createGroupBy("식사", secondMember, secondMember, thirdMember);
+		Payment payment = createPayment("식당", 1, firstMember);
+
+		BusinessException exception = assertThrows(BusinessException.class, () -> splitGroupService.updatePayments(
+				room.getId(), group.id(), new UpdateGroupPaymentsRequest(firstMember.getId(), List.of(payment.getId()))));
+
+		assertEquals(ErrorCode.INVALID_PAYMENT_SELECTION, exception.getErrorCode());
 	}
 
 	@Test
@@ -235,8 +246,14 @@ class SplitGroupPaymentSelectionTest {
 	}
 
 	private SplitGroupResponse createGroup(String name, RoomMember first, RoomMember second) {
+		return createGroupBy(name, first, first, second);
+	}
+
+	private SplitGroupResponse createGroupBy(
+			String name, RoomMember creator, RoomMember first, RoomMember second) {
 		return splitGroupService.create(
-				room.getId(), new CreateSplitGroupRequest(name, List.of(first.getId(), second.getId())));
+				room.getId(), new CreateSplitGroupRequest(
+						name, List.of(first.getId(), second.getId()), creator.getId()));
 	}
 
 	private Payment createPayment(String merchant, int day) {

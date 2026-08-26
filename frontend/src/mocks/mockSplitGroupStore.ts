@@ -40,6 +40,7 @@ export const mockSplitGroupStore = {
         roomId,
         name: ALL_GROUP_NAME,
         type: 'ALL',
+        creatorMemberId: null,
         memberIds: members.map((member) => member.id),
         createdAt: now,
         updatedAt: now,
@@ -51,13 +52,14 @@ export const mockSplitGroupStore = {
     return [...groups].sort((a, b) => (a.type === 'ALL' ? -1 : b.type === 'ALL' ? 1 : 0));
   },
 
-  create(roomId: string, members: RoomMember[]): SplitGroup {
+  create(roomId: string, members: RoomMember[], creatorMemberId: string): SplitGroup {
     const now = new Date().toISOString();
     const group: SplitGroup = {
       id: `grp-${Date.now()}`,
       roomId,
       name: buildGroupName(members),
       type: 'CUSTOM',
+      creatorMemberId,
       memberIds: members.map((member) => member.id),
       createdAt: now,
       updatedAt: now,

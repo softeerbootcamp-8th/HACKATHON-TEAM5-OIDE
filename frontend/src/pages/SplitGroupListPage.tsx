@@ -69,7 +69,10 @@ export function SplitGroupListPage() {
   // 정산 대상으로 고른 항목만 그룹에 담을 수 있다.
   const targetPayments =
     data?.payments.filter((payment) => payment.payerMemberId === identity.memberId) ?? [];
-  const visibleGroups = data?.groups ?? [];
+  const visibleGroups =
+    data?.groups.filter(
+      (group) => group.type === 'ALL' || group.creatorMemberId === identity.memberId,
+    ) ?? [];
   const itemsOf = (groupId: string) =>
     targetPayments.filter((payment) => payment.splitGroupId === groupId);
 

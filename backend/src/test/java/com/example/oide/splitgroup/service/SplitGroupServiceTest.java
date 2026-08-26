@@ -85,6 +85,7 @@ class SplitGroupServiceTest {
 
 		assertEquals("식사", response.name());
 		assertEquals(SplitGroupType.CUSTOM, response.type());
+		assertEquals(thirdMember.getId(), response.creatorMemberId());
 		assertEquals(List.of(firstMember.getId(), thirdMember.getId()),
 				response.members().stream().map(SplitGroupResponse.MemberResponse::id).toList());
 	}
@@ -182,11 +183,13 @@ class SplitGroupServiceTest {
 	void rejectsCustomGroupWithSameMemberSetInDifferentOrder() {
 		splitGroupService.create(
 				room.getId(),
-				new CreateSplitGroupRequest("식사", List.of(firstMember.getId(), secondMember.getId())));
+				new CreateSplitGroupRequest(
+						"식사", List.of(firstMember.getId(), secondMember.getId()), firstMember.getId()));
 
 		BusinessException exception = assertThrows(BusinessException.class, () -> splitGroupService.create(
 				room.getId(),
-				new CreateSplitGroupRequest("교통", List.of(secondMember.getId(), firstMember.getId()))));
+				new CreateSplitGroupRequest(
+						"교통", List.of(secondMember.getId(), firstMember.getId()), firstMember.getId())));
 
 		assertEquals(ErrorCode.DUPLICATE_GROUP_MEMBERS, exception.getErrorCode());
 	}
@@ -206,13 +209,30 @@ class SplitGroupServiceTest {
 	}
 
 	@Test
+	void allowsDifferentCreatorsToUseSameMemberSet() {
+		splitGroupService.create(
+				room.getId(),
+				new CreateSplitGroupRequest(
+						"첫째 그룹", List.of(firstMember.getId(), secondMember.getId()), firstMember.getId()));
+
+		SplitGroupResponse response = splitGroupService.create(
+				room.getId(),
+				new CreateSplitGroupRequest(
+						"둘째 그룹", List.of(firstMember.getId(), secondMember.getId()), secondMember.getId()));
+
+		assertEquals(secondMember.getId(), response.creatorMemberId());
+	}
+
+	@Test
 	void rejectsUpdateToAnotherGroupsMemberSet() {
 		splitGroupService.create(
 				room.getId(),
-				new CreateSplitGroupRequest("식사", List.of(firstMember.getId(), secondMember.getId())));
+				new CreateSplitGroupRequest(
+						"식사", List.of(firstMember.getId(), secondMember.getId()), firstMember.getId()));
 		SplitGroupResponse group = splitGroupService.create(
 				room.getId(),
-				new CreateSplitGroupRequest("교통", List.of(secondMember.getId(), thirdMember.getId())));
+				new CreateSplitGroupRequest(
+						"교통", List.of(secondMember.getId(), thirdMember.getId()), firstMember.getId()));
 
 		BusinessException exception = assertThrows(BusinessException.class, () -> splitGroupService.update(
 				room.getId(),
