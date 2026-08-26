@@ -7,5 +7,6 @@
  */
 
 export interface UpdateGroupPaymentsRequest {
+  memberId: number;
   paymentIds: number[];
 }

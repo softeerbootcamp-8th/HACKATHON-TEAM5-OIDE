@@ -33,4 +33,14 @@ public class RoomAccessService {
 		RoomExpirationValidator.validateNotExpired(room.getCreatedAt());
 		return room;
 	}
+
+	@Transactional
+	public SettlementRoom getActiveRoomForUpdate(Long roomId) {
+		SettlementRoom room =
+				settlementRoomRepository
+						.findByIdForUpdate(roomId)
+						.orElseThrow(() -> new BusinessException(ErrorCode.ROOM_NOT_FOUND));
+		RoomExpirationValidator.validateNotExpired(room.getCreatedAt());
+		return room;
+	}
 }

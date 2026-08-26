@@ -65,7 +65,7 @@ public class PaymentCommandService {
 
 	@Transactional
 	public void updateInclusion(Long roomId, Long paymentId, boolean includedInSettlement) {
-		SettlementRoom room = roomAccessService.getActiveRoom(roomId);
+		SettlementRoom room = roomAccessService.getActiveRoomForUpdate(roomId);
 		Payment payment = paymentRepository.findById(paymentId)
 				.filter(candidate -> candidate.getRoom().getId().equals(room.getId()))
 				.orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND));
