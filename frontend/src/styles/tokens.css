@@ -33,8 +33,10 @@
     'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
 
   --font-size-title: 20px;
+  --font-size-subtitle: 18px; /* Figma Mobile/Title4 */
   --font-size-body: 15px;
   --font-size-input: 16px; /* iOS 포커스 시 자동 확대를 막으려면 16px 이상이어야 한다. */
+  --font-size-label: 14px; /* Figma Mobile/Body2 */
   --font-size-caption: 13px;
   --font-size-button: 15px;
 
@@ -52,6 +54,9 @@
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-full: 999px;
+
+  /* 카드가 배경 위에 살짝 떠 보이도록 하는 아주 옅은 그림자 */
+  --shadow-card: 0 0 1px 0 rgba(0, 0, 0, 0.25);
 
   --control-height: 56px;
   --touch-target-min: 44px;
