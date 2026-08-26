@@ -131,9 +131,10 @@ export function SplitGroupItemsPage() {
   const selectedPayments = targetPayments.filter((payment) => selected.includes(payment.id));
   const currencyTotals = sumAmountsByCurrency(selectedPayments);
   // 아무것도 고르지 않았으면 방의 기본 통화로 0 을 보여준다.
+  const fallbackCurrency = data?.room.defaultCurrency ?? DEFAULT_CURRENCY;
   const totalLabel =
-    formatCurrencyTotals(currencyTotals, { withSingleCurrencyCode: false }) ||
-    formatAmount('0', data?.room.defaultCurrency ?? DEFAULT_CURRENCY);
+    formatCurrencyTotals(currencyTotals) ||
+    `${fallbackCurrency} ${formatAmount('0', fallbackCurrency)}`;
 
   const handleAddMissing = async (input: CreatePaymentInput) => {
     setSubmitting(true);
