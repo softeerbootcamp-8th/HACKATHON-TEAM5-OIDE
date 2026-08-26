@@ -27,6 +27,7 @@ import { mockSplitGroupStore } from '../mocks/mockSplitGroupStore';
 import { ApiError } from '../types/api';
 import type { Payment, SplitGroup } from '../types/payment';
 import type { CurrencyCode } from '../types/room';
+import { setPaymentSplit } from './paymentService';
 
 export interface SplitGroupPaymentSummary {
   id: string;
@@ -250,7 +251,19 @@ export async function assignPaymentsToGroup(
   if (USE_MOCK) {
     try {
       const room = requireRoom(shareCode);
-      await mockDelay(mockPaymentStore.assignToGroup(room.id, groupId, memberId, paymentIds));
+      const assignedPayments = await mockDelay(
+        mockPaymentStore.assignToGroup(room.id, groupId, memberId, paymentIds),
+      );
+      await Promise.all(
+        assignedPayments
+          .filter(
+            (payment) =>
+              paymentIds.includes(payment.id) &&
+              payment.splitGroupId === groupId &&
+              payment.splitMethod === null,
+          )
+          .map((payment) => setPaymentSplit(shareCode, payment.id, 'EQUAL', [])),
+      );
       return;
     } catch (error) {
       return mockDelayReject(error as ApiError);

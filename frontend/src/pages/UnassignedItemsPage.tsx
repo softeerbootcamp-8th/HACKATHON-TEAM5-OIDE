@@ -12,21 +12,17 @@ import { ScreenHeader } from '../components/layout/ScreenHeader';
 import { joinRoomPath, settlementStartPath, splitGroupsPath } from '../constants/routes';
 import { useAsync } from '../hooks/useAsync';
 import { useLocalIdentity } from '../hooks/useLocalIdentity';
-import { setPaymentSplit } from '../services/paymentService';
-import {
-  assignPaymentsToGroup,
-  getSplitGroupOverview,
-} from '../services/splitGroupService';
+import { updatePaymentInclusion } from '../services/paymentService';
+import { getSplitGroupOverview } from '../services/splitGroupService';
 import { isApiError } from '../types/api';
 import { formatAmount, formatTime } from '../utils/formatters';
 import { RoomExpiredPage } from './RoomExpiredPage';
 import styles from './UnassignedItemsPage.module.css';
 
 /**
- * D-12 자동 귀속 확인.
+ * D-12 미선택 항목 제외 확인.
  *
- * 어느 그룹에도 담기지 않은 항목은 `전체` 그룹이 나눠서 낸다.
- * 정산을 막지 않고 사실만 알린다.
+ * 어느 그룹에도 담기지 않은 항목은 이번 정산 대상에서 제외한다.
  */
 export function UnassignedItemsPage() {
   const navigate = useNavigate();
@@ -46,31 +42,18 @@ export function UnassignedItemsPage() {
       ) ?? [],
     [data, identity],
   );
-  const allGroup = data?.groups.find((group) => group.type === 'ALL');
-
   const handleApplyRates = async () => {
-    if (!data || !allGroup || !identity) return;
+    if (!identity) return;
 
     setSubmitting(true);
     setSubmitError(null);
     try {
-      const allGroupPaymentIds = data.payments
-        .filter(
-          (payment) =>
-            payment.payerMemberId === identity.memberId &&
-            payment.splitGroupId === allGroup.id,
-        )
-        .map((payment) => payment.id);
-      await assignPaymentsToGroup(shareCode, allGroup.id, identity.memberId, [
-        ...allGroupPaymentIds,
-        ...unassigned.map((payment) => payment.id),
-      ]);
       await Promise.all(
-        unassigned.map((payment) => setPaymentSplit(shareCode, payment.id, 'EQUAL', [])),
+        unassigned.map((payment) => updatePaymentInclusion(shareCode, payment.id, false)),
       );
       navigate(settlementStartPath(shareCode));
     } catch (caught) {
-      setSubmitError(isApiError(caught) ? caught.message : '전체 그룹에 담지 못했어요.');
+      setSubmitError(isApiError(caught) ? caught.message : '미선택 항목을 제외하지 못했어요.');
       setSubmitting(false);
     }
   };
@@ -120,9 +103,8 @@ export function UnassignedItemsPage() {
             {submitError && <Banner message={submitError} />}
             <Button
               className={styles.primaryButton}
-              disabled={!allGroup}
               loading={submitting}
-              loadingLabel="그룹에 담고 있어요…"
+              loadingLabel="정산 대상에서 제외하고 있어요…"
               onClick={handleApplyRates}
             >
               환율 적용하기

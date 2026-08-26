@@ -96,6 +96,29 @@ public class PaymentShareService {
 		}
 	}
 
+	@Transactional
+	public void repairIncompleteShares(Long roomId) {
+		lockRoom(roomId);
+		for (Payment payment : paymentRepository.findAllByRoomIdForUpdate(roomId)) {
+			if (!payment.isIncludedInSettlement() || payment.getSplitGroup() == null) {
+				continue;
+			}
+			List<PaymentShare> existingShares = paymentShareRepository.findAllByPaymentId(payment.getId());
+			BigDecimal allocated = existingShares.stream()
+					.map(PaymentShare::getShareAmount)
+					.reduce(BigDecimal.ZERO, BigDecimal::add);
+			if (payment.getSplitMethod() != null
+					&& !existingShares.isEmpty()
+					&& allocated.compareTo(payment.getAmount()) == 0) {
+				continue;
+			}
+			List<RoomMember> members = findGroupMembers(payment.getSplitGroup());
+			replaceShares(payment, members, equalShareCalculator.calculate(
+					payment.getAmount(), members, payment.getPayer().getId()));
+			payment.changeSplitMethod(SplitMethod.EQUAL);
+		}
+	}
+
 	private Map<Long, BigDecimal> validateCustomShares(Payment payment, List<RoomMember> members, CustomShareRequest request) {
 		Set<Long> memberIds = members.stream().map(RoomMember::getId).collect(Collectors.toSet());
 		Map<Long, BigDecimal> shares = new HashMap<>();
