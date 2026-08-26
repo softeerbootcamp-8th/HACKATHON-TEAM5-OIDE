@@ -113,6 +113,10 @@ public class Payment {
 		this.splitMethod = splitMethod;
 	}
 
+	public void clearSplitMethod() {
+		this.splitMethod = null;
+	}
+
 	public void changeInclusion(boolean includedInSettlement) {
 		this.includedInSettlement = includedInSettlement;
 	}

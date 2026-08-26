@@ -39,7 +39,9 @@ export function GroupCard({
         <AvatarStack nicknames={nicknames} />
       </span>
       <span className={styles.trailing}>
-        {itemCount}건{totalLabel ? `, ${totalLabel}` : ''}
+        <span className={styles.summary}>
+          {itemCount}건{totalLabel ? `, ${totalLabel}` : ''}
+        </span>
         <span className={styles.chevron} aria-hidden="true">
           ›
         </span>

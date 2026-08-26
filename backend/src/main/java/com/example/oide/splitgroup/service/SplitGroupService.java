@@ -110,6 +110,8 @@ public class SplitGroupService {
 		// 구성원 교체 후에도 최소 인원 수 조건을 만족해야 한다.
 		validateMemberCount(members);
 		validateUniqueMemberSet(roomId, members, groupId);
+		List<Long> previousMemberIds = findGroupMembers(group, roomId).stream().map(RoomMember::getId).toList();
+		List<Long> updatedMemberIds = members.stream().map(RoomMember::getId).toList();
 		// 그룹명은 공백을 제거한 값으로 변경한다.
 		group.updateName(request.name().trim());
 		// 기존 구성원 연결을 모두 제거한 뒤 요청한 구성원으로 다시 저장한다.
@@ -117,7 +119,9 @@ public class SplitGroupService {
 		// 기존 연결 삭제를 먼저 반영해 같은 참여자를 새 구성원으로 다시 저장할 수 있게 한다.
 		groupMemberRepository.flush();
 		groupMemberRepository.saveAll(createGroupMembers(group, members));
-		paymentShareService.adjustGroupPayments(group);
+		if (!previousMemberIds.equals(updatedMemberIds)) {
+			paymentShareService.adjustGroupPayments(group);
+		}
 		// 변경된 그룹 정보와 구성원을 응답으로 반환한다.
 		long paymentCount = paymentRepository
 				.findAllByRoomIdAndSplitGroupIdAndIncludedInSettlementTrue(roomId, groupId).size();
