@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -85,6 +86,18 @@ public class SettlementController {
 	public ResponseEntity<Void> completeMemberSettlement(
 			@PathVariable Long roomId, @PathVariable Long memberId) {
 		settlementService.completeMemberSettlement(roomId, memberId);
+		return ResponseEntity.noContent().build();
+	}
+
+	@DeleteMapping("/settlements/members/{memberId}/completion")
+	@Operation(summary = "참여자 정산 완료 취소", description = "참여자의 정산 완료 상태를 취소한다.")
+	@ApiResponses({
+			@ApiResponse(responseCode = "204", description = "취소 성공"),
+			@ApiResponse(responseCode = "404", description = "방, 확정 정산 또는 참여자를 찾을 수 없음", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+	})
+	public ResponseEntity<Void> uncompleteMemberSettlement(
+			@PathVariable Long roomId, @PathVariable Long memberId) {
+		settlementService.uncompleteMemberSettlement(roomId, memberId);
 		return ResponseEntity.noContent().build();
 	}
 }

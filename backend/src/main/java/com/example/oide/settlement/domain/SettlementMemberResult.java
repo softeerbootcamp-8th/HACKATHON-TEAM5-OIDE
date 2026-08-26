@@ -60,4 +60,8 @@ public class SettlementMemberResult {
 			this.completedAt = completedAt;
 		}
 	}
+
+	public void uncomplete() {
+		this.completedAt = null;
+	}
 }

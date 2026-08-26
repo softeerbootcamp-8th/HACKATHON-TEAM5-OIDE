@@ -167,6 +167,18 @@ public class SettlementService {
 		memberResult.complete(LocalDateTime.now());
 	}
 
+	// 완료한 참여자가 자신의 분담을 다시 수정하려 할 때, 재확정 후에도 완료 상태가
+	// 그대로 보존되어 "완료하기" 화면으로 돌아오지 못하는 것을 막기 위해 완료를 취소한다.
+	@Transactional
+	public void uncompleteMemberSettlement(Long roomId, Long memberId) {
+		Settlement settlement = settlementRepository.findByRoomId(roomId)
+				.orElseThrow(() -> new BusinessException(ErrorCode.SETTLEMENT_NOT_FOUND));
+		SettlementMemberResult memberResult = settlementMemberResultRepository
+				.findBySettlementIdAndMemberId(settlement.getId(), memberId)
+				.orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
+		memberResult.uncomplete();
+	}
+
 	@Transactional(readOnly = true)
 	public SettlementResponse getSettlement(Long roomId) {
 		Settlement settlement = settlementRepository.findByRoomId(roomId)
