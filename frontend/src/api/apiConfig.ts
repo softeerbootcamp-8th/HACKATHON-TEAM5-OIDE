@@ -8,6 +8,10 @@ export const API_BASE_URL: string = (
   import.meta.env.VITE_API_BASE_URL ?? '/api'
 ).replace(/\/+$/, '');
 
+export const API_ORIGIN: string = API_BASE_URL.startsWith('http')
+  ? new URL(API_BASE_URL).origin
+  : '';
+
 /** true 이면 서비스 계층이 src/mocks 의 목데이터로 응답한다. */
 export const USE_MOCK: boolean = import.meta.env.VITE_USE_MOCK === 'true';
 

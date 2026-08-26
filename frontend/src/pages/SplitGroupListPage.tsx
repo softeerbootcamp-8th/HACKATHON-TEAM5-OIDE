@@ -20,11 +20,11 @@ import {
 } from '../constants/routes';
 import { useAsync } from '../hooks/useAsync';
 import { useLocalIdentity } from '../hooks/useLocalIdentity';
-import { getPayments } from '../services/paymentService';
+import { setPaymentSplit } from '../services/paymentService';
 import { getRoomByShareCode } from '../services/roomService';
-import { deleteSplitGroup, getSplitGroups } from '../services/splitGroupService';
+import { deleteSplitGroup, getSplitGroupOverview } from '../services/splitGroupService';
 import { isApiError } from '../types/api';
-import type { Payment, SplitGroup } from '../types/payment';
+import type { SplitGroup } from '../types/payment';
 import type { SettlementRoom } from '../types/room';
 import { formatAmount } from '../utils/formatters';
 import { RoomExpiredPage } from './RoomExpiredPage';
@@ -33,7 +33,7 @@ import styles from './SplitGroupListPage.module.css';
 interface GroupListData {
   room: SettlementRoom;
   groups: SplitGroup[];
-  payments: Payment[];
+  payments: Awaited<ReturnType<typeof getSplitGroupOverview>>['payments'];
 }
 
 /**
@@ -48,16 +48,16 @@ export function SplitGroupListPage() {
   const { identity } = useLocalIdentity(shareCode);
 
   const load = useCallback(async (): Promise<GroupListData> => {
-    const [room, groups, payments] = await Promise.all([
+    const [room, overview] = await Promise.all([
       getRoomByShareCode(shareCode),
-      getSplitGroups(shareCode),
-      getPayments(shareCode),
+      getSplitGroupOverview(shareCode),
     ]);
-    return { room, groups, payments };
+    return { room, groups: overview.groups, payments: overview.payments };
   }, [shareCode]);
 
   const { status, data, error, retry } = useAsync(load, [shareCode]);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [completing, setCompleting] = useState(false);
 
   if (status === 'error' && error?.code === 'ROOM_EXPIRED') {
     return <RoomExpiredPage />;
@@ -67,7 +67,7 @@ export function SplitGroupListPage() {
   }
 
   // 정산 대상으로 고른 항목만 그룹에 담을 수 있다.
-  const targetPayments = data?.payments.filter((payment) => payment.includedInSettlement) ?? [];
+  const targetPayments = data?.payments ?? [];
   const hasGroups = (data?.groups.length ?? 0) > 1;
 
   const itemsOf = (groupId: string) =>
@@ -94,10 +94,29 @@ export function SplitGroupListPage() {
     }
   };
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
     const unassigned = targetPayments.filter((payment) => payment.splitGroupId === null);
-    // 어디에도 담기지 않은 항목은 `전체` 그룹으로 자동 귀속된다. 막지 않고 알리기만 한다.
-    navigate(unassigned.length > 0 ? splitUnassignedPath(shareCode) : settlementStartPath(shareCode));
+    const defaultEqualPayments = targetPayments.filter(
+      (payment) => payment.splitGroupId !== null && payment.splitMethod === null,
+    );
+
+    setCompleting(true);
+    setActionError(null);
+    try {
+      await Promise.all(
+        defaultEqualPayments.map((payment) =>
+          setPaymentSplit(shareCode, payment.id, 'EQUAL', []),
+        ),
+      );
+      navigate(
+        unassigned.length > 0
+          ? splitUnassignedPath(shareCode)
+          : settlementStartPath(shareCode),
+      );
+    } catch (caught) {
+      setActionError(isApiError(caught) ? caught.message : 'N빵 금액을 저장하지 못했어요.');
+      setCompleting(false);
+    }
   };
 
   return (
@@ -171,11 +190,16 @@ export function SplitGroupListPage() {
 
           <BottomActionBar>
             {actionError && <Banner message={actionError} />}
-            <Button onClick={handleComplete}>환율 적용하기</Button>
+            <Button
+              loading={completing}
+              loadingLabel="N빵을 저장하고 있어요…"
+              onClick={handleComplete}
+            >
+              환율 적용하기
+            </Button>
           </BottomActionBar>
         </>
       )}
     </MobileFrame>
   );
 }
-

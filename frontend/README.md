@@ -19,12 +19,33 @@ npm run dev          # http://localhost:5173
 | `npm run build` | 타입 체크 + 프로덕션 빌드 |
 | `npm run typecheck` | 타입 체크만 |
 | `npm run preview` | 빌드 결과 미리보기 |
+| `npm run api:generate` | 백엔드 OpenAPI 명세에서 타입·fetch 클라이언트 생성 |
+
+## OpenAPI 클라이언트 생성
+
+백엔드를 실행한 뒤 아래 명령으로 springdoc이 제공하는 명세
+(`http://localhost:8080/v3/api-docs`)를 받아 타입과 fetch 클라이언트를 생성한다.
+
+```bash
+npm run api:generate
+```
+
+생성 파일은 `src/api/generated`에 저장한다. 프런트 빌드가 실행 중인 백엔드에
+의존하지 않도록 생성 결과도 Git으로 관리한다. 다른 환경의 명세를 사용할 때는
+`OPENAPI_SPEC_URL`을 지정한다.
+
+```bash
+OPENAPI_SPEC_URL=https://api.example.com/v3/api-docs npm run api:generate
+```
+
+생성된 함수와 타입을 `src/services`에서 import해 사용한다. 명세가 바뀌면 같은
+명령을 다시 실행한다.
 
 ## 환경변수
 
 | 변수 | 기본값 | 설명 |
 |---|---|---|
-| `VITE_API_BASE_URL` | `http://localhost:8080/api` | 백엔드 베이스 URL |
+| `VITE_API_BASE_URL` | `/api` | 백엔드 베이스 URL. 로컬에서는 Vite가 `localhost:8080`으로 프록시 |
 | `VITE_USE_MOCK` | `true` | `true`면 `src/mocks`로 동작. **백엔드를 붙일 때 `false`** |
 | `VITE_SHARE_LINK_ORIGIN` | (비움) | 공유 링크에 쓸 origin. 비우면 현재 접속 origin |
 
@@ -240,4 +261,3 @@ src/
 
 런타임은 `react` · `react-dom` · `react-router-dom` 셋뿐이다.
 스타일은 CSS Modules(Vite 내장)이라 추가 의존성이 없다.
-

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { Banner } from '../components/common/Banner';
 import { Button } from '../components/common/Button';
@@ -10,12 +10,15 @@ import { MobileFrame } from '../components/layout/MobileFrame';
 import { ScreenBody } from '../components/layout/ScreenBody';
 import { ScreenHeader } from '../components/layout/ScreenHeader';
 import { findCurrency } from '../constants/currencies';
-import { joinRoomPath, settlementStartPath } from '../constants/routes';
+import { joinRoomPath, settlementStartPath, settlementSummaryPath } from '../constants/routes';
+import { useAsync } from '../hooks/useAsync';
 import { useLocalIdentity } from '../hooks/useLocalIdentity';
-import { useSettlement } from '../hooks/useSettlement';
-import { clearManualRate, setManualRate } from '../services/settlementService';
+import {
+  confirmSettlement,
+  getSettlementPreview,
+} from '../services/settlementService';
+import { getSplitGroupOverview } from '../services/splitGroupService';
 import { isApiError } from '../types/api';
-import { SEED_RATES } from '../mocks/mockRates';
 import { formatQuotedAt } from '../utils/krw';
 import { RoomExpiredPage } from './RoomExpiredPage';
 import styles from './RateEditPage.module.css';
@@ -24,15 +27,22 @@ import styles from './RateEditPage.module.css';
  * E-04 환율 직접 수정.
  *
  * 기본 흐름에 노출하지 않고 E-01 의 텍스트 링크로만 들어온다.
- * 여기서 바꾼 환율은 방 전원에게 적용되고, 누가 바꿨는지 함께 남는다 (FR-04).
+ * 여기서 바꾼 환율은 방 전체 정산 결과에 적용된다 (FR-04).
  */
 export function RateEditPage() {
   const navigate = useNavigate();
   const { shareCode = '' } = useParams<{ shareCode: string }>();
   const { identity } = useLocalIdentity(shareCode);
-  const { status, data, error, retry } = useSettlement(shareCode);
+  const load = useCallback(async () => {
+    const [overview, preview] = await Promise.all([
+      getSplitGroupOverview(shareCode),
+      getSettlementPreview(shareCode),
+    ]);
+    return { payments: overview.payments, preview };
+  }, [shareCode]);
+  const { status, data, error, retry } = useAsync(load, [shareCode]);
 
-  const [value, setValue] = useState<string | null>(null);
+  const [values, setValues] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -43,41 +53,40 @@ export function RateEditPage() {
     return <Navigate to={joinRoomPath(shareCode)} replace />;
   }
 
-  // 외화가 여러 개면 첫 번째를 고친다. 통화별 수정은 화면이 생기면 붙인다.
-  const targetCurrency =
-    data?.targetPayments.find((payment) => payment.currency !== 'KRW')?.currency ?? 'JPY';
-  const rate = data?.rates.find((item) => item.currency === targetCurrency);
-  const autoRate = SEED_RATES[targetCurrency] ?? '0';
-
-  const current = value ?? rate?.rateToKrw ?? '';
-  const numeric = Number(current);
-  const valid = current.trim().length > 0 && numeric > 0;
+  const targetCurrencies = [
+    ...new Set(
+      data?.payments
+        .filter((payment) => payment.currency !== 'KRW')
+        .map((payment) => payment.currency) ?? [],
+    ),
+  ];
+  const editableRates = targetCurrencies.map((currency) => ({
+    currency,
+    rate: data?.preview.rates.find((item) => item.currency === currency),
+  }));
+  const valid = editableRates.every(({ currency, rate }) => {
+    const current = values[currency] ?? rate?.rateToKrw ?? '';
+    return current.trim().length > 0 && Number(current) > 0;
+  });
 
   const handleApply = async () => {
     setSubmitting(true);
     setSubmitError(null);
     try {
-      await setManualRate(shareCode, targetCurrency, current, identity.nickname);
-      navigate(settlementStartPath(shareCode), { replace: true });
+      await confirmSettlement(
+        shareCode,
+        Object.entries(values).map(([currency, rateToKrw]) => ({ currency, rateToKrw })),
+      );
+      navigate(settlementSummaryPath(shareCode), { replace: true });
     } catch (caught) {
       setSubmitError(isApiError(caught) ? caught.message : '환율을 저장하지 못했어요.');
       setSubmitting(false);
     }
   };
 
-  const handleReset = async () => {
-    setSubmitting(true);
-    setSubmitError(null);
-    try {
-      await clearManualRate(shareCode);
-      navigate(settlementStartPath(shareCode), { replace: true });
-    } catch (caught) {
-      setSubmitError(isApiError(caught) ? caught.message : '되돌리지 못했어요.');
-      setSubmitting(false);
-    }
-  };
-
-  const unit = findCurrency(targetCurrency).unit;
+  if (status === 'success' && data && targetCurrencies.length === 0) {
+    return <Navigate to={settlementStartPath(shareCode)} replace />;
+  }
 
   return (
     <MobileFrame>
@@ -88,33 +97,51 @@ export function RateEditPage() {
         <ErrorState title="불러오지 못했어요" description={error?.message} onRetry={retry} />
       )}
 
-      {status === 'success' && data && rate && (
+      {status === 'success' && data && editableRates.length > 0 && (
         <>
           <ScreenBody>
             <ScreenHeader title={'쓰고 싶은 환율이\n따로 있나요?'} />
             <div className={styles.content}>
-              <p className={styles.label}>
-                {targetCurrency} · 1{unit}당 원화
-              </p>
-              <div className={`${styles.inputWrapper} ${valid ? '' : styles.invalid}`}>
-                <input
-                  className={styles.input}
-                  value={current}
-                  inputMode="decimal"
-                  aria-label={`1${unit}당 원화`}
-                  aria-invalid={!valid}
-                  onChange={(event) => setValue(event.target.value.replace(/[^\d.]/g, ''))}
-                />
-                <span className={styles.suffix}>원</span>
-              </div>
-              <div className={styles.helperRow}>
-                <span>자동 환율</span>
-                <span className={valid ? '' : styles.error}>
-                  {valid
-                    ? `${Number(autoRate).toLocaleString('ko-KR')}원 · ${formatQuotedAt(rate.quotedAt).replace(/^\S+ /, '')}`
-                    : '0보다 큰 숫자를 적어주세요'}
-                </span>
-              </div>
+              {editableRates.map(({ currency, rate }) => {
+                const unit = findCurrency(currency).unit;
+                const current = values[currency] ?? rate?.rateToKrw ?? '';
+                const isValid = current.trim().length > 0 && Number(current) > 0;
+                return (
+                  <div key={currency} className={styles.rateBlock}>
+                    <p className={styles.label}>
+                      {currency} · 1{unit}당 원화
+                    </p>
+                    <div
+                      className={`${styles.inputWrapper} ${isValid ? '' : styles.invalid}`}
+                    >
+                      <input
+                        className={styles.input}
+                        value={current}
+                        inputMode="decimal"
+                        aria-label={`1${unit}당 원화`}
+                        aria-invalid={!isValid}
+                        onChange={(event) =>
+                          setValues((currentValues) => ({
+                            ...currentValues,
+                            [currency]: event.target.value.replace(/[^\d.]/g, ''),
+                          }))
+                        }
+                      />
+                      <span className={styles.suffix}>원</span>
+                    </div>
+                    <div className={styles.helperRow}>
+                      <span>자동 환율</span>
+                      <span className={isValid ? '' : styles.error}>
+                        {!isValid
+                          ? '0보다 큰 숫자를 적어주세요'
+                          : rate?.rateToKrw && rate.quotedAt
+                            ? `${Number(rate.rateToKrw).toLocaleString('ko-KR')}원 · ${formatQuotedAt(rate.quotedAt).replace(/^\S+ /, '')}`
+                            : '직접 입력이 필요해요'}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </ScreenBody>
 
@@ -128,7 +155,11 @@ export function RateEditPage() {
             >
               이 환율로 정산하기
             </Button>
-            <Button variant="text" onClick={handleReset}>
+            <Button
+              variant="text"
+              disabled={submitting}
+              onClick={() => navigate(settlementStartPath(shareCode), { replace: true })}
+            >
               자동 환율로 되돌리기
             </Button>
           </BottomActionBar>
@@ -137,4 +168,3 @@ export function RateEditPage() {
     </MobileFrame>
   );
 }
-

@@ -30,8 +30,9 @@ export interface SplitGroup {
   name: string;
   type: SplitGroupType;
   memberIds: string[];
-  createdAt: IsoDateTime;
-  updatedAt: IsoDateTime;
+  paymentCount?: number;
+  createdAt?: IsoDateTime;
+  updatedAt?: IsoDateTime;
 }
 
 /** PAYMENT */
@@ -61,8 +62,8 @@ export interface Payment {
   includedInSettlement: boolean;
   /** 어떤 스크린샷에서 나왔는지. 직접 입력한 내역은 null. */
   receiptImageId: string | null;
-  createdAt: IsoDateTime;
-  updatedAt: IsoDateTime;
+  createdAt?: IsoDateTime;
+  updatedAt?: IsoDateTime;
 }
 
 /** 업로드된 결제 스크린샷 1장. */

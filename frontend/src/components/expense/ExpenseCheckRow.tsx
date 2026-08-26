@@ -4,7 +4,8 @@ import { CheckCircle } from '../common/CheckCircle';
 import styles from './ExpenseCheckRow.module.css';
 
 interface ExpenseCheckRowProps {
-  payment: Payment;
+  payment: Pick<Payment, 'id' | 'merchant' | 'paidAt' | 'amount' | 'currency'> &
+    Partial<Pick<Payment, 'includedInSettlement'>>;
   /** 고른 상태. 지정하지 않으면 결제 내역의 정산 포함 여부를 따른다. */
   checked?: boolean;
   /**
@@ -28,7 +29,7 @@ export function ExpenseCheckRow({
   assignedGroupName,
   onToggle,
 }: ExpenseCheckRowProps) {
-  const isChecked = checked ?? payment.includedInSettlement;
+  const isChecked = checked ?? payment.includedInSettlement ?? false;
   const takenByOtherGroup = Boolean(assignedGroupName);
 
   return (

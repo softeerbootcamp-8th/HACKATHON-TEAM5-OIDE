@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { Avatar } from '../components/common/Avatar';
 import { Button } from '../components/common/Button';
@@ -11,8 +11,9 @@ import { MobileFrame } from '../components/layout/MobileFrame';
 import { ScreenBody } from '../components/layout/ScreenBody';
 import { ScreenHeader } from '../components/layout/ScreenHeader';
 import { joinRoomPath, settlementDonePath, transferDetailPath } from '../constants/routes';
+import { useAsync } from '../hooks/useAsync';
 import { useLocalIdentity } from '../hooks/useLocalIdentity';
-import { useSettlement } from '../hooks/useSettlement';
+import { getConfirmedSettlement } from '../services/settlementService';
 import { copyToClipboard } from '../utils/clipboard';
 import { formatKrw, formatQuotedAt, formatRateLine } from '../utils/krw';
 import { RoomExpiredPage } from './RoomExpiredPage';
@@ -29,7 +30,8 @@ export function TransferListPage() {
   const navigate = useNavigate();
   const { shareCode = '' } = useParams<{ shareCode: string }>();
   const { identity } = useLocalIdentity(shareCode);
-  const { status, data, error, retry } = useSettlement(shareCode);
+  const load = useCallback(() => getConfirmedSettlement(shareCode), [shareCode]);
+  const { status, data, error, retry } = useAsync(load, [shareCode]);
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle');
 
   if (status === 'error' && error?.code === 'ROOM_EXPIRED') {
@@ -39,17 +41,15 @@ export function TransferListPage() {
     return <Navigate to={joinRoomPath(shareCode)} replace />;
   }
 
-  const transfers = data?.result.transfers ?? [];
-  const primaryRate = data?.rates.find((rate) =>
-    data.targetPayments.some((payment) => payment.currency === rate.currency),
-  );
+  const transfers = data?.transfers ?? [];
+  const primaryRate = data?.rates.find((rate) => rate.currency !== 'KRW');
 
   const handleCopy = async () => {
     const lines = transfers.map(
       (transfer) =>
         `${transfer.senderNickname} → ${transfer.receiverNickname} ${formatKrw(transfer.amountKrw)}`,
     );
-    if (primaryRate) {
+    if (primaryRate?.rateToKrw && primaryRate.quotedAt) {
       lines.push(
         '',
         `적용된 환율 ${formatRateLine(primaryRate.currency, primaryRate.rateToKrw)} · ${formatQuotedAt(primaryRate.quotedAt)}`,
@@ -118,7 +118,7 @@ export function TransferListPage() {
                   ))}
                 </ul>
 
-                {primaryRate && (
+                {primaryRate?.rateToKrw && primaryRate.quotedAt && (
                   <div className={styles.rateBox}>
                     <span className={styles.rateLabel}>적용된 환율</span>
                     <span className={styles.rateValue}>
@@ -145,4 +145,3 @@ export function TransferListPage() {
     </MobileFrame>
   );
 }
-

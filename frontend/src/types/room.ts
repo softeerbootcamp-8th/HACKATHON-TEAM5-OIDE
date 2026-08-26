@@ -19,12 +19,12 @@ export interface SettlementRoom {
   /** 방 이름. 모든 참여자에게 표시된다. */
   title: string;
   defaultCurrency: CurrencyCode;
-  createdAt: IsoDateTime;
+  createdAt?: IsoDateTime;
   /**
    * 방이 사라지는 시각 (생성 + 7일).
    * ERD 에 없는 파생 필드 — docs/api-contract.md 의 보완 제안 참고.
    */
-  expiresAt: IsoDateTime;
+  expiresAt?: IsoDateTime;
   /** 방에 등록된 참여자. displayOrder 오름차순. */
   members: RoomMember[];
 }
@@ -32,11 +32,11 @@ export interface SettlementRoom {
 /** ROOM_MEMBER */
 export interface RoomMember {
   id: string;
-  roomId: string;
+  roomId?: string;
   nickname: string;
   /** 방 생성 시 입력된 순서. 0 번이 방을 만든 사람이다. */
   displayOrder: number;
-  createdAt: IsoDateTime;
+  createdAt?: IsoDateTime;
 }
 
 /** POST /rooms 요청 바디. */

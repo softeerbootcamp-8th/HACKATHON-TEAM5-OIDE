@@ -39,13 +39,18 @@ export function calculateEqualSplit(
   amount: number,
   members: EqualSplitMember[],
   payerMemberId: string,
+  fractionDigits = 0,
 ): EqualSplitResult {
   if (members.length === 0) {
     return { quotient: 0, remainder: 0, payer: null, shares: [] };
   }
 
-  const quotient = Math.floor(amount / members.length);
-  const remainder = amount - quotient * members.length;
+  const unit = 10 ** fractionDigits;
+  const amountInMinorUnits = Math.round(amount * unit);
+  const quotientInMinorUnits = Math.floor(amountInMinorUnits / members.length);
+  const remainderInMinorUnits = amountInMinorUnits - quotientInMinorUnits * members.length;
+  const quotient = quotientInMinorUnits / unit;
+  const remainder = remainderInMinorUnits / unit;
 
   // 결제자가 이 그룹에 없으면 첫 참여자가 나머지를 부담한다.
   const payer = members.find((member) => member.memberId === payerMemberId) ?? members[0];
@@ -67,10 +72,22 @@ export function calculateEqualSplit(
 export function isCustomSplitBalanced(
   amount: number,
   shares: Record<string, string>,
+  fractionDigits = 0,
 ): boolean {
-  return sumShares(shares) === amount;
+  const unit = 10 ** fractionDigits;
+  const amountInMinorUnits = Math.round(amount * unit);
+  const sharesInMinorUnits = Object.values(shares).reduce(
+    (sum, value) => sum + Math.round((Number(value) || 0) * unit),
+    0,
+  );
+  return sharesInMinorUnits === amountInMinorUnits;
 }
 
-export function sumShares(shares: Record<string, string>): number {
-  return Object.values(shares).reduce((sum, value) => sum + (Number(value) || 0), 0);
+export function sumShares(shares: Record<string, string>, fractionDigits = 0): number {
+  const unit = 10 ** fractionDigits;
+  const totalInMinorUnits = Object.values(shares).reduce(
+    (sum, value) => sum + Math.round((Number(value) || 0) * unit),
+    0,
+  );
+  return totalInMinorUnits / unit;
 }

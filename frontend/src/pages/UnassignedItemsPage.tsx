@@ -1,5 +1,6 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
+import { Banner } from '../components/common/Banner';
 import { Button } from '../components/common/Button';
 import { ErrorState } from '../components/common/ErrorState';
 import { LoadingState } from '../components/common/LoadingState';
@@ -12,7 +13,12 @@ import { ALL_GROUP_NAME } from '../constants/roomRules';
 import { joinRoomPath, settlementStartPath, splitGroupsPath } from '../constants/routes';
 import { useAsync } from '../hooks/useAsync';
 import { useLocalIdentity } from '../hooks/useLocalIdentity';
-import { getPayments } from '../services/paymentService';
+import { setPaymentSplit } from '../services/paymentService';
+import {
+  assignPaymentsToGroup,
+  getSplitGroupOverview,
+} from '../services/splitGroupService';
+import { isApiError } from '../types/api';
 import { formatAmount, formatTime } from '../utils/formatters';
 import { RoomExpiredPage } from './RoomExpiredPage';
 import styles from './UnassignedItemsPage.module.css';
@@ -27,16 +33,40 @@ export function UnassignedItemsPage() {
   const navigate = useNavigate();
   const { shareCode = '' } = useParams<{ shareCode: string }>();
   const { identity } = useLocalIdentity(shareCode);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const load = useCallback(() => getPayments(shareCode), [shareCode]);
+  const load = useCallback(() => getSplitGroupOverview(shareCode), [shareCode]);
   const { status, data, error, retry } = useAsync(load, [shareCode]);
 
   const unassigned = useMemo(
-    () =>
-      data?.filter((payment) => payment.includedInSettlement && payment.splitGroupId === null) ??
-      [],
+    () => data?.payments.filter((payment) => payment.splitGroupId === null) ?? [],
     [data],
   );
+  const allGroup = data?.groups.find((group) => group.type === 'ALL');
+
+  const handleApplyRates = async () => {
+    if (!data || !allGroup) return;
+
+    setSubmitting(true);
+    setSubmitError(null);
+    try {
+      const allGroupPaymentIds = data.payments
+        .filter((payment) => payment.splitGroupId === allGroup.id)
+        .map((payment) => payment.id);
+      await assignPaymentsToGroup(shareCode, allGroup.id, [
+        ...allGroupPaymentIds,
+        ...unassigned.map((payment) => payment.id),
+      ]);
+      await Promise.all(
+        unassigned.map((payment) => setPaymentSplit(shareCode, payment.id, 'EQUAL', [])),
+      );
+      navigate(settlementStartPath(shareCode));
+    } catch (caught) {
+      setSubmitError(isApiError(caught) ? caught.message : '전체 그룹에 담지 못했어요.');
+      setSubmitting(false);
+    }
+  };
 
   if (status === 'error' && error?.code === 'ROOM_EXPIRED') {
     return <RoomExpiredPage />;
@@ -77,7 +107,13 @@ export function UnassignedItemsPage() {
           </ScreenBody>
 
           <BottomActionBar>
-            <Button onClick={() => navigate(settlementStartPath(shareCode))}>
+            {submitError && <Banner message={submitError} />}
+            <Button
+              disabled={!allGroup}
+              loading={submitting}
+              loadingLabel="그룹에 담고 있어요…"
+              onClick={handleApplyRates}
+            >
               이대로 환율 적용하기
             </Button>
             <Button variant="text" onClick={() => navigate(splitGroupsPath(shareCode))}>
@@ -89,4 +125,3 @@ export function UnassignedItemsPage() {
     </MobileFrame>
   );
 }
-
