@@ -21,6 +21,7 @@ import { useLocalIdentity } from '../hooks/useLocalIdentity';
 import {
   completeMySettlement,
   getConfirmedSettlement,
+  uncompleteMySettlement,
 } from '../services/settlementService';
 import { isApiError } from '../types/api';
 import { formatKrw, formatQuotedAt, formatRateLine } from '../utils/krw';
@@ -77,6 +78,20 @@ export function SettlementSummaryPage() {
     }
   };
 
+  // 완료 상태를 유지한 채 그룹으로 돌아가면, 재확정 후에도 완료가 그대로 보존되어
+  // "완료하기" 화면으로 다시 돌아오지 못한다. 수정하러 나가는 시점에 완료를 취소해둔다.
+  const handleEdit = async () => {
+    setSubmitting(true);
+    setSubmitError(null);
+    try {
+      await uncompleteMySettlement(shareCode, identity.memberId);
+      navigate(splitGroupsPath(shareCode), { replace: true });
+    } catch (caught) {
+      setSubmitError(isApiError(caught) ? caught.message : '수정하지 못했어요.');
+      setSubmitting(false);
+    }
+  };
+
   return (
     <MobileFrame tone="subtle">
       <AppBar
@@ -125,7 +140,9 @@ export function SettlementSummaryPage() {
               {alreadyDone ? (
                 <Button
                   className={styles.action}
-                  onClick={() => navigate(splitGroupsPath(shareCode), { replace: true })}
+                  loading={submitting}
+                  loadingLabel="이동하고 있어요…"
+                  onClick={handleEdit}
                 >
                   수정하기
                 </Button>

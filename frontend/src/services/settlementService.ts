@@ -11,6 +11,7 @@ import {
   confirm,
   getPreview,
   getSettlement,
+  uncompleteMemberSettlement as requestMemberSettlementUncompletion,
 } from '../api/generated/client';
 import type {
   SettlementPreviewResponse,
@@ -334,6 +335,23 @@ export async function completeMySettlement(
 
   const roomId = await resolveRoomId(shareCode);
   await callOrval<void>(() => requestMemberSettlementCompletion(roomId, parseApiId(memberId)));
+}
+
+export async function uncompleteMySettlement(
+  shareCode: string,
+  memberId: string,
+): Promise<void> {
+  if (USE_MOCK) {
+    const room = mockRoomStore.findByShareCode(shareCode);
+    if (!room) {
+      return mockDelayReject(new ApiError('ROOM_NOT_FOUND', '정산방을 찾을 수 없어요.', 404));
+    }
+    mockSettlementStore.uncompleteMember(room.id, memberId);
+    return mockDelay(undefined);
+  }
+
+  const roomId = await resolveRoomId(shareCode);
+  await callOrval<void>(() => requestMemberSettlementUncompletion(roomId, parseApiId(memberId)));
 }
 
 async function getMockRoomRates(shareCode: string): Promise<RoomRates> {

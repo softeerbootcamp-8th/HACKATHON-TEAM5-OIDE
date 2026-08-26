@@ -52,4 +52,12 @@ export const mockSettlementStore = {
     );
   },
 
+  uncompleteMember(roomId: string, memberId: string): void {
+    const completedMemberIds = this.findCompletedMemberIds(roomId);
+    window.sessionStorage.setItem(
+      `${COMPLETED_MEMBERS_KEY}:${roomId}`,
+      JSON.stringify(completedMemberIds.filter((id) => id !== memberId)),
+    );
+  },
+
 };

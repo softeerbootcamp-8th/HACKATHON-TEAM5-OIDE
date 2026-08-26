@@ -192,6 +192,20 @@ class SettlementServiceTest {
 	}
 
 	@Test
+	void uncompletesMemberSettlement() {
+		ConfirmedSettlement confirmed = createConfirmedSettlement("uncompletion-code");
+		settlementService.completeMemberSettlement(confirmed.room().getId(), confirmed.memberA().getId());
+
+		settlementService.uncompleteMemberSettlement(confirmed.room().getId(), confirmed.memberA().getId());
+
+		assertThat(settlementMemberResultRepository
+				.findBySettlementIdAndMemberId(confirmed.settlementId(), confirmed.memberA().getId())
+				.orElseThrow()
+				.getCompletedAt()).isNull();
+		assertThat(settlementService.getSettlement(confirmed.room().getId()).completedMemberIds()).isEmpty();
+	}
+
+	@Test
 	void rejectsMemberFromAnotherRoom() {
 		ConfirmedSettlement confirmed = createConfirmedSettlement("member-room-code");
 		SettlementRoom anotherRoom = roomRepository.save(

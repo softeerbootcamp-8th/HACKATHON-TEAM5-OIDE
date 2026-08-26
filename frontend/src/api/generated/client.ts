@@ -284,6 +284,59 @@ export const completeMemberSettlement = async (roomId: number,
 
 
 
+export type uncompleteMemberSettlementResponse204 = {
+  data: void
+  status: 204
+}
+
+export type uncompleteMemberSettlementResponse404 = {
+  data: ErrorResponse
+  status: 404
+}
+
+export type uncompleteMemberSettlementResponseSuccess = (uncompleteMemberSettlementResponse204) & {
+  headers: Headers;
+};
+export type uncompleteMemberSettlementResponseError = (uncompleteMemberSettlementResponse404) & {
+  headers: Headers;
+};
+
+export type uncompleteMemberSettlementResponse = (uncompleteMemberSettlementResponseSuccess | uncompleteMemberSettlementResponseError)
+
+export const getUncompleteMemberSettlementUrl = (roomId: number,
+    memberId: number,) => {
+
+
+
+
+  return `${API_ORIGIN}/api/rooms/${roomId}/settlements/members/${memberId}/completion`
+}
+
+/**
+ * 참여자의 정산 완료 상태를 취소한다.
+ * @summary 참여자 정산 완료 취소
+ */
+export const uncompleteMemberSettlement = async (roomId: number,
+    memberId: number, options?: RequestInit): Promise<uncompleteMemberSettlementResponse> => {
+
+  const res = await fetch(getUncompleteMemberSettlementUrl(roomId,memberId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: uncompleteMemberSettlementResponse['data'] = body ? JSON.parse(body) : undefined
+  return { data, status: res.status, headers: res.headers } as uncompleteMemberSettlementResponse
+}
+
+
+
 export type saveEqualResponse200 = {
   data: PaymentShareResponse
   status: 200
