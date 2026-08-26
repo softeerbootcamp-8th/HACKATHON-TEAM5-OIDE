@@ -19,7 +19,6 @@ concurrency:
 env:
   S3_BUCKET: oide-s3-699155485641-ap-northeast-2-an
   S3_PREFIX: dist
-  CLOUDFRONT_DISTRIBUTION_ID: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
 
 jobs:
   ci:
@@ -30,13 +29,6 @@ jobs:
     needs: ci
     runs-on: self-hosted
     steps:
-      - name: Validate deployment configuration
-        run: |
-          if [ -z "${CLOUDFRONT_DISTRIBUTION_ID}" ]; then
-            echo "Repository variable CLOUDFRONT_DISTRIBUTION_ID is required."
-            exit 1
-          fi
-
       - name: Download dist artifact
         uses: actions/download-artifact@v7
         with:
@@ -56,9 +48,3 @@ jobs:
             --delete \
             --exclude "assets/*" \
             --cache-control "no-cache"
-
-      - name: Invalidate CloudFront cache
-        run: |
-          aws cloudfront create-invalidation \
-            --distribution-id "${CLOUDFRONT_DISTRIBUTION_ID}" \
-            --paths "/*"
