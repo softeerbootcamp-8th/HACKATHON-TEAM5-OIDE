@@ -17,6 +17,14 @@
   background: var(--color-surface);
 }
 
+/* 실제 아이콘은 자리 표시의 면색 없이 그림만 놓는다. */
+.iconImage {
+  width: 48px;
+  height: 48px;
+  margin-bottom: var(--space-xs);
+  object-fit: contain;
+}
+
 .title {
   font-size: var(--font-size-body);
   font-weight: 700;

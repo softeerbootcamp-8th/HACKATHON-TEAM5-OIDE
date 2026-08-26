@@ -114,7 +114,8 @@ export function MyExpenseListPage() {
         <>
           <ScreenBody>
             <div className={styles.titleRow}>
-              <h1 className={styles.title}>{data.room.title}</h1>
+              {/* 방 이름은 B-01 에서 이미 보여줬다. 여기서는 이 화면에서 할 일을 적는다. */}
+              <h1 className={styles.title}>정산할 항목을 선택해주세요</h1>
               <button
                 type="button"
                 className={styles.addButton}

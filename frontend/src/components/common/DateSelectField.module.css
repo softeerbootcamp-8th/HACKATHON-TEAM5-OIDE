@@ -1,0 +1,17 @@
+.field {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: var(--control-height);
+  padding: 0 var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  font-size: var(--font-size-input);
+  color: var(--color-text);
+  text-align: left;
+}
+
+.placeholder {
+  color: var(--color-text-muted);
+}

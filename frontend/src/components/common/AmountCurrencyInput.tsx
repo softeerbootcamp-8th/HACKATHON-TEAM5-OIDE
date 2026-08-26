@@ -1,6 +1,7 @@
-import { CURRENCY_OPTIONS, findCurrency } from '../../constants/currencies';
+import { findCurrency } from '../../constants/currencies';
 import type { CurrencyCode } from '../../types/room';
 import { sanitizeAmountInput } from '../../utils/formatters';
+import { CurrencySelect } from './CurrencySelect';
 import styles from './AmountCurrencyInput.module.css';
 
 interface AmountCurrencyInputProps {
@@ -42,6 +43,7 @@ export function AmountCurrencyInput({
           </option>
         ))}
       </select>
+
 
       <div className={`${styles.amountWrapper} ${invalid ? styles.invalid : ''}`}>
         <input
