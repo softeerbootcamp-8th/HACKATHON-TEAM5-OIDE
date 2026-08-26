@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { Avatar } from '../components/common/Avatar';
 import { Button } from '../components/common/Button';
@@ -13,21 +14,23 @@ import {
   memberSummaryPath,
   transferListPath,
 } from '../constants/routes';
+import { useAsync } from '../hooks/useAsync';
 import { useLocalIdentity } from '../hooks/useLocalIdentity';
-import { useSettlement } from '../hooks/useSettlement';
+import { getConfirmedSettlement } from '../services/settlementService';
 import { RoomExpiredPage } from './RoomExpiredPage';
 import styles from './SettlementDonePage.module.css';
 
 /**
  * E-12 내 정산 완료.
  *
- * 참여자마다 정산을 끝내는 시각이 다르다. 전원이 끝나야 최종 송금 리스트를 볼 수 있다.
+ * 방 단위로 확정된 참여자별 결과를 보여주고 최종 송금 리스트로 이동한다.
  */
 export function SettlementDonePage() {
   const navigate = useNavigate();
   const { shareCode = '' } = useParams<{ shareCode: string }>();
   const { identity } = useLocalIdentity(shareCode);
-  const { status, data, error, retry } = useSettlement(shareCode);
+  const load = useCallback(() => getConfirmedSettlement(shareCode), [shareCode]);
+  const { status, data, error, retry } = useAsync(load, [shareCode]);
 
   if (status === 'error' && error?.code === 'ROOM_EXPIRED') {
     return <RoomExpiredPage />;
@@ -35,9 +38,6 @@ export function SettlementDonePage() {
   if (!identity) {
     return <Navigate to={joinRoomPath(shareCode)} replace />;
   }
-
-  const everyoneDone =
-    data !== null && data.doneMemberIds.length >= data.room.members.length;
 
   return (
     <MobileFrame>
@@ -53,40 +53,29 @@ export function SettlementDonePage() {
           <ScreenBody>
             <ScreenHeader
               title="내 정산이 완료되었어요!"
-              description={
-                everyoneDone
-                  ? '모두 정산을 마쳤어요. 최종 결과를 확인해보세요.'
-                  : '다른 사람들의 정산이 끝날 때까지 기다려주세요.'
-              }
+              description="모두 정산을 마쳤어요. 최종 결과를 확인해보세요."
             />
             <div className={styles.content}>
               <ul className={styles.cards}>
-                {data.room.members.map((member) => {
-                  const done = data.doneMemberIds.includes(member.id);
-                  return (
-                    <li key={member.id}>
-                      <button
-                        type="button"
-                        className={`${styles.card} ${done ? '' : styles.pending}`}
-                        onClick={() => navigate(memberSummaryPath(shareCode, member.id))}
-                        disabled={!done}
-                      >
-                        <Avatar nickname={member.nickname} />
-                        <span className={styles.nickname}>{member.nickname}</span>
-                        <span className={styles.trailing}>
-                          {done ? '내역 보기' : '정산 중'}
-                        </span>
-                      </button>
-                    </li>
-                  );
-                })}
+                {data.members.map((member) => (
+                  <li key={member.memberId}>
+                    <button
+                      type="button"
+                      className={styles.card}
+                      onClick={() => navigate(memberSummaryPath(shareCode, member.memberId))}
+                    >
+                      <Avatar nickname={member.nickname} />
+                      <span className={styles.nickname}>{member.nickname}</span>
+                      <span className={styles.trailing}>내역 보기</span>
+                    </button>
+                  </li>
+                ))}
               </ul>
             </div>
           </ScreenBody>
 
           <BottomActionBar>
             <Button
-              disabled={!everyoneDone}
               onClick={() => navigate(transferListPath(shareCode))}
             >
               최종 정산하기
@@ -97,4 +86,3 @@ export function SettlementDonePage() {
     </MobileFrame>
   );
 }
-
