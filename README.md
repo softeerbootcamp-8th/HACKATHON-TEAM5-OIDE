@@ -1,3 +1,4 @@
+
 ## 서비스 설명
 
 <img width="1920" height="1080" alt="10 (2)" src="https://github.com/user-attachments/assets/cdcfe39f-0015-430d-9959-a826f915f503" />
@@ -86,7 +87,7 @@
 2. 스크린샷 방식은 분석 결과를 확인하고 누락된 통화·날짜·결제처를 수정합니다.
 3. 최종 등록 후 내 결제 목록에서 이번 정산에 포함할 항목을 선택합니다.
 
-![Flow 2 결제 내역 등록 흐름](backend/docs/assets/readme-flow1-4/flow2-payment.png)
+![Flow 2 결제 내역 등록 흐름](https://github.com/user-attachments/assets/eb45dff6-eedc-430a-be2c-2bff9aeafea1)
 
 ### 구현 방법
 
