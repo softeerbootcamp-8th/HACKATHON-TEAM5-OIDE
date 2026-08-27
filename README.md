@@ -217,6 +217,6 @@ A, B, C가 각각 결제하고 A, B, C, D, E 다섯 명이 모든 결제를 함�
 
 ## 구성원
 
-| 양용찬 | 김한나 | 채주혁 | 김재완 | 주민석 |
+| [양용찬](https://github.com/yongchan08) | 김한나 | [채주혁](https://github.com/Juhye0k) | [김재완](https://github.com/tukjw) | [주민석](https://github.com/emes-g) |
 | :---: | :---: | :---: | :---: | :---: |
 | 기획 | 기획 | 개발 | 개발 | 개발 |
