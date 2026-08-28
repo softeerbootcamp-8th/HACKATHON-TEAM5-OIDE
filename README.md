@@ -1,9 +1,14 @@
 
 ## 서비스 설명
 
-<img width="1920" height="1080" alt="10 (2)" src="https://github.com/user-attachments/assets/cdcfe39f-0015-430d-9959-a826f915f503" />
-
 <img width="4764" height="3368" alt="nbbang" src="https://github.com/user-attachments/assets/2dc3fd48-41fd-43f4-91ad-a794dc6c53ac" />
+
+
+## 시연 영상
+
+https://github.com/user-attachments/assets/6b01215b-98de-4fad-baf8-11b5f163adde
+
+
 
 ## Tech Stack
 
