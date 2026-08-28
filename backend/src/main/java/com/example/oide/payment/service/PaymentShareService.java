@@ -40,9 +40,10 @@ public class PaymentShareService {
 	private final EqualShareCalculator equalShareCalculator;
 
 	@Transactional
-	public PaymentShareResponse saveEqual(Long roomId, Long paymentId) {
+	public PaymentShareResponse saveEqual(Long roomId, Long paymentId, Long requesterMemberId) {
 		lockRoom(roomId);
 		Payment payment = findPaymentForUpdate(roomId, paymentId);
+		validatePaymentOwner(payment, requesterMemberId);
 		List<RoomMember> members = findGroupMembers(requireGroup(payment));
 		Map<Long, BigDecimal> shares = equalShareCalculator.calculate(payment.getAmount(), members, payment.getPayer().getId());
 		replaceShares(payment, members, shares);
@@ -51,9 +52,11 @@ public class PaymentShareService {
 	}
 
 	@Transactional
-	public PaymentShareResponse saveCustom(Long roomId, Long paymentId, CustomShareRequest request) {
+	public PaymentShareResponse saveCustom(
+			Long roomId, Long paymentId, Long requesterMemberId, CustomShareRequest request) {
 		lockRoom(roomId);
 		Payment payment = findPaymentForUpdate(roomId, paymentId);
+		validatePaymentOwner(payment, requesterMemberId);
 		List<RoomMember> members = findGroupMembers(requireGroup(payment));
 		Map<Long, BigDecimal> shares = validateCustomShares(payment, members, request);
 		replaceShares(payment, members, shares);
@@ -96,6 +99,29 @@ public class PaymentShareService {
 		}
 	}
 
+	@Transactional
+	public void repairIncompleteShares(Long roomId) {
+		lockRoom(roomId);
+		for (Payment payment : paymentRepository.findAllByRoomIdForUpdate(roomId)) {
+			if (!payment.isIncludedInSettlement() || payment.getSplitGroup() == null) {
+				continue;
+			}
+			List<PaymentShare> existingShares = paymentShareRepository.findAllByPaymentId(payment.getId());
+			BigDecimal allocated = existingShares.stream()
+					.map(PaymentShare::getShareAmount)
+					.reduce(BigDecimal.ZERO, BigDecimal::add);
+			if (payment.getSplitMethod() != null
+					&& !existingShares.isEmpty()
+					&& allocated.compareTo(payment.getAmount()) == 0) {
+				continue;
+			}
+			List<RoomMember> members = findGroupMembers(payment.getSplitGroup());
+			replaceShares(payment, members, equalShareCalculator.calculate(
+					payment.getAmount(), members, payment.getPayer().getId()));
+			payment.changeSplitMethod(SplitMethod.EQUAL);
+		}
+	}
+
 	private Map<Long, BigDecimal> validateCustomShares(Payment payment, List<RoomMember> members, CustomShareRequest request) {
 		Set<Long> memberIds = members.stream().map(RoomMember::getId).collect(Collectors.toSet());
 		Map<Long, BigDecimal> shares = new HashMap<>();
@@ -123,6 +149,12 @@ public class PaymentShareService {
 	private Payment findPaymentForUpdate(Long roomId, Long paymentId) {
 		return paymentRepository.findByRoomIdAndIdForUpdate(roomId, paymentId)
 				.orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND));
+	}
+
+	private void validatePaymentOwner(Payment payment, Long requesterMemberId) {
+		if (!payment.getPayer().getId().equals(requesterMemberId)) {
+			throw new BusinessException(ErrorCode.PAYMENT_NOT_OWNER);
+		}
 	}
 
 	private void lockRoom(Long roomId) {

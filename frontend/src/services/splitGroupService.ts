@@ -27,6 +27,7 @@ import { mockSplitGroupStore } from '../mocks/mockSplitGroupStore';
 import { ApiError } from '../types/api';
 import type { Payment, SplitGroup } from '../types/payment';
 import type { CurrencyCode } from '../types/room';
+import { setPaymentSplit } from './paymentService';
 
 export interface SplitGroupPaymentSummary {
   id: string;
@@ -203,6 +204,7 @@ export async function createSplitGroup(
 export async function updateSplitGroup(
   shareCode: string,
   groupId: string,
+  requesterMemberId: string,
   name: string,
   memberIds: string[],
 ): Promise<SplitGroup> {
@@ -210,7 +212,7 @@ export async function updateSplitGroup(
     try {
       const room = requireRoom(shareCode);
       const members = room.members.filter((member) => memberIds.includes(member.id));
-      return mockDelay(mockSplitGroupStore.update(groupId, members));
+      return mockDelay(mockSplitGroupStore.update(groupId, requesterMemberId, members));
     } catch (error) {
       return mockDelayReject(error as ApiError);
     }
@@ -218,18 +220,27 @@ export async function updateSplitGroup(
 
   const roomId = await resolveRoomId(shareCode);
   const response = await callOrval<SplitGroupResponse>(() =>
-    updateGroup(roomId, parseApiId(groupId), { name, memberIds: memberIds.map(parseApiId) }),
+    updateGroup(
+      roomId,
+      parseApiId(groupId),
+      { name, memberIds: memberIds.map(parseApiId) },
+      { headers: { 'X-Room-Member-Id': requesterMemberId } },
+    ),
   );
   return mapSplitGroup(roomId, response);
 }
 
 /** 그룹을 지운다. 담겨 있던 항목은 미분류로 돌아간다. */
-export async function deleteSplitGroup(shareCode: string, groupId: string): Promise<void> {
+export async function deleteSplitGroup(
+  shareCode: string,
+  groupId: string,
+  requesterMemberId: string,
+): Promise<void> {
   if (USE_MOCK) {
     try {
       requireRoom(shareCode);
+      mockSplitGroupStore.remove(groupId, requesterMemberId);
       mockPaymentStore.releaseGroup(groupId);
-      mockSplitGroupStore.remove(groupId);
       return mockDelay(undefined);
     } catch (error) {
       return mockDelayReject(error as ApiError);
@@ -237,7 +248,11 @@ export async function deleteSplitGroup(shareCode: string, groupId: string): Prom
   }
 
   const roomId = await resolveRoomId(shareCode);
-  await callOrval<void>(() => deleteGroup(roomId, parseApiId(groupId)));
+  await callOrval<void>(() =>
+    deleteGroup(roomId, parseApiId(groupId), {
+      headers: { 'X-Room-Member-Id': requesterMemberId },
+    }),
+  );
 }
 
 /** 그룹이 낼 항목을 확정한다. 목록에서 빠진 항목은 그룹에서 빠진다. */
@@ -250,7 +265,21 @@ export async function assignPaymentsToGroup(
   if (USE_MOCK) {
     try {
       const room = requireRoom(shareCode);
-      await mockDelay(mockPaymentStore.assignToGroup(room.id, groupId, memberId, paymentIds));
+      const assignedPayments = await mockDelay(
+        mockPaymentStore.assignToGroup(room.id, groupId, memberId, paymentIds),
+      );
+      await Promise.all(
+        assignedPayments
+          .filter(
+            (payment) =>
+              paymentIds.includes(payment.id) &&
+              payment.splitGroupId === groupId &&
+              payment.splitMethod === null,
+          )
+          .map((payment) =>
+            setPaymentSplit(shareCode, payment.id, 'EQUAL', [], memberId),
+          ),
+      );
       return;
     } catch (error) {
       return mockDelayReject(error as ApiError);

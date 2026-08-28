@@ -26,7 +26,7 @@ import { deleteSplitGroup, getSplitGroupOverview } from '../services/splitGroupS
 import { isApiError } from '../types/api';
 import type { SplitGroup } from '../types/payment';
 import type { SettlementRoom } from '../types/room';
-import { formatAmount, sumAmountsByCurrency } from '../utils/formatters';
+import { formatCurrencyTotals, sumAmountsByCurrency } from '../utils/formatters';
 import { RoomExpiredPage } from './RoomExpiredPage';
 import styles from './SplitGroupListPage.module.css';
 
@@ -79,18 +79,13 @@ export function SplitGroupListPage() {
   const totalLabelOf = (groupId: string) => {
     const items = itemsOf(groupId);
     if (items.length === 0) return undefined;
-    const [firstTotal, ...otherTotals] = sumAmountsByCurrency(items);
-    const firstLabel = `${firstTotal.currency} ${formatAmount(
-      String(firstTotal.amount),
-      firstTotal.currency,
-    )}`;
-    return otherTotals.length > 0 ? `${firstLabel} · …` : firstLabel;
+    return formatCurrencyTotals(sumAmountsByCurrency(items));
   };
 
   const handleDelete = async (group: SplitGroup) => {
     setActionError(null);
     try {
-      await deleteSplitGroup(shareCode, group.id);
+      await deleteSplitGroup(shareCode, group.id, identity.memberId);
       retry();
     } catch (caught) {
       setActionError(isApiError(caught) ? caught.message : '그룹을 지우지 못했어요.');
@@ -98,7 +93,8 @@ export function SplitGroupListPage() {
   };
 
   const handleComplete = async () => {
-    const unassigned = targetPayments.filter((payment) => payment.splitGroupId === null);
+    const unassigned =
+      data?.payments.filter((payment) => payment.splitGroupId === null) ?? [];
     const defaultEqualPayments = targetPayments.filter(
       (payment) => payment.splitGroupId !== null && payment.splitMethod === null,
     );
@@ -108,7 +104,7 @@ export function SplitGroupListPage() {
     try {
       await Promise.all(
         defaultEqualPayments.map((payment) =>
-          setPaymentSplit(shareCode, payment.id, 'EQUAL', []),
+          setPaymentSplit(shareCode, payment.id, 'EQUAL', [], identity.memberId),
         ),
       );
       navigate(

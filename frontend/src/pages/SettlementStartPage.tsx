@@ -58,13 +58,9 @@ export function SettlementStartPage() {
     return <Navigate to={joinRoomPath(shareCode)} replace />;
   }
 
-  // 결제 통화만 환율이 필요하다. 원화 결제는 환산하지 않는다.
+  // 실제 결제에 사용된 통화만 환율과 직접 입력 대상으로 보여준다.
   const usedCurrencies = [
-    ...new Set(
-      data?.payments
-        .filter((payment) => payment.currency !== 'KRW')
-        .map((payment) => payment.currency) ?? [],
-    ),
+    ...new Set(data?.payments.map((payment) => payment.currency) ?? []),
   ];
   const shownRates =
     data?.preview.rates.filter((rate) => usedCurrencies.includes(rate.currency)) ?? [];
@@ -174,9 +170,11 @@ export function SettlementStartPage() {
             >
               다음
             </Button>
-            <Button variant="text" onClick={() => navigate(rateEditPath(shareCode))}>
-              환율 직접 입력하기
-            </Button>
+            {usedCurrencies.length > 0 && (
+              <Button variant="text" onClick={() => navigate(rateEditPath(shareCode))}>
+                환율 직접 입력하기
+              </Button>
+            )}
           </BottomActionBar>
         </>
       )}

@@ -33,15 +33,6 @@ export function formatDayTime(iso: string): string {
   return `${new Date(iso).getDate()}일 ${formatTime(iso)}`;
 }
 
-/** `2026-08-21 20:14` 형태를 ISO 로 되돌린다. 형식이 틀리면 null. */
-export function parseDateTimeInput(value: string): string | null {
-  const match = value.trim().match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})$/);
-  if (!match) return null;
-  const [, y, mo, d, h, mi] = match;
-  const date = new Date(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi));
-  return Number.isNaN(date.getTime()) ? null : date.toISOString();
-}
-
 /** 날짜 선택 필드의 표기. 예: `2026-08-21` */
 export function formatDateInput(date: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -109,6 +100,26 @@ export function sumAmountsByCurrency(
     totals.set(item.currency, (totals.get(item.currency) ?? 0) + Number(item.amount));
   }
   return [...totals].map(([currency, amount]) => ({ currency, amount }));
+}
+
+/** 합계 줄에 통화를 몇 개까지 늘어놓을지. 넘으면 뒤를 `· ..` 로 줄인다. */
+const MAX_SHOWN_CURRENCIES = 2;
+
+/**
+ * 통화별 합계를 한 줄로 만든다. 예: `KRW 255 · JPY 2,320 · ..`
+ *
+ * 통화는 하나뿐일 때도 코드를 붙인다. 어느 통화의 금액인지가 합계에서는 늘 필요하다.
+ * 통화가 세 개를 넘으면 카드나 하단 바가 두 줄로 늘어나므로 두 개까지만 보여준다.
+ * 합계가 없으면 빈 문자열이며, 무엇을 대신 보여줄지는 호출하는 쪽이 정한다.
+ */
+export function formatCurrencyTotals(
+  totals: { currency: CurrencyCode; amount: number }[],
+): string {
+  const shown = totals
+    .slice(0, MAX_SHOWN_CURRENCIES)
+    .map(({ currency, amount }) => `${currency} ${formatAmount(String(amount), currency)}`)
+    .join(' · ');
+  return totals.length > MAX_SHOWN_CURRENCIES ? `${shown} · ..` : shown;
 }
 
 /** 입력 중인 금액 문자열에서 숫자와 소수점만 남긴다. */

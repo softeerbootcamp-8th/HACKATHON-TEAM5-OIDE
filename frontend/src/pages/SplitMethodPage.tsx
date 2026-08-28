@@ -12,6 +12,7 @@ import { ScreenBody } from '../components/layout/ScreenBody';
 import { ScreenHeader } from '../components/layout/ScreenHeader';
 import { joinRoomPath, paymentSplitPath, splitGroupsPath } from '../constants/routes';
 import { useAsync } from '../hooks/useAsync';
+import { useBackNavigation } from '../hooks/useBackNavigation';
 import { useLocalIdentity } from '../hooks/useLocalIdentity';
 import { getRoomByShareCode } from '../services/roomService';
 import {
@@ -39,6 +40,7 @@ export function SplitMethodPage() {
   const navigate = useNavigate();
   const { shareCode = '', groupId = '' } = useParams<{ shareCode: string; groupId: string }>();
   const { identity } = useLocalIdentity(shareCode);
+  const { goBack } = useBackNavigation(splitGroupsPath(shareCode));
 
   const load = useCallback(async (): Promise<MethodData> => {
     const [room, overview] = await Promise.all([
@@ -51,7 +53,13 @@ export function SplitMethodPage() {
   const { status, data, error, retry } = useAsync(load, [shareCode, groupId]);
 
   const group = data?.groups.find((item) => item.id === groupId);
-  const items = data?.payments.filter((payment) => payment.splitGroupId === groupId) ?? [];
+  const canManageGroup =
+    group?.type === 'ALL' || group?.creatorMemberId === identity?.memberId;
+  const items =
+    data?.payments.filter(
+      (payment) =>
+        payment.splitGroupId === groupId && payment.payerMemberId === identity?.memberId,
+    ) ?? [];
 
   if (status === 'error' && error?.code === 'ROOM_EXPIRED') {
     return <RoomExpiredPage />;
@@ -59,7 +67,7 @@ export function SplitMethodPage() {
   if (!identity) {
     return <Navigate to={joinRoomPath(shareCode)} replace />;
   }
-  if (status === 'success' && !group) {
+  if (status === 'success' && (!group || !canManageGroup)) {
     return <Navigate to={splitGroupsPath(shareCode)} replace />;
   }
 
@@ -143,7 +151,7 @@ export function SplitMethodPage() {
           <BottomActionBar>
             <Button
               className={styles.primaryButton}
-              onClick={() => navigate(splitGroupsPath(shareCode))}
+              onClick={() => goBack(2)}
             >
               완료하기
             </Button>

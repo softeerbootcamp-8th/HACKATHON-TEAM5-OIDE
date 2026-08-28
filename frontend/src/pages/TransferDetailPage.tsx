@@ -41,10 +41,12 @@ export function TransferDetailPage() {
     const groupIdByPaymentId = new Map(
       overview.payments.map((payment) => [payment.id, payment.splitGroupId]),
     );
-    const payments = paymentList.map((payment) => ({
-      ...payment,
-      splitGroupId: groupIdByPaymentId.get(payment.id) ?? null,
-    }));
+    const payments = paymentList
+      .filter((payment) => payment.includedInSettlement)
+      .map((payment) => ({
+        ...payment,
+        splitGroupId: groupIdByPaymentId.get(payment.id) ?? null,
+      }));
     const shareLists = await Promise.all(
       payments.map((payment) => getPaymentShares(shareCode, payment.id)),
     );
@@ -116,13 +118,13 @@ export function TransferDetailPage() {
           rates,
           fallbackMemberIds:
             data.groups.find((group) => group.type === 'ALL')?.memberIds ?? [],
+          memberIdsInDisplayOrder: data.room.members.map((member) => member.id),
           groupNameOf,
         })
       : [];
 
   const paidPayments =
-    data?.payments.filter((payment) => payment.payerMemberId === transfer?.senderMemberId) ??
-    [];
+    data?.payments.filter((payment) => payment.payerMemberId === transfer?.senderMemberId) ?? [];
   const paidForeign = paidPayments
     .filter((payment) => payment.currency !== 'KRW')
     .map((payment) => `${payment.currency} ${formatAmount(payment.amount, payment.currency)}`)

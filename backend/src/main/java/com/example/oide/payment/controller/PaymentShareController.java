@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -37,8 +38,11 @@ public class PaymentShareController {
 			@ApiResponse(responseCode = "400", description = "그룹 미지정 또는 잘못된 분담 상태", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
 			@ApiResponse(responseCode = "404", description = "방, 결제 또는 그룹을 찾을 수 없음", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
 	})
-	public ResponseEntity<PaymentShareResponse> saveEqual(@PathVariable Long roomId, @PathVariable Long paymentId) {
-		return ResponseEntity.ok(paymentShareService.saveEqual(roomId, paymentId));
+	public ResponseEntity<PaymentShareResponse> saveEqual(
+			@PathVariable Long roomId,
+			@PathVariable Long paymentId,
+			@RequestHeader("X-Room-Member-Id") Long memberId) {
+		return ResponseEntity.ok(paymentShareService.saveEqual(roomId, paymentId, memberId));
 	}
 
 	@PutMapping("/custom")
@@ -48,8 +52,12 @@ public class PaymentShareController {
 			@ApiResponse(responseCode = "400", description = "요청 구성원·금액 또는 분담 합계가 유효하지 않음", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
 			@ApiResponse(responseCode = "404", description = "방, 결제 또는 그룹을 찾을 수 없음", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
 	})
-	public ResponseEntity<PaymentShareResponse> saveCustom(@PathVariable Long roomId, @PathVariable Long paymentId, @Valid @RequestBody CustomShareRequest request) {
-		return ResponseEntity.ok(paymentShareService.saveCustom(roomId, paymentId, request));
+	public ResponseEntity<PaymentShareResponse> saveCustom(
+			@PathVariable Long roomId,
+			@PathVariable Long paymentId,
+			@RequestHeader("X-Room-Member-Id") Long memberId,
+			@Valid @RequestBody CustomShareRequest request) {
+		return ResponseEntity.ok(paymentShareService.saveCustom(roomId, paymentId, memberId, request));
 	}
 
 	@GetMapping

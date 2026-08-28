@@ -11,6 +11,7 @@ import {
   confirm,
   getPreview,
   getSettlement,
+  uncompleteMemberSettlement as requestMemberSettlementUncompletion,
 } from '../api/generated/client';
 import type {
   SettlementPreviewResponse,
@@ -27,6 +28,7 @@ import { ApiError } from '../types/api';
 import type { SettlementRate } from '../types/settlement';
 import type { CurrencyCode } from '../types/room';
 import { calculateSettlement } from '../utils/settlementCalculation';
+import { setPaymentSplit } from './paymentService';
 
 interface RoomRates {
   rates: SettlementRate[];
@@ -113,7 +115,32 @@ export async function getSettlementPreview(shareCode: string): Promise<Settlemen
       return mockDelayReject(new ApiError('UNKNOWN_ERROR', '정산방 생성 시각이 없어요.'));
     }
 
-    const payments = mockPaymentStore
+    let payments = mockPaymentStore
+      .findByRoom(room.id)
+      .filter((payment) => payment.includedInSettlement);
+    for (const payment of payments) {
+      if (!payment.splitGroupId) continue;
+      const shares = mockPaymentStore.findShares(payment.id);
+      const allocatedAmount = shares.reduce(
+        (sum, share) => sum + Number(share.shareAmount),
+        0,
+      );
+      if (
+        payment.splitMethod !== null &&
+        shares.length > 0 &&
+        allocatedAmount === Number(payment.amount)
+      ) {
+        continue;
+      }
+      await setPaymentSplit(
+        shareCode,
+        payment.id,
+        'EQUAL',
+        [],
+        payment.payerMemberId,
+      );
+    }
+    payments = mockPaymentStore
       .findByRoom(room.id)
       .filter((payment) => payment.includedInSettlement);
     const invalidPaymentIds = payments
@@ -162,11 +189,7 @@ export async function confirmSettlement(
     if (!room) {
       return mockDelayReject(new ApiError('ROOM_NOT_FOUND', '정산방을 찾을 수 없어요.', 404));
     }
-    const manualRate = manualRates[0];
-    mockSettlementStore.setManualRate(
-      room.id,
-      manualRate ?? null,
-    );
+    mockSettlementStore.setManualRates(room.id, manualRates);
     await mockDelay(undefined);
     return;
   }
@@ -314,6 +337,23 @@ export async function completeMySettlement(
   await callOrval<void>(() => requestMemberSettlementCompletion(roomId, parseApiId(memberId)));
 }
 
+export async function uncompleteMySettlement(
+  shareCode: string,
+  memberId: string,
+): Promise<void> {
+  if (USE_MOCK) {
+    const room = mockRoomStore.findByShareCode(shareCode);
+    if (!room) {
+      return mockDelayReject(new ApiError('ROOM_NOT_FOUND', '정산방을 찾을 수 없어요.', 404));
+    }
+    mockSettlementStore.uncompleteMember(room.id, memberId);
+    return mockDelay(undefined);
+  }
+
+  const roomId = await resolveRoomId(shareCode);
+  await callOrval<void>(() => requestMemberSettlementUncompletion(roomId, parseApiId(memberId)));
+}
+
 async function getMockRoomRates(shareCode: string): Promise<RoomRates> {
   const room = mockRoomStore.findByShareCode(shareCode);
   if (!room) {
@@ -324,14 +364,18 @@ async function getMockRoomRates(shareCode: string): Promise<RoomRates> {
   }
 
   const rates = buildSeedRates(room.createdAt);
-  const manual = mockSettlementStore.findManualRate(room.id);
-  if (!manual) return mockDelay({ rates });
+  const manualRates = mockSettlementStore.findManualRates(room.id);
+  if (manualRates.length === 0) return mockDelay({ rates });
+  const manualRatesByCurrency = new Map(
+    manualRates.map((rate) => [rate.currency, rate.rateToKrw]),
+  );
 
   return mockDelay({
-    rates: rates.map((rate) =>
-      rate.currency === manual.currency
-        ? { ...rate, rateToKrw: manual.rateToKrw, rateSource: 'MANUAL' as const }
-        : rate,
-    ),
+    rates: rates.map((rate) => {
+      const manualRate = manualRatesByCurrency.get(rate.currency);
+      return manualRate
+        ? { ...rate, rateToKrw: manualRate, rateSource: 'MANUAL' as const }
+        : rate;
+    }),
   });
 }

@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -73,8 +74,9 @@ public class SplitGroupController {
 	public ResponseEntity<SplitGroupResponse> update(
 			@PathVariable Long roomId,
 			@PathVariable Long groupId,
+			@RequestHeader("X-Room-Member-Id") Long memberId,
 			@Valid @RequestBody UpdateSplitGroupRequest request) {
-		return ResponseEntity.ok(splitGroupService.update(roomId, groupId, request));
+		return ResponseEntity.ok(splitGroupService.update(roomId, groupId, memberId, request));
 	}
 
 	@PutMapping("/{groupId}/payments")
@@ -89,8 +91,11 @@ public class SplitGroupController {
 
 	@DeleteMapping("/{groupId}")
 	@Operation(summary = "정산 그룹 삭제", description = "사용자 그룹을 삭제한다. 전체 그룹은 삭제할 수 없다.")
-	public ResponseEntity<Void> delete(@PathVariable Long roomId, @PathVariable Long groupId) {
-		splitGroupService.delete(roomId, groupId);
+	public ResponseEntity<Void> delete(
+			@PathVariable Long roomId,
+			@PathVariable Long groupId,
+			@RequestHeader("X-Room-Member-Id") Long memberId) {
+		splitGroupService.delete(roomId, groupId, memberId);
 		return ResponseEntity.noContent().build();
 	}
 }

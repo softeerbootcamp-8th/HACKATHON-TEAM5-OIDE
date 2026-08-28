@@ -29,7 +29,8 @@
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  max-width: 58%;
+  /* 통화 두 개까지 한 줄에 들어가야 한다. 그룹 이름은 좁아지면 줄바꿈된다. */
+  max-width: 72%;
   min-width: 0;
   font-size: 14px;
   color: var(--color-text-muted);

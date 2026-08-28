@@ -25,6 +25,7 @@ import com.example.oide.room.domain.SettlementRoom;
 import com.example.oide.room.repository.RoomMemberRepository;
 import com.example.oide.room.repository.SettlementRoomRepository;
 import com.example.oide.settlement.dto.ManualRatesRequest;
+import com.example.oide.settlement.dto.SettlementPreviewResponse;
 import com.example.oide.settlement.dto.SettlementResponse;
 import com.example.oide.settlement.repository.SettlementMemberResultRepository;
 import com.example.oide.settlement.repository.SettlementRepository;
@@ -143,6 +144,65 @@ class SettlementServiceTest {
 		assertThat(response.result().memberResults())
 				.extracting(result -> result.nickname() + ":" + result.paidKrw() + ":" + result.owedKrw())
 				.containsExactly("A:10000:5000", "B:0:5000");
+	}
+
+	@Test
+	void repairsIncompleteSharesBeforeCreatingPreview() {
+		SettlementRoom room = roomRepository.save(
+				new SettlementRoom("repair-code", "여행", SupportedCurrency.KRW));
+		RoomMember memberA = roomMemberRepository.save(new RoomMember(room, "A", 1));
+		RoomMember memberB = roomMemberRepository.save(new RoomMember(room, "B", 2));
+		SplitGroup group = splitGroupRepository.save(new SplitGroup(room, "전체", SplitGroupType.ALL));
+		Payment payment = paymentRepository.save(new Payment(
+				room, memberA, "식사", LocalDateTime.now(), new BigDecimal("10000"),
+				SupportedCurrency.KRW, null, true));
+		payment.assignGroup(group);
+
+		SettlementPreviewResponse response = settlementService.getPreview(room.getId());
+
+		assertThat(response.settlementAvailable()).isTrue();
+		assertThat(payment.getSplitMethod()).isEqualTo(SplitMethod.EQUAL);
+		assertThat(paymentShareRepository.findAllByPaymentId(payment.getId()))
+				.extracting(PaymentShare::getShareAmount)
+				.containsExactly(new BigDecimal("5000"), new BigDecimal("5000"));
+	}
+
+	@Test
+	void appliesManualRateToKrwPayments() {
+		SettlementRoom room = roomRepository.save(
+				new SettlementRoom("krw-rate-code", "여행", SupportedCurrency.KRW));
+		RoomMember memberA = roomMemberRepository.save(new RoomMember(room, "A", 1));
+		RoomMember memberB = roomMemberRepository.save(new RoomMember(room, "B", 2));
+		SplitGroup group = splitGroupRepository.save(new SplitGroup(room, "전체", SplitGroupType.ALL));
+		Payment payment = paymentRepository.save(new Payment(
+				room, memberA, "식사", LocalDateTime.now(), new BigDecimal("10000"),
+				SupportedCurrency.KRW, SplitMethod.EQUAL, true));
+		payment.assignGroup(group);
+		paymentShareRepository.saveAll(List.of(
+				new PaymentShare(payment, memberA, new BigDecimal("5000")),
+				new PaymentShare(payment, memberB, new BigDecimal("5000"))));
+
+		SettlementResponse response = settlementService.confirm(
+				room.getId(), new ManualRatesRequest(List.of(
+						new ManualRatesRequest.ManualRateRequest("KRW", new BigDecimal("2")))));
+
+		assertThat(response.result().memberResults())
+				.extracting(result -> result.nickname() + ":" + result.paidKrw() + ":" + result.owedKrw())
+				.containsExactly("A:20000:10000", "B:0:10000");
+	}
+
+	@Test
+	void uncompletesMemberSettlement() {
+		ConfirmedSettlement confirmed = createConfirmedSettlement("uncompletion-code");
+		settlementService.completeMemberSettlement(confirmed.room().getId(), confirmed.memberA().getId());
+
+		settlementService.uncompleteMemberSettlement(confirmed.room().getId(), confirmed.memberA().getId());
+
+		assertThat(settlementMemberResultRepository
+				.findBySettlementIdAndMemberId(confirmed.settlementId(), confirmed.memberA().getId())
+				.orElseThrow()
+				.getCompletedAt()).isNull();
+		assertThat(settlementService.getSettlement(confirmed.room().getId()).completedMemberIds()).isEmpty();
 	}
 
 	@Test

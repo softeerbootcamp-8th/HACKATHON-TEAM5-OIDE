@@ -2,7 +2,8 @@ name: Deploy frontend to S3
 
 on:
   push:
-    branches: [main]
+    # TODO(#109): dev는 팀원 확인 편의를 위한 임시 배포 트리거다. main만 남기고 원복할 것.
+    branches: [main, dev]
     paths:
       - 'frontend/**'
       - '.github/workflows/frontend-ci.yml'

@@ -24,6 +24,7 @@ import com.example.oide.payment.domain.Payment;
 import com.example.oide.payment.domain.PaymentShare;
 import com.example.oide.payment.repository.PaymentRepository;
 import com.example.oide.payment.repository.PaymentShareRepository;
+import com.example.oide.payment.service.PaymentShareService;
 import com.example.oide.room.domain.RoomMember;
 import com.example.oide.room.domain.SettlementRoom;
 import com.example.oide.room.repository.RoomMemberRepository;
@@ -58,6 +59,7 @@ public class SettlementService {
 	private final RoomMemberRepository roomMemberRepository;
 	private final PaymentRepository paymentRepository;
 	private final PaymentShareRepository paymentShareRepository;
+	private final PaymentShareService paymentShareService;
 	private final ExchangeRateRepository exchangeRateRepository;
 	private final SettlementRepository settlementRepository;
 	private final SettlementRateRepository settlementRateRepository;
@@ -67,6 +69,7 @@ public class SettlementService {
 
 	@Transactional
 	public SettlementPreviewResponse getPreview(Long roomId) {
+		paymentShareService.repairIncompleteShares(roomId);
 		SettlementRoom room = findRoom(roomId);
 		List<Payment> payments = paymentRepository
 				.findAllByRoomIdAndIncludedInSettlementTrueOrderByPaidAtDescIdDesc(roomId);
@@ -74,8 +77,9 @@ public class SettlementService {
 		return createPreview(room, payments, Map.of(), rates);
 	}
 
-	@Transactional(readOnly = true)
+	@Transactional
 	public SettlementPreviewResponse previewWithManualRates(Long roomId, ManualRatesRequest request) {
+		paymentShareService.repairIncompleteShares(roomId);
 		SettlementRoom room = findRoom(roomId);
 		List<Payment> payments = paymentRepository
 				.findAllByRoomIdAndIncludedInSettlementTrueOrderByPaidAtDescIdDesc(roomId);
@@ -87,6 +91,7 @@ public class SettlementService {
 	public SettlementResponse confirm(Long roomId, ManualRatesRequest request) {
 		SettlementRoom room = roomRepository.findByIdForUpdate(roomId)
 				.orElseThrow(() -> new BusinessException(ErrorCode.ROOM_NOT_FOUND));
+		paymentShareService.repairIncompleteShares(roomId);
 		List<Payment> payments = paymentRepository
 				.findAllByRoomIdAndIncludedInSettlementTrueOrderByPaidAtDescIdDesc(roomId);
 		Map<String, ResolvedRate> automaticRates = loadAutomaticRates(room, getCurrencies(payments), false);
@@ -160,6 +165,18 @@ public class SettlementService {
 				.findBySettlementIdAndMemberId(settlement.getId(), memberId)
 				.orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
 		memberResult.complete(LocalDateTime.now());
+	}
+
+	// 완료한 참여자가 자신의 분담을 다시 수정하려 할 때, 재확정 후에도 완료 상태가
+	// 그대로 보존되어 "완료하기" 화면으로 돌아오지 못하는 것을 막기 위해 완료를 취소한다.
+	@Transactional
+	public void uncompleteMemberSettlement(Long roomId, Long memberId) {
+		Settlement settlement = settlementRepository.findByRoomId(roomId)
+				.orElseThrow(() -> new BusinessException(ErrorCode.SETTLEMENT_NOT_FOUND));
+		SettlementMemberResult memberResult = settlementMemberResultRepository
+				.findBySettlementIdAndMemberId(settlement.getId(), memberId)
+				.orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
+		memberResult.uncomplete();
 	}
 
 	@Transactional(readOnly = true)
@@ -358,7 +375,7 @@ public class SettlementService {
 		Map<String, ResolvedRate> rates = new LinkedHashMap<>();
 		for (ManualRatesRequest.ManualRateRequest manualRate : request.manualRates()) {
 			String currency = manualRate.currency().trim().toUpperCase();
-			if (!currencies.add(currency) || "KRW".equals(currency) || !paymentCurrencies.contains(currency)) {
+			if (!currencies.add(currency) || !paymentCurrencies.contains(currency)) {
 				throw new BusinessException(ErrorCode.INVALID_REQUEST);
 			}
 			rates.put(currency, new ResolvedRate(
